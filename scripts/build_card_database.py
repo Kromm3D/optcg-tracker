@@ -96,22 +96,63 @@ def pick(d, *keys, default=None):
     return default
 
 
-def derive_variant_suffix(card_id, image_id):
-    """De card_id='OP01-001' e image_id='OP01-001_p1' deriva '_p1'."""
-    if not image_id or image_id == card_id:
+def derive_variant_suffix_from_url(card_id, img_url):
+    """De card_id='OP01-001' y URL '.../OP01-001_p1.jpg' deriva '_p1'.
+    La fuente fiable del sufijo es la URL de la imagen, NO card_image_id
+    (que la API a veces devuelve igual al code base aunque haya variantes)."""
+    if not img_url:
         return ""
-    if image_id.startswith(card_id):
-        return image_id[len(card_id):]
+    # Extraer el último segmento de la URL sin extensión
+    filename = img_url.rsplit("/", 1)[-1]
+    stem = filename.rsplit(".", 1)[0]  # quita la extensión
+    if stem == card_id:
+        return ""
+    if stem.startswith(card_id):
+        return stem[len(card_id):]
     return ""
 
 
-def safe_filename(image_id):
-    return image_id.replace("/", "_").replace("\\", "_") + ".png"
+def safe_filename_from_url(img_url, fallback):
+    """Devuelve el nombre de archivo a usar localmente, basado en la URL real
+    de la imagen. Así NUNCA se machacan archivos entre variantes."""
+    if img_url:
+        name = img_url.rsplit("/", 1)[-1]
+        if name:
+            return name
+    return fallback + ".jpg"
 
 
-def local_image_path(card_id, image_id):
+def local_image_path(card_id, img_url, image_id):
+    """Devuelve la ruta local 'images/<SET>/<filename>' usando la URL como fuente."""
     set_prefix = card_id.split("-")[0] if "-" in card_id else "OTHER"
-    return f"images/{set_prefix}/{safe_filename(image_id or card_id)}"
+    fname = safe_filename_from_url(img_url, image_id or card_id)
+    return f"images/{set_prefix}/{fname}"
+
+
+def variant_label_from(suffix, card_name):
+    """Genera una etiqueta legible para la variante.
+    Prefiere lo que diga el card_name entre paréntesis ('(Parallel)', '(Manga)')
+    porque es lo que más reconocerá el usuario al verlo."""
+    # Extraer lo que haya entre el último par de paréntesis del nombre
+    if card_name and "(" in card_name and ")" in card_name:
+        # Buscar de derecha a izquierda paréntesis con contenido relevante
+        parts = []
+        rest = card_name
+        while "(" in rest and ")" in rest:
+            l = rest.rfind("(")
+            r = rest.find(")", l)
+            if r == -1:
+                break
+            content = rest[l+1:r].strip()
+            parts.append(content)
+            rest = rest[:l]
+        # Filtrar las que son solo dígitos (el "(001)" del nombre)
+        labels = [p for p in parts if not p.isdigit()]
+        if labels:
+            return labels[0]  # la más cercana al final (Parallel, Manga, etc.)
+    if suffix == "":
+        return "Normal"
+    return f"Variante ({suffix})"
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +193,21 @@ def fetch_all_cards(session):
     return all_cards
 
 
+def clean_card_name(name):
+    """Quita el sufijo '(Parallel)', '(Manga)', etc. del nombre para mostrar
+    solo el nombre limpio en la entrada del índice. Mantiene el '(001)' si
+    está, porque forma parte de la identidad de la carta."""
+    if not name:
+        return ""
+    # Quitar el último par de paréntesis si no es solo dígitos
+    parts = name.rsplit("(", 1)
+    if len(parts) == 2 and ")" in parts[1]:
+        inside = parts[1].split(")")[0].strip()
+        if not inside.isdigit():
+            return parts[0].strip()
+    return name.strip()
+
+
 def build_index(cards):
     """Agrupa las cartas por código base con sus variantes."""
     index = {}
@@ -164,22 +220,26 @@ def build_index(cards):
         rarity = pick(card, "rarity", "card_rarity", default="")
         img_url = pick(card, "card_image", "image", "image_url", "imageUrl")
 
-        suffix = derive_variant_suffix(card_id, image_id)
-        variant_label = "Normal" if suffix == "" else f"Alt/Variante ({suffix})"
+        # Fuente de verdad para el sufijo: la URL de la imagen
+        suffix = derive_variant_suffix_from_url(card_id, img_url)
+        label = variant_label_from(suffix, name)
+        clean_name = clean_card_name(name)
 
-        entry = index.setdefault(card_id, {"code": card_id, "name": name, "variants": []})
-        if name and not entry["name"]:
-            entry["name"] = name
+        entry = index.setdefault(card_id, {"code": card_id, "name": clean_name, "variants": []})
+        if clean_name and not entry["name"]:
+            entry["name"] = clean_name
 
         variant = {
             "suffix": suffix,
-            "label": variant_label,
+            "label": label,
             "rarity": rarity,
-            "image_id": image_id,
-            "image_local": local_image_path(card_id, image_id),
+            "full_name": name,
+            "image_local": local_image_path(card_id, img_url, image_id),
             "image_source": img_url or "",
         }
-        if not any(v["image_id"] == variant["image_id"] for v in entry["variants"]):
+        # Evitar duplicados por URL (la URL identifica la variante de forma fiable)
+        existing_urls = {v.get("image_source") for v in entry["variants"]}
+        if variant["image_source"] not in existing_urls:
             entry["variants"].append(variant)
 
     return index

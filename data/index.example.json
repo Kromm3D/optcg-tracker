@@ -1,64 +1,28 @@
 {
   "generated_with": "build_card_database.py",
   "source": "https://www.optcgapi.com",
-  "card_count": 3,
-  "_comment": "EJEMPLO de estructura. El script real rellenará esto con todas las cartas (OP01-OP15, ST y promos). Cada código agrupa sus variantes; la app usa esto para mostrar miniaturas y dejar que el usuario elija la versión correcta tras el OCR.",
+  "card_count": 1,
+  "_comment": "EJEMPLO de estructura real. El sufijo de variante se deriva de la URL de la imagen (única fuente fiable). La etiqueta se extrae del nombre completo de la carta entre paréntesis (Parallel, Manga, etc.).",
   "cards": {
     "OP01-001": {
       "code": "OP01-001",
-      "name": "Roronoa Zoro",
+      "name": "Roronoa Zoro (001)",
       "variants": [
         {
           "suffix": "",
           "label": "Normal",
           "rarity": "L",
-          "image_id": "OP01-001",
-          "image_local": "images/OP01/OP01-001.png",
-          "image_source": "https://optcgapi.com/.../OP01-001.png"
+          "full_name": "Roronoa Zoro (001)",
+          "image_local": "images/OP01/OP01-001.jpg",
+          "image_source": "https://optcgapi.com/media/static/Card_Images/OP01-001.jpg"
         },
         {
           "suffix": "_p1",
-          "label": "Alt/Variante (_p1)",
+          "label": "Parallel",
           "rarity": "L",
-          "image_id": "OP01-001_p1",
-          "image_local": "images/OP01/OP01-001_p1.png",
-          "image_source": "https://optcgapi.com/.../OP01-001_p1.png"
-        }
-      ]
-    },
-    "OP14-033": {
-      "code": "OP14-033",
-      "name": "Perona",
-      "variants": [
-        {
-          "suffix": "",
-          "label": "Normal",
-          "rarity": "SR",
-          "image_id": "OP14-033",
-          "image_local": "images/OP14/OP14-033.png",
-          "image_source": "https://optcgapi.com/.../OP14-033.png"
-        },
-        {
-          "suffix": "_p1",
-          "label": "Alt/Variante (_p1)",
-          "rarity": "SR",
-          "image_id": "OP14-033_p1",
-          "image_local": "images/OP14/OP14-033_p1.png",
-          "image_source": "https://optcgapi.com/.../OP14-033_p1.png"
-        }
-      ]
-    },
-    "ST01-001": {
-      "code": "ST01-001",
-      "name": "Monkey.D.Luffy",
-      "variants": [
-        {
-          "suffix": "",
-          "label": "Normal",
-          "rarity": "L",
-          "image_id": "ST01-001",
-          "image_local": "images/ST01/ST01-001.png",
-          "image_source": "https://optcgapi.com/.../ST01-001.png"
+          "full_name": "Roronoa Zoro (001) (Parallel)",
+          "image_local": "images/OP01/OP01-001_p1.jpg",
+          "image_source": "https://optcgapi.com/media/static/Card_Images/OP01-001_p1.jpg"
         }
       ]
     }
