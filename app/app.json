@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "OPTCG Collector",
+    "slug": "optcg-collector",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0e1117"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
