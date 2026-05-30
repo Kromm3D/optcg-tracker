@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "HoroHoro.tcg",
+    "slug": "optcg-collector",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to scan One Piece TCG card codes."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0e0c1a"
+      },
+      "permissions": [
+        "CAMERA"
+      ],
+      "package": "com.kromm.horohorotcg"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-status-bar",
+      "expo-image"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4b2b2414-8541-47ea-aa93-6b22b18494e5"
+      }
+    }
+  }
+}

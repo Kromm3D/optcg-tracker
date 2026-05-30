@@ -1,0 +1,30 @@
+{
+  "generated_with": "build_card_database.py",
+  "source": "https://www.optcgapi.com",
+  "card_count": 1,
+  "_comment": "EJEMPLO de estructura real. El sufijo de variante se deriva de la URL de la imagen (única fuente fiable). La etiqueta se extrae del nombre completo de la carta entre paréntesis (Parallel, Manga, etc.).",
+  "cards": {
+    "OP01-001": {
+      "code": "OP01-001",
+      "name": "Roronoa Zoro (001)",
+      "variants": [
+        {
+          "suffix": "",
+          "label": "Normal",
+          "rarity": "L",
+          "full_name": "Roronoa Zoro (001)",
+          "image_local": "images/OP01/OP01-001.jpg",
+          "image_source": "https://optcgapi.com/media/static/Card_Images/OP01-001.jpg"
+        },
+        {
+          "suffix": "_p1",
+          "label": "Parallel",
+          "rarity": "L",
+          "full_name": "Roronoa Zoro (001) (Parallel)",
+          "image_local": "images/OP01/OP01-001_p1.jpg",
+          "image_source": "https://optcgapi.com/media/static/Card_Images/OP01-001_p1.jpg"
+        }
+      ]
+    }
+  }
+}
