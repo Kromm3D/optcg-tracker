@@ -1,0 +1,197 @@
+// Spanish UI strings. Must mirror every key in en.ts.
+
+import type { TKey } from './en';
+
+export const es: Record<TKey, string> = {
+  // Tabs / nav
+  'tab.home': 'Inicio',
+  'tab.cards': 'Cartas',
+  'tab.binder': 'Binder',
+  'tab.decks': 'Mazos',
+  'tab.scan': 'Escanear',
+
+  // Home
+  'home.collection': 'Colección',
+  'home.cardsLabel': 'cartas',
+  'home.unique': 'únicas',
+  'home.ofIndex': 'del índice',
+  'home.vaultValue': 'valor vault',
+  'home.cards': 'Cartas',
+  'home.inIndex': 'en índice',
+  'home.decks': 'Mazos',
+  'home.createDeck': 'Crear mazo',
+  'home.deck': 'mazo',
+  'home.decksPlural': 'mazos',
+  'home.scan': 'Escanear',
+  'home.addCards': 'Añadir cartas',
+  'home.sets': 'Sets',
+  'home.setsCount': 'sets',
+  'home.wishlist': 'Wishlist',
+  'home.stats': 'Stats',
+  'home.settings': 'Ajustes',
+
+  // Binder
+  'binder.title': 'Mi Binder',
+  'binder.collection': 'Colección',
+  'binder.wishlist': 'Wishlist',
+  'binder.trade': 'Trade',
+  'binder.uniqueCards': 'cartas únicas',
+  'binder.units': 'unidades',
+  'binder.wishes': 'deseos',
+  'binder.pending': 'pendientes',
+  'binder.tradeable': 'para cambio',
+  'binder.copies': 'copias',
+  'binder.showAll': 'Ver todas',
+  'binder.ownedOnly': 'Solo poseídas',
+  'binder.shareImage': 'Compartir imagen',
+  'binder.emptyOwned': 'Tu binder está vacío',
+  'binder.emptyOwnedBody': 'Busca una carta y pulsa + en una variante para añadirla.',
+  'binder.emptyWishlist': 'Wishlist vacía',
+  'binder.emptyWishlistBody': 'En el detalle de una carta usa el corazón para añadirla a tu wishlist.',
+  'binder.emptyTrade': 'No hay cartas para cambio',
+  'binder.emptyTradeBody': 'Las cartas que superen tu playset aparecerán aquí automáticamente.',
+
+  // Wishlists
+  'wl.newWishlist': 'Nueva Wishlist',
+  'wl.createWishlist': 'Crear Wishlist',
+  'wl.namePlaceholder': 'Nombre de la wishlist…',
+  'wl.create': 'Crear',
+  'wl.wipe': 'Vaciar todas las cartas',
+  'wl.wipeConfirm': '¿Eliminar todas las cartas de "{name}"?',
+  'wl.wipeAction': 'Vaciar',
+  'wl.delete': 'Eliminar wishlist',
+  'wl.deleteConfirm': '¿Eliminar "{name}"? Esto no se puede deshacer.',
+  'wl.pickTitle': 'Añadir a wishlist',
+  'wl.pickBody': 'Elige una wishlist existente o crea una nueva.',
+  'wl.noWishlists': 'Aún no hay wishlists. Crea una para empezar.',
+  'wl.variantTitle': 'Elegir variante',
+  'wl.variantBody': 'Selecciona la versión y cantidad que necesitas.',
+  'wl.normal': 'Normal',
+  'wl.confirm': 'Confirmar',
+
+  // Wishlist detail
+  'wl.entries': 'entradas',
+  'wl.copiesNeeded': 'necesitadas',
+  'wl.owned': 'poseídas',
+  'wl.addCards': 'Añadir Cartas',
+  'wl.rename': 'Renombrar Wishlist',
+  'wl.renameAction': 'Renombrar',
+  'wl.emptyTitle': 'Wishlist vacía',
+  'wl.emptyBody': 'Pulsa + para añadir cartas a esta wishlist.',
+
+  // Settings
+  'settings.wishlistDefault': 'Variante por defecto al añadir a wishlist',
+  'settings.wishlistNormal': 'Normal (sin parallel)',
+  'settings.wishlistParallel': 'Parallel (si está disponible)',
+
+  // Sort direction
+  'sort.asc': 'Asc',
+  'sort.desc': 'Desc',
+
+  // Add cards modal
+  'add.title': 'Añadir Cartas',
+  'add.searchPlaceholder': 'yellow luffy op01, red OP01-001…',
+  'add.owned': 'tienes',
+
+  // Decks
+  'decks.title': 'Mazos',
+  'decks.newDeck': 'Nuevo Mazo',
+  'decks.importSim': 'Importar de OPTCGSim',
+  'decks.importTitle': 'Importar mazo',
+  'decks.importPlaceholder': '1xOP11-041 4xOP14-102 2xOP06-106…',
+  'decks.import': 'Importar',
+  'decks.deckName': 'Nombre del mazo',
+  'decks.create': 'Crear',
+  'decks.cancel': 'Cancelar',
+  'decks.slots': 'slots',
+  'decks.cards': 'cartas',
+  'decks.emptyTitle': 'Aún no hay mazos',
+  'decks.emptyBody': 'Crea un mazo o importa uno de OPTCGSim.',
+  'decks.importedNone': 'No se encontraron cartas válidas en ese código.',
+  'decks.importedOk': 'Importadas {n} cartas.',
+
+  // Deck detail
+  'deck.empty': 'Mazo vacío',
+  'deck.emptyBody': 'Pulsa + para añadir cartas al mazo.',
+  'deck.rename': 'Renombrar Mazo',
+  'deck.renameAction': 'Renombrar',
+  'deck.addMissing': 'Añadir faltantes a wishlist',
+  'deck.missingAdded': '{n} cartas faltantes añadidas a la wishlist.',
+  'deck.missingNone': 'No faltan cartas — ¡las tienes todas!',
+
+  // Scan
+  'scan.permTitle': 'Se necesita acceso a la cámara',
+  'scan.permBody': '¡Perona necesita ver la carta para añadirla a tu vault!',
+  'scan.grant': 'Conceder permiso',
+  'scan.hint': 'Alinea el código de la carta (ej. OP01-001)',
+  'scan.manualLabel': 'Introduce el código manualmente',
+  'scan.add': 'Añadir',
+  'scan.manualHint': 'Pulsa "Añadir" tras escribir o escanear el código de la carta.',
+  'scan.inVault': 'en vault',
+
+  // Sets
+  'sets.title': 'Sets',
+  'sets.countParallels': 'Contar parallels',
+  'sets.groupBooster': 'Sobres',
+  'sets.groupStarter': 'Mazos Iniciales',
+  'sets.groupPromo': 'Promos',
+  'sets.groupOther': 'Otros',
+
+  // Settings
+  'settings.title': 'Ajustes',
+  'settings.language': 'Idioma',
+  'settings.english': 'English',
+  'settings.spanish': 'Español',
+  'settings.gridColumns': 'Columnas del grid',
+  'settings.countParallels': 'Contar parallels como completado',
+  'settings.countParallelsDesc': 'Un set se completa solo cuando se poseen todas las variantes.',
+  'settings.playsetSize': 'Tamaño del playset',
+  'settings.playsetSizeDesc': 'Copias que conservas antes de que el excedente vaya al binder de Trade.',
+  'settings.showAltArt': 'Mostrar arte alternativo',
+  'settings.showAltArtDesc': 'Muestra cada parallel / arte alternativo como su propia carta. Apagado muestra solo el arte estándar.',
+
+  // Bulk actions
+  'bulk.select': 'Seleccionar',
+  'bulk.done': 'Hecho',
+  'bulk.selected': '{n} seleccionadas',
+  'bulk.clear': 'Limpiar',
+  'bulk.toCollection': 'Colección',
+  'bulk.toWishlist': 'Wishlist',
+  'bulk.toTrade': 'Trade',
+  'bulk.toDeck': 'Mazo',
+  'bulk.addTitle': 'Añadir {n} cartas',
+  'bulk.quantity': 'Cantidad por carta',
+  'bulk.pickDeck': 'Elige un mazo',
+  'bulk.noDecks': 'Aún no hay mazos. Crea uno desde la pestaña Mazos.',
+  'bulk.confirmAdd': 'Añadir a {target}',
+  'bulk.added': 'Añadidas {n} cartas a {target}.',
+
+  // Set-level bulk wishlist
+  'setwl.addMissing': 'Añadir faltantes a wishlist',
+  'setwl.title': 'Añadir cartas faltantes',
+  'setwl.missingCount': '{n} cartas faltantes en este set',
+  'setwl.printing': 'Impresión',
+  'setwl.normal': 'Normal',
+  'setwl.parallel': 'Parallel',
+  'setwl.both': 'Ambas',
+  'setwl.perRarity': 'Copias por rareza',
+  'setwl.none': 'No falta nada — ¡las tienes todas!',
+  'setwl.added': 'Añadidas {n} entradas a la wishlist.',
+
+  // Filters
+  'filter.title': 'Filtros',
+  'filter.variant': 'Variante / Parallel',
+  'filter.clear': 'Limpiar',
+  'filter.apply': 'Aplicar',
+  'filter.sort': 'Ordenar',
+  'sort.code': 'Código',
+  'sort.set': 'Set',
+  'sort.rarity': 'Rareza',
+  'sort.power': 'Poder',
+  'sort.cost': 'Coste',
+  'sort.owned': 'Poseídas',
+
+  // Generic
+  'common.cancel': 'Cancelar',
+  'common.done': 'Hecho',
+};

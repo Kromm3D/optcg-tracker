@@ -21,10 +21,13 @@ import {
   listDecks,
   createDeck,
   deleteDeck,
+  setDeckCard,
   deckTotal,
   subscribe,
   type Deck,
 } from '../lib/decks';
+import { parseOptcgSim, defaultDeckName } from '../lib/optcgsim';
+import { useT } from '../lib/i18n';
 
 /** Small card-art thumbnail for the deck row. Shows leader art or fallback icon. */
 function DeckThumb({ deck }: { deck: Deck }) {
@@ -59,9 +62,12 @@ function leaderImageUri(deck: Deck): { uri: string; fallback: string } | null {
 }
 
 export function DecksScreen({ navigation }: DecksScreenProps) {
+  const t = useT();
   const [decks, setDecks] = useState<Deck[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [newName, setNewName] = useState('');
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState('');
 
   const refresh = useCallback(() => {
     listDecks().then(setDecks);
@@ -87,16 +93,34 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
     ]);
   }, []);
 
+  const handleImport = useCallback(async () => {
+    const entries = parseOptcgSim(importText);
+    if (entries.length === 0) {
+      Alert.alert(t('decks.importTitle'), t('decks.importedNone'));
+      return;
+    }
+    const deck = await createDeck(newName.trim() || defaultDeckName(entries));
+    for (const e of entries) await setDeckCard(deck.id, e.code, e.qty);
+    setShowImport(false);
+    setImportText('');
+    setNewName('');
+    navigation.navigate('DeckDetail', { deckId: deck.id });
+  }, [importText, newName, navigation, t]);
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {decks.length === 0 ? (
         <View style={s.empty}>
           <Icon name="binder" size={48} color={colors.textDim} />
-          <Text style={s.emptyTitle}>No decks yet</Text>
-          <Text style={s.emptySub}>Create your first deck to start tracking copies.</Text>
+          <Text style={s.emptyTitle}>{t('decks.emptyTitle')}</Text>
+          <Text style={s.emptySub}>{t('decks.emptyBody')}</Text>
           <Pressable style={s.createBtn} onPress={() => setShowModal(true)}>
             <Icon name="plus" size={18} color="#fff" />
-            <Text style={s.createBtnText}>New Deck</Text>
+            <Text style={s.createBtnText}>{t('decks.newDeck')}</Text>
+          </Pressable>
+          <Pressable style={s.importBtn} onPress={() => setShowImport(true)}>
+            <Icon name="external" size={18} color={colors.accent} />
+            <Text style={s.importBtnText}>{t('decks.importSim')}</Text>
           </Pressable>
         </View>
       ) : (
@@ -105,10 +129,16 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
           keyExtractor={(d) => d.id}
           contentContainerStyle={s.list}
           ListHeaderComponent={
-            <Pressable style={s.newRow} onPress={() => setShowModal(true)}>
-              <Icon name="plus" size={18} color={colors.accent} />
-              <Text style={s.newRowText}>New Deck</Text>
-            </Pressable>
+            <View style={{ gap: spacing.sm }}>
+              <Pressable style={s.newRow} onPress={() => setShowModal(true)}>
+                <Icon name="plus" size={18} color={colors.accent} />
+                <Text style={s.newRowText}>{t('decks.newDeck')}</Text>
+              </Pressable>
+              <Pressable style={s.newRow} onPress={() => setShowImport(true)}>
+                <Icon name="external" size={18} color={colors.accent} />
+                <Text style={s.newRowText}>{t('decks.importSim')}</Text>
+              </Pressable>
+            </View>
           }
           renderItem={({ item }) => (
             <Pressable
@@ -120,7 +150,7 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
               <View style={{ flex: 1 }}>
                 <Text style={s.deckName}>{item.name}</Text>
                 <Text style={s.deckMeta}>
-                  {item.cards.length} slots · {deckTotal(item)} cartas
+                  {item.cards.length} {t('decks.slots')} · {deckTotal(item)} {t('decks.cards')}
                 </Text>
               </View>
               <Icon name="chevR" size={18} color={colors.textDim} />
@@ -139,12 +169,12 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
       >
         <Pressable style={s.modalBg} onPress={() => setShowModal(false)}>
           <Pressable style={s.modalCard} onPress={() => {}}>
-            <Text style={s.modalTitle}>New Deck</Text>
+            <Text style={s.modalTitle}>{t('decks.newDeck')}</Text>
             <TextInput
               style={s.modalInput}
               value={newName}
               onChangeText={setNewName}
-              placeholder="Deck name…"
+              placeholder={t('decks.deckName')}
               placeholderTextColor={colors.textDim}
               autoFocus
               returnKeyType="done"
@@ -152,14 +182,51 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
             />
             <View style={s.modalRow}>
               <Pressable style={s.modalCancel} onPress={() => setShowModal(false)}>
-                <Text style={s.modalCancelText}>Cancel</Text>
+                <Text style={s.modalCancelText}>{t('decks.cancel')}</Text>
               </Pressable>
               <Pressable
                 style={[s.modalConfirm, !newName.trim() && { opacity: 0.4 }]}
                 onPress={handleCreate}
                 disabled={!newName.trim()}
               >
-                <Text style={s.modalConfirmText}>Create</Text>
+                <Text style={s.modalConfirmText}>{t('decks.create')}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Import from OPTCGSim modal */}
+      <Modal
+        visible={showImport}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowImport(false)}
+      >
+        <Pressable style={s.modalBg} onPress={() => setShowImport(false)}>
+          <Pressable style={s.modalCard} onPress={() => {}}>
+            <Text style={s.modalTitle}>{t('decks.importTitle')}</Text>
+            <TextInput
+              style={[s.modalInput, s.importInput]}
+              value={importText}
+              onChangeText={setImportText}
+              placeholder={t('decks.importPlaceholder')}
+              placeholderTextColor={colors.textDim}
+              autoFocus
+              multiline
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+            <View style={s.modalRow}>
+              <Pressable style={s.modalCancel} onPress={() => setShowImport(false)}>
+                <Text style={s.modalCancelText}>{t('decks.cancel')}</Text>
+              </Pressable>
+              <Pressable
+                style={[s.modalConfirm, !importText.trim() && { opacity: 0.4 }]}
+                onPress={handleImport}
+                disabled={!importText.trim()}
+              >
+                <Text style={s.modalConfirmText}>{t('decks.import')}</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -245,6 +312,19 @@ const s = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   createBtnText: { fontSize: 15, fontFamily: fonts.uiBold, color: '#fff' },
+  importBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  importBtnText: { fontSize: 14, fontFamily: fonts.uiSemi, color: colors.accent },
+  importInput: { height: 90, textAlignVertical: 'top', paddingTop: 12 },
 
   // Modal
   modalBg: {

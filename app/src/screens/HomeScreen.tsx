@@ -9,12 +9,14 @@ import {
   View,
 } from 'react-native';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { HomeScreenProps } from '../navigation';
 import { CARD_LIST, INDEX_META } from '../data/loadIndex';
 import { colors, fonts, radii, spacing } from '../theme';
 import { getOwnedFor, getOwnedTotals, subscribe as subOwned } from '../lib/ownedAggregate';
 import { getPrice, HOLO_RARITIES } from '../lib/prices';
 import { listDecks } from '../lib/decks';
+import { useT } from '../lib/i18n';
 
 // ─── Small inline SVG icons for tiles ────────────────────────────────────────
 
@@ -47,6 +49,12 @@ function TileIcon({ name, size = 36, color = colors.accent }: { name: string; si
     stats: (
       <Path d="M4 20V14M9 20V8M14 20V12M19 20V4" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
     ),
+    settings: (
+      <>
+        <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth="1.8" />
+        <Path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      </>
+    ),
   };
 
   return (
@@ -65,31 +73,32 @@ function HeroTile({ onPress, totalOwned, uniqueOwned, completion, vaultValue }: 
   completion: number;
   vaultValue: number;
 }) {
+  const t = useT();
   return (
     <Pressable style={s.heroTile} onPress={onPress}>
       <View style={s.heroIconWrap}>
         <TileIcon name="binder" size={40} color={colors.accent} />
       </View>
-      <Text style={s.heroTitle}>Colección</Text>
+      <Text style={s.heroTitle}>{t('home.collection')}</Text>
       <View style={s.heroStats}>
         <View style={s.heroStat}>
           <Text style={s.heroStatVal}>{totalOwned}</Text>
-          <Text style={s.heroStatLbl}>cartas</Text>
+          <Text style={s.heroStatLbl}>{t('home.cardsLabel')}</Text>
         </View>
         <View style={s.heroStatDiv} />
         <View style={s.heroStat}>
           <Text style={s.heroStatVal}>{uniqueOwned}</Text>
-          <Text style={s.heroStatLbl}>únicas</Text>
+          <Text style={s.heroStatLbl}>{t('home.unique')}</Text>
         </View>
         <View style={s.heroStatDiv} />
         <View style={s.heroStat}>
           <Text style={[s.heroStatVal, { color: colors.accent }]}>{completion}%</Text>
-          <Text style={s.heroStatLbl}>del índice</Text>
+          <Text style={s.heroStatLbl}>{t('home.ofIndex')}</Text>
         </View>
         <View style={s.heroStatDiv} />
         <View style={s.heroStat}>
           <Text style={[s.heroStatVal, { color: colors.accent }]}>€{vaultValue.toFixed(0)}</Text>
-          <Text style={s.heroStatLbl}>valor vault</Text>
+          <Text style={s.heroStatLbl}>{t('home.vaultValue')}</Text>
         </View>
       </View>
       {/* Progress bar */}
@@ -119,14 +128,17 @@ function SectionTile({ icon, label, sub, onPress, accent = false }: {
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export function HomeScreen({ navigation }: HomeScreenProps) {
-  const [, force] = useState(0);
+  const t = useT();
+  const insets = useSafeAreaInsets();
+  const [tick, setTick] = useState(0);
   const [deckCount, setDeckCount] = useState(0);
 
   useEffect(() => {
     listDecks().then((d) => setDeckCount(d.length));
-    return subOwned(() => force((n) => n + 1));
+    return subOwned(() => setTick((n) => n + 1));
   }, []);
 
+  // Recalculate every time the collection changes (tick increments).
   const stats = useMemo(() => {
     const totals = getOwnedTotals();
     const uniqueOwned = Object.values(totals).filter((n) => n > 0).length;
@@ -149,7 +161,8 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     }
 
     return { uniqueOwned, totalOwned, completion, vaultValue, byColor };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
 
   // Count unique sets
   const setCount = useMemo(() => {
@@ -164,7 +177,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
-      contentContainerStyle={s.scroll}
+      contentContainerStyle={[s.scroll, { paddingTop: insets.top + spacing.lg }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Hero tile */}
@@ -180,39 +193,38 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
       <View style={s.grid}>
         <SectionTile
           icon="cards"
-          label="Cards"
-          sub={`${INDEX_META.cardCount} en índice`}
+          label={t('home.cards')}
+          sub={`${INDEX_META.cardCount} ${t('home.inIndex')}`}
           onPress={() => navigation.navigate('Browse')}
         />
         <SectionTile
           icon="decks"
-          label="Decks"
-          sub={deckCount > 0 ? `${deckCount} deck${deckCount > 1 ? 's' : ''}` : 'Crear deck'}
+          label={t('home.decks')}
+          sub={deckCount > 0 ? `${deckCount} ${deckCount > 1 ? t('home.decksPlural') : t('home.deck')}` : t('home.createDeck')}
           onPress={() => navigation.navigate('Decks')}
           accent
         />
         <SectionTile
           icon="scan"
-          label="Scan"
-          sub="Añadir cartas"
-          onPress={() => (navigation as any).navigate('Scan')}
+          label={t('home.scan')}
+          sub={t('home.addCards')}
+          onPress={() => navigation.navigate('Scan')}
         />
         <SectionTile
           icon="sets"
-          label="Sets"
-          sub={`${setCount} sets`}
-          onPress={() => (navigation as any).navigate('Sets')}
+          label={t('home.sets')}
+          sub={`${setCount} ${t('home.setsCount')}`}
+          onPress={() => navigation.navigate('Sets')}
         />
         <SectionTile
           icon="wishlist"
-          label="Wishlist"
+          label={t('home.wishlist')}
           onPress={() => navigation.navigate('Binder')}
         />
         <SectionTile
-          icon="stats"
-          label="Stats"
-          sub={`€${stats.vaultValue.toFixed(0)} vault`}
-          onPress={() => navigation.navigate('Binder')}
+          icon="settings"
+          label={t('home.settings')}
+          onPress={() => navigation.navigate('Settings')}
         />
       </View>
     </ScrollView>

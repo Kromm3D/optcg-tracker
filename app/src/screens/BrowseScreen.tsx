@@ -22,49 +22,90 @@ import {
   activeCount,
   matches,
   fuzzyFilter,
+  setPrefix,
 } from '../lib/filters';
-import { getOwnedFor, subscribe as subOwned } from '../lib/ownedAggregate';
-import { getSettings, subscribe as subSettings } from '../lib/settings';
+import { getOwnedFor, getVariantOwned, getOwnedVariantCount, subscribe as subOwned } from '../lib/ownedAggregate';
+import { getSettings, setShowAlternateArt, subscribe as subSettings } from '../lib/settings';
 import { useCardGrid } from '../lib/useCardGrid';
+import { expandCards } from '../lib/cardDisplay';
+import { BulkActionBar, type BulkTarget } from '../components/BulkActionBar';
+import { BulkTargetSheet, type BulkSelection } from '../components/BulkTargetSheet';
 import type { Card } from '../types';
 
-type SortKey = 'rarity' | 'cost' | 'power' | 'owned' | 'code';
+type SortKey = 'rarity' | 'cost' | 'power' | 'owned' | 'code' | 'set';
+type SortState = { key: SortKey; dir: 'asc' | 'desc' };
 
 export function BrowseScreen({ navigation }: BrowseScreenProps) {
   const [q, setQ] = useState('');
   const [filters, setFilters] = useState<FilterState>(emptyFilters());
   const [showFilters, setShowFilters] = useState(false);
-  const [sort, setSort] = useState<SortKey>('code');
+  const [sort, setSort] = useState<SortState>({ key: 'code', dir: 'asc' });
   const [columns, setColumnsState] = useState(getSettings().columns);
   const { cardWidth, gap, hPadding } = useCardGrid(columns);
   const [, force] = useState(0);
 
+  // Multi-select / bulk actions
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Record<string, BulkSelection>>({});
+  const [bulkTarget, setBulkTarget] = useState<BulkTarget | null>(null);
+  const selectedList = Object.values(selected);
+
+  const toggleSel = (key: string, code: string, suffix: string) =>
+    setSelected((prev) => {
+      const next = { ...prev };
+      if (next[key]) delete next[key];
+      else next[key] = { code, suffix };
+      return next;
+    });
+  const clearSel = () => { setSelected({}); setSelectMode(false); };
+
   useEffect(() => subOwned(() => force((n) => n + 1)), []);
-  useEffect(() => subSettings(() => setColumnsState(getSettings().columns)), []);
+  useEffect(() => subSettings(() => { setColumnsState(getSettings().columns); force((n) => n + 1); }), []);
+
+  const showAlt = getSettings().showAlternateArt;
+
+  const handleSort = (key: SortKey) =>
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        : { key, dir: 'asc' },
+    );
 
   const list = useMemo<Card[]>(() => {
     let result = CARD_LIST.filter((c) => matches(c, filters));
     result = fuzzyFilter(result, q);
 
-    if (sort === 'rarity') {
+    const dir = sort.dir === 'asc' ? 1 : -1;
+
+    if (sort.key === 'rarity') {
       result = [...result].sort(
         (a, b) =>
-          (RARITY_ORDER[b.variants[0]?.rarity?.toUpperCase() ?? ''] ?? 0) -
-          (RARITY_ORDER[a.variants[0]?.rarity?.toUpperCase() ?? ''] ?? 0)
+          dir * (
+            (RARITY_ORDER[a.variants[0]?.rarity?.toUpperCase() ?? ''] ?? 0) -
+            (RARITY_ORDER[b.variants[0]?.rarity?.toUpperCase() ?? ''] ?? 0)
+          )
       );
-    } else if (sort === 'cost') {
-      result = [...result].sort((a, b) => (a.cost ?? 99) - (b.cost ?? 99));
-    } else if (sort === 'power') {
-      result = [...result].sort((a, b) => (b.power ?? 0) - (a.power ?? 0));
-    } else if (sort === 'owned') {
-      result = [...result].sort((a, b) => getOwnedFor(b.code) - getOwnedFor(a.code));
+    } else if (sort.key === 'cost') {
+      result = [...result].sort((a, b) => dir * ((a.cost ?? 99) - (b.cost ?? 99)));
+    } else if (sort.key === 'power') {
+      result = [...result].sort((a, b) => dir * ((a.power ?? 0) - (b.power ?? 0)));
+    } else if (sort.key === 'owned') {
+      result = [...result].sort((a, b) => dir * (getOwnedFor(a.code) - getOwnedFor(b.code)));
+    } else if (sort.key === 'set') {
+      result = [...result].sort((a, b) => {
+        const sp = dir * setPrefix(a.code).localeCompare(setPrefix(b.code), undefined, { numeric: true });
+        return sp !== 0 ? sp : dir * a.code.localeCompare(b.code, undefined, { numeric: true });
+      });
     } else {
       result = [...result].sort((a, b) =>
-        a.code.localeCompare(b.code, undefined, { numeric: true })
+        dir * a.code.localeCompare(b.code, undefined, { numeric: true })
       );
     }
-    return result.slice(0, 800);
+    return result;
   }, [q, filters, sort]);
+
+  // Expand into display tiles (one per variant when Show Alternate Art is on).
+  const entries = useMemo(() => expandCards(list), [list, showAlt]);
 
   const fcount = activeCount(filters);
 
@@ -101,55 +142,104 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
             <Text style={s.filterBadge}>{fcount}</Text>
           ) : null}
         </Pressable>
+        <Pressable
+          onPress={() => { if (selectMode) clearSel(); else setSelectMode(true); }}
+          style={[s.filterBtn, selectMode && s.filterBtnOn]}
+        >
+          <Icon name={selectMode ? 'close' : 'check'} size={18} color={selectMode ? colors.accent : colors.text} />
+        </Pressable>
       </View>
 
       <View style={s.sortRow}>
         <Text style={s.sortCount}>{list.length} cards</Text>
         <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+          <Pressable
+            style={[s.sortBtn, showAlt && s.sortBtnOn]}
+            onPress={() => setShowAlternateArt(!showAlt)}
+          >
+            <Text style={[s.sortLabel, { color: showAlt ? colors.accent : colors.textDim }]}>
+              Parallels
+            </Text>
+          </Pressable>
           {(
             [
               ['code', 'Code'],
+              ['set', 'Set'],
               ['rarity', 'Rar'],
               ['cost', 'Cost'],
               ['power', 'Pow'],
               ['owned', 'Own'],
             ] as [SortKey, string][]
-          ).map(([k, label]) => (
-            <Pressable
-              key={k}
-              onPress={() => setSort(k)}
-              style={[s.sortBtn, sort === k ? s.sortBtnOn : null]}
-            >
-              <Text
-                style={[
-                  s.sortLabel,
-                  { color: sort === k ? colors.accent : colors.textDim },
-                ]}
+          ).map(([k, label]) => {
+            const active = sort.key === k;
+            return (
+              <Pressable
+                key={k}
+                onPress={() => handleSort(k)}
+                style={[s.sortBtn, active ? s.sortBtnOn : null]}
               >
-                {label}
-              </Text>
-            </Pressable>
-          ))}
+                <Text style={[s.sortLabel, { color: active ? colors.accent : colors.textDim }]}>
+                  {label}
+                </Text>
+                {active && (
+                  <Icon
+                    name={sort.dir === 'asc' ? 'arrowUp' : 'arrowDn'}
+                    size={10}
+                    color={colors.accent}
+                  />
+                )}
+              </Pressable>
+            );
+          })}
           <ColumnsToggle />
         </View>
       </View>
 
       <FlatList
         key={`grid-${columns}`}
-        data={list}
-        keyExtractor={(item) => item.code}
+        data={entries}
+        keyExtractor={(item) => item.key}
         numColumns={columns}
+        extraData={{ selectMode, selected }}
         columnWrapperStyle={{ gap, paddingHorizontal: hPadding }}
-        contentContainerStyle={{ paddingVertical: 8, paddingBottom: 110, gap: gap + 4 }}
-        renderItem={({ item }) => (
-          <CardThumb
-            card={item}
-            owned={getOwnedFor(item.code)}
-            compact={columns >= 3}
-            onPress={() => navigation.navigate('Detail', { code: item.code })}
-            width={cardWidth}
-          />
-        )}
+        contentContainerStyle={{ paddingVertical: 8, paddingBottom: selectMode ? 180 : 110, gap: gap + 4 }}
+        initialNumToRender={20}
+        maxToRenderPerBatch={20}
+        windowSize={5}
+        removeClippedSubviews
+        renderItem={({ item }) => {
+          const src = item.variant.set_source;
+          const cardSet = setPrefix(item.card.code);
+          return (
+            <CardThumb
+              card={item.card}
+              variant={item.variant}
+              owned={showAlt ? getVariantOwned(item.card.code, item.variant.suffix) : getOwnedFor(item.card.code)}
+              multiArt={!showAlt && getOwnedVariantCount(item.card.code) >= 2}
+              sourceSet={showAlt && src && src !== cardSet ? src : undefined}
+              selected={selectMode && !!selected[item.key]}
+              compact={columns >= 3}
+              onPress={() =>
+                selectMode
+                  ? toggleSel(item.key, item.card.code, item.variant.suffix)
+                  : navigation.navigate('Detail', { code: item.card.code, suffix: item.variant?.suffix })
+              }
+              width={cardWidth}
+            />
+          );
+        }}
+      />
+
+      {selectMode && (
+        <BulkActionBar count={selectedList.length} onClear={clearSel} onPick={setBulkTarget} bottomGap={84} />
+      )}
+
+      <BulkTargetSheet
+        visible={bulkTarget !== null}
+        target={bulkTarget}
+        selections={selectedList}
+        onClose={() => setBulkTarget(null)}
+        onDone={() => { setBulkTarget(null); clearSel(); }}
       />
 
       <FilterSheet
@@ -218,7 +308,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
   },
   sortCount: { fontSize: 13, color: colors.textDim, fontFamily: fonts.ui },
-  sortBtn: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 9 },
+  sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 9 },
   sortBtnOn: { backgroundColor: colors.accentDim },
   sortLabel: { fontSize: 12, fontFamily: fonts.uiSemi },
   grid: { paddingHorizontal: 18, paddingBottom: 110 },

@@ -27,7 +27,13 @@
     "plugins": [
       "expo-font",
       "expo-status-bar",
-      "expo-image"
+      "expo-image",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Used to scan One Piece TCG card codes."
+        }
+      ]
     ],
     "extra": {
       "eas": {

@@ -163,6 +163,26 @@ def clean_set_name(raw):
     return s
 
 
+def set_code_from_getinfo(raw):
+    """Extrae el codigo de set autoritativo del corchete '[Card Set(s)]'.
+
+    Esta es la fuente FIABLE de a que set pertenece CADA variante concreta,
+    independiente de en que pagina/serie se haya scrapeado. Ejemplos:
+      '-Memorial Collection- [EB-01]'  -> 'EB01'
+      '-Anime 25th Collection- [EB-02]'-> 'EB02'  (Gold Leader reimpreso)
+      '-THE TIME OF BATTLE- [OP-16]'   -> 'OP16'
+
+    Solo reconoce corchetes simples 'LL-NN'. Los compuestos (p.ej. '[OP14-EB04]')
+    o los promos sin corchete (p.ej. 'Treasure Cup November') devuelven '' para
+    que el caller caiga al prefijo del codigo de la carta."""
+    if not raw:
+        return ""
+    m = re.search(r"\[([A-Z]+)-0*(\d+)\]", raw)
+    if not m:
+        return ""
+    return f"{m.group(1)}{int(m.group(2)):02d}"
+
+
 def extract_trigger(effect):
     """Extrae el segmento '[Trigger] ...' del texto de efecto si existe."""
     if not effect:
@@ -319,6 +339,7 @@ def parse_cards(html, page_url):
             "effect": effect_txt,
             "trigger": extract_trigger(effect_txt),
             "set_name": clean_set_name(getinfo_txt),
+            "set_code": set_code_from_getinfo(getinfo_txt),
             "family": feature_txt,
             "block": block_txt,
             "image_source": img_url,
@@ -363,6 +384,7 @@ def build_index(cards):
 
         suffix = c["suffix"]
         image_local = resolve_image_local(code, suffix, c["image_source"])
+        printed_set_code = c.get("set_code") or None
         variant = {
             "suffix": suffix,
             "label": variant_label(suffix, c["rarity"]),
@@ -370,6 +392,9 @@ def build_index(cards):
             "full_name": c["name"],
             "image_local": image_local,
             "image_source": c["image_source"],
+            "set_source": printed_set_code or set_prefix_of(code),
+            "printed_set": printed_set_code,
+            "get_info": c["set_name"] or "",
         }
         existing_suffixes = {v["suffix"] for v in entry["variants"]}
         if suffix not in existing_suffixes:
@@ -386,6 +411,9 @@ def scrape_all(session):
         try:
             html, url = fetch_series_html(session, sid)
             cards = parse_cards(html, url)
+            # El set de cada variante se determina por su corchete getInfo
+            # (ver set_code_from_getinfo), no por la pagina en que aparece, asi
+            # que basta con acumular las cartas tal cual.
             all_cards.extend(cards)
             print(f"  [{i}/{len(series)}] {label[:48]:48}  {len(cards)} cartas")
         except Exception as e:

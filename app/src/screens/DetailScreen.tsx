@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CachedImage } from '../components/CachedImage';
 import type { DetailScreenProps } from '../navigation';
 import { CARDS } from '../data/loadIndex';
@@ -21,22 +22,48 @@ import { RarityPip } from '../components/RarityPip';
 import { resolveImageUris } from '../lib/images';
 import { adjust, getCount, subscribe as subColl } from '../lib/collection';
 import { buildCardmarketSearchUrl } from '../lib/cardmarket';
-import { isWished, toggleWish, subscribe as subWish } from '../lib/wishlist';
-import type { Variant } from '../types';
+import {
+  isInAnyWishlist,
+  addCard as addToWishlistCard,
+  subscribe as subWishlists,
+} from '../lib/wishlists';
+import { getDefaultWishlistSuffix } from '../lib/settings';
+import { WishlistPickerModal } from '../components/WishlistPickerModal';
+import type { Variant, Wishlist } from '../types';
 
 export function DetailScreen({ route, navigation }: DetailScreenProps) {
-  const { code } = route.params;
+  const { code, suffix } = route.params;
+  const insets = useSafeAreaInsets();
   const card = CARDS[code];
   const [wished, setWished] = useState(false);
+  const [showWLPicker, setShowWLPicker] = useState(false);
+  // Which variant's art is shown in the hero (index into card.variants).
+  // Defaults to the tapped variant when a suffix was passed, else the first.
+  const initialHero = Math.max(
+    0,
+    card?.variants.findIndex((v) => v.suffix === (suffix ?? '')) ?? 0,
+  );
+  const [heroIdx, setHeroIdx] = useState(initialHero);
 
   const refreshWish = useCallback(() => {
-    isWished(code).then(setWished);
+    isInAnyWishlist(code).then(setWished);
   }, [code]);
 
   useEffect(() => {
     refreshWish();
-    return subWish(refreshWish);
+    return subWishlists(refreshWish);
   }, [refreshWish]);
+
+  const handleHeartPress = useCallback(() => {
+    setShowWLPicker(true);
+  }, []);
+
+  const handleWishlistPicked = useCallback(async (wl: Wishlist) => {
+    setShowWLPicker(false);
+    // Use user's preferred default variant (Settings → wishlistDefaultVariant)
+    const suffix = getDefaultWishlistSuffix(card?.variants ?? []);
+    await addToWishlistCard(wl.id, code, suffix, 1);
+  }, [card, code]);
 
   if (!card) {
     return (
@@ -46,21 +73,22 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
     );
   }
 
-  const main = card.variants[0];
-  const { uri: url, fallback: urlFallback } = main ? resolveImageUris(main) : { uri: '' };
+  const main = card.variants[heroIdx] ?? card.variants[0];
+  const { uri: url, fallback: urlFallback } = main ? resolveImageUris(main) : { uri: '', fallback: undefined };
   const tone = card.colors?.[0] ? colorOf(card.colors[0]) : colors.accent;
 
   return (
+    <>
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
       {/* Close + heart */}
-      <View style={s.topBar}>
+      <View style={[s.topBar, { paddingTop: insets.top + 12 }]}>
         <Pressable onPress={() => navigation.goBack()} style={s.topBtn}>
           <Icon name="close" size={20} color={colors.text} />
         </Pressable>
-        <Pressable onPress={() => toggleWish(code)} style={s.topBtn}>
+        <Pressable onPress={handleHeartPress} style={s.topBtn}>
           <Icon
             name="heart"
             size={20}
@@ -87,6 +115,35 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
           )}
         </View>
       </View>
+
+      {/* Art gallery strip — tap a thumb to swap the hero image. */}
+      {card.variants.length > 1 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.galleryRow}
+        >
+          {card.variants.map((v, i) => {
+            const { uri, fallback } = resolveImageUris(v);
+            const active = i === heroIdx;
+            return (
+              <Pressable
+                key={v.suffix || 'base'}
+                onPress={() => setHeroIdx(i)}
+                style={[s.galleryThumb, active && s.galleryThumbActive]}
+              >
+                {uri ? (
+                  <CachedImage uri={uri} fallbackUri={fallback} style={s.galleryImg} contentFit="contain" />
+                ) : (
+                  <View style={[s.galleryImg, s.heroFallback]}>
+                    <Text style={{ color: colors.textDim, fontSize: 9 }}>{card.code}</Text>
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {/* Title block */}
       <View style={s.titleBlock}>
@@ -151,14 +208,20 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
           Variants · {card.variants.length}
         </Text>
         {card.variants.map((v) => (
-          <VariantRow key={v.suffix || 'base'} code={code} variant={v} />
+          <VariantRow key={v.suffix || 'base'} code={code} cardSet={code.split('-')[0]} variant={v} />
         ))}
       </View>
     </ScrollView>
+    <WishlistPickerModal
+      visible={showWLPicker}
+      onClose={() => setShowWLPicker(false)}
+      onSelect={handleWishlistPicked}
+    />
+    </>
   );
 }
 
-function VariantRow({ code, variant }: { code: string; variant: Variant }) {
+function VariantRow({ code, cardSet, variant }: { code: string; cardSet: string; variant: Variant }) {
   const [count, setCountState] = useState(0);
 
   useEffect(() => {
@@ -193,6 +256,16 @@ function VariantRow({ code, variant }: { code: string; variant: Variant }) {
           <Text style={s.varFull} numberOfLines={1}>
             {variant.full_name}
           </Text>
+          {(variant.printed_set !== undefined
+            ? variant.printed_set ?? variant.get_info
+            : variant.set_source !== cardSet ? variant.get_info : null
+          ) ? (
+            <Text style={s.varSet} numberOfLines={1}>
+              · {variant.printed_set !== undefined
+                  ? (variant.printed_set ?? variant.get_info)
+                  : variant.get_info}
+            </Text>
+          ) : null}
         </View>
         <View style={s.counter}>
           <Pressable
@@ -257,6 +330,24 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  galleryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingTop: 4,
+    paddingBottom: 6,
+  },
+  galleryThumb: {
+    width: 52,
+    aspectRatio: 600 / 838,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: colors.surface2,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  galleryThumbActive: { borderColor: colors.accent },
+  galleryImg: { width: '100%', height: '100%' },
   titleBlock: { paddingHorizontal: 18, marginTop: 8 },
   code: {
     fontSize: 13,
@@ -368,6 +459,12 @@ const s = StyleSheet.create({
     fontFamily: fonts.ui,
     color: colors.textMut,
     flex: 1,
+  },
+  varSet: {
+    fontSize: 11,
+    fontFamily: fonts.uiSemi,
+    color: colors.textDim,
+    flexShrink: 1,
   },
   counter: {
     flexDirection: 'row',

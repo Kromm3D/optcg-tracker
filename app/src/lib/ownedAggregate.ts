@@ -4,16 +4,20 @@
 import { listCollection, subscribe as subscribeCollection } from './collection';
 
 let totals: Record<string, number> = {};
+let variantTotals: Record<string, number> = {};
 let ready = false;
 const listeners = new Set<() => void>();
 
 async function refresh() {
   const items = await listCollection();
   const next: Record<string, number> = {};
+  const nextVar: Record<string, number> = {};
   for (const it of items) {
     next[it.code] = (next[it.code] ?? 0) + it.count;
+    nextVar[`${it.code}${it.suffix}`] = it.count;
   }
   totals = next;
+  variantTotals = nextVar;
   ready = true;
   listeners.forEach((l) => l());
 }
@@ -28,6 +32,22 @@ export function getOwnedTotals(): Record<string, number> {
 
 export function getOwnedFor(code: string): number {
   return totals[code] ?? 0;
+}
+
+/** Copies owned of a specific variant (code + suffix). */
+export function getVariantOwned(code: string, suffix: string): number {
+  return variantTotals[`${code}${suffix}`] ?? 0;
+}
+
+/** Number of distinct art variants of a card owned with count > 0.
+ *  Powers the multi-art indicator (≥ 2 means owned across several arts). */
+export function getOwnedVariantCount(code: string): number {
+  let n = 0;
+  for (const key of Object.keys(variantTotals)) {
+    // key === `${code}${suffix}`; match exact code or code + "_…" suffix.
+    if ((key === code || key.startsWith(`${code}_`)) && variantTotals[key] > 0) n += 1;
+  }
+  return n;
 }
 
 export function isReady(): boolean {

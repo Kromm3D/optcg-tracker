@@ -18,7 +18,7 @@ type Props = {
 
 export function CardRow({ card, right, onPress }: Props) {
   const v = card.variants[0];
-  const { uri: url, fallback: urlFallback } = v ? resolveImageUris(v) : { uri: '' };
+  const { uri: url, fallback: urlFallback } = v ? resolveImageUris(v) : { uri: '', fallback: undefined };
   return (
     <Pressable onPress={onPress} style={styles.row}>
       <View style={styles.thumb}>

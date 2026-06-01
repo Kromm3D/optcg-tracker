@@ -13,11 +13,6 @@ app/.expo/
 app/dist/
 app/web-build/
 
-# Images — served directly from the official OPTCG site (image_source field).
-# Too large for jsDelivr CDN (404 MB > 50 MB limit). Run scripts/build_card_database.py
-# --images-only to download locally for development.
-images/
-
 # OS
 .DS_Store
 Thumbs.db

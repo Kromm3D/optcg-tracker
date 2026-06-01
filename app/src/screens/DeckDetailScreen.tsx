@@ -3,7 +3,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -13,16 +12,19 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { CachedImage } from '../components/CachedImage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DeckDetailScreenProps } from '../navigation';
 import { colors, fonts, radii, spacing } from '../theme';
 import { Icon } from '../components/Icon';
 import { DeckCardPile } from '../components/DeckCardPile';
-import { CARDS, CARD_LIST } from '../data/loadIndex';
-import { fuzzyFilter } from '../lib/filters';
-import { resolveImageUris } from '../lib/images';
+import { AddCardsModal } from '../components/AddCardsModal';
+import { CARDS } from '../data/loadIndex';
 import { getOwnedFor, subscribe as subOwned } from '../lib/ownedAggregate';
+import { addCard } from '../lib/wishlists';
+import { getDefaultWishlistSuffix } from '../lib/settings';
+import { WishlistPickerModal } from '../components/WishlistPickerModal';
+import type { Wishlist } from '../types';
+import { useT } from '../lib/i18n';
 import {
   getDeck,
   setDeckCard,
@@ -37,6 +39,7 @@ const COLUMNS = 3;
 const CARD_GAP = 10;
 
 export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
+  const t = useT();
   const { deckId } = route.params;
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -48,6 +51,10 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
   const [search, setSearch] = useState('');
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState('');
+  const [toast, setToast] = useState<string | null>(null);
+  // Wishlist picker for "Add missing"
+  const [showWLPicker, setShowWLPicker] = useState(false);
+  const [pendingMissingCards, setPendingMissingCards] = useState<Array<{ code: string; needed: number }>>([]);
 
   const refresh = useCallback(() => {
     getDeck(deckId).then(setDeck);
@@ -69,12 +76,6 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
       .sort((a, b) => a.card.code.localeCompare(b.card.code, undefined, { numeric: true }));
   }, [deck]);
 
-  // Search results for the Add panel — fuzzy search, same as BrowseScreen
-  const searchResults = useMemo(() => {
-    const base = search.trim() ? fuzzyFilter(CARD_LIST, search) : CARD_LIST;
-    return base.slice(0, 60);
-  }, [search]);
-
   const handleQtyChange = useCallback(
     (code: string, delta: number) => {
       if (!deck) return;
@@ -90,6 +91,40 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
     await renameDeck(deckId, newName);
     setRenaming(false);
   }, [deckId, newName]);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  }, []);
+
+  // Step 1: collect missing cards, then open wishlist picker
+  const handleAddMissing = useCallback(() => {
+    if (!deck) return;
+    const missing: Array<{ code: string; needed: number }> = [];
+    for (const dc of deck.cards) {
+      const owned = getOwnedFor(dc.code);
+      const need = dc.qty - owned;
+      if (need > 0) missing.push({ code: dc.code, needed: need });
+    }
+    if (missing.length === 0) {
+      showToast(t('deck.missingNone'));
+      return;
+    }
+    setPendingMissingCards(missing);
+    setShowWLPicker(true);
+  }, [deck, t, showToast]);
+
+  // Step 2: user picked a wishlist — add all missing cards to it
+  const handleWishlistPicked = useCallback(async (wl: Wishlist) => {
+    setShowWLPicker(false);
+    for (const { code, needed } of pendingMissingCards) {
+      // Use user's preferred default variant (Settings → wishlistDefaultVariant)
+      const suffix = getDefaultWishlistSuffix(CARDS[code]?.variants ?? []);
+      await addCard(wl.id, code, suffix, needed);
+    }
+    showToast(t('deck.missingAdded', { n: pendingMissingCards.length }));
+    setPendingMissingCards([]);
+  }, [pendingMissingCards, t, showToast]);
 
   if (!deck) {
     return (
@@ -110,19 +145,28 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
         </Pressable>
         <Pressable onPress={() => { setNewName(deck.name); setRenaming(true); }} style={{ flex: 1 }}>
           <Text style={s.headerTitle} numberOfLines={1}>{deck.name}</Text>
-          <Text style={s.headerSub}>{deck.cards.length} slots · {total} cartas</Text>
+          <Text style={s.headerSub}>{deck.cards.length} {t('decks.slots')} · {total} {t('decks.cards')}</Text>
+        </Pressable>
+        <Pressable style={s.wishBtn} onPress={handleAddMissing} accessibilityLabel={t('deck.addMissing')}>
+          <Icon name="heart" size={20} color={colors.accent} />
         </Pressable>
         <Pressable style={s.addBtn} onPress={() => setShowAdd(true)}>
           <Icon name="plus" size={20} color="#fff" />
         </Pressable>
       </View>
 
+      {toast && (
+        <View style={s.toast}>
+          <Text style={s.toastText}>{toast}</Text>
+        </View>
+      )}
+
       {/* Card pile grid */}
       {deck.cards.length === 0 ? (
         <View style={s.empty}>
           <Icon name="grid" size={44} color={colors.textDim} />
-          <Text style={s.emptyTitle}>Deck vacío</Text>
-          <Text style={s.emptySub}>Pulsa + para añadir cartas al deck.</Text>
+          <Text style={s.emptyTitle}>{t('deck.empty')}</Text>
+          <Text style={s.emptySub}>{t('deck.emptyBody')}</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={s.grid}>
@@ -162,89 +206,22 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
         </ScrollView>
       )}
 
-      {/* Add cards modal */}
-      <Modal
+      {/* Add cards modal (shared) — deck qty capped at 4 by handleQtyChange */}
+      <AddCardsModal
         visible={showAdd}
-        animationType="slide"
-        onRequestClose={() => setShowAdd(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: colors.bg }}>
-          <View style={[s.addHeader, { paddingTop: insets.top + 12 }]}>
-            <Text style={s.addTitle}>Add Cards</Text>
-            <Pressable onPress={() => setShowAdd(false)}>
-              <Icon name="close" size={22} color={colors.text} />
-            </Pressable>
-          </View>
-          <View style={s.searchWrap}>
-            <Icon name="search" size={18} color={colors.textDim} />
-            <TextInput
-              style={s.searchInput}
-              value={search}
-              onChangeText={setSearch}
-              placeholder="yellow luffy op01, red OP01-001…"
-              placeholderTextColor={colors.textDim}
-              autoFocus
-            />
-          </View>
-          <FlatList
-            data={searchResults}
-            keyExtractor={(c) => c.code}
-            contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 40, paddingTop: 8 }}
-            renderItem={({ item }) => {
-              const inDeck = deck.cards.find((c) => c.code === item.code)?.qty ?? 0;
-              const owned = getOwnedFor(item.code);
-              const v = item.variants[0];
-              const { uri: imgUri, fallback } = v ? resolveImageUris(v) : { uri: '' };
-              return (
-                <View style={s.addRow}>
-                  {/* Card art thumbnail */}
-                  <View style={s.addThumb}>
-                    {imgUri ? (
-                      <CachedImage
-                        uri={imgUri}
-                        fallbackUri={fallback}
-                        style={s.addThumbImg}
-                      />
-                    ) : (
-                      <View style={[s.addThumbImg, s.addThumbFallback]}>
-                        <Text style={s.addThumbCode}>{item.code}</Text>
-                      </View>
-                    )}
-                  </View>
-                  {/* Info */}
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={s.addName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={s.addMeta} numberOfLines={1}>
-                      {item.code}{item.colors?.length ? ` · ${item.colors.join('/')}` : ''}{item.type ? ` · ${item.type}` : ''}
-                    </Text>
-                    <Text style={s.addOwned}>owned: {owned}</Text>
-                  </View>
-                  {/* +/- controls */}
-                  <View style={s.addControls}>
-                    <Pressable
-                      style={[s.qtyBtn, inDeck === 0 && s.qtyBtnOff]}
-                      onPress={() => handleQtyChange(item.code, -1)}
-                      disabled={inDeck === 0}
-                    >
-                      <Text style={s.qtySign}>−</Text>
-                    </Pressable>
-                    <Text style={[s.qtyVal, inDeck > owned && s.qtyMissing]}>
-                      {inDeck}
-                    </Text>
-                    <Pressable
-                      style={s.qtyBtn}
-                      onPress={() => handleQtyChange(item.code, +1)}
-                    >
-                      <Text style={s.qtySign}>+</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              );
-            }}
-            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: colors.border }} />}
-          />
-        </View>
-      </Modal>
+        onClose={() => setShowAdd(false)}
+        search={search}
+        onSearchChange={setSearch}
+        getQty={(code) => deck.cards.find((c) => c.code === code)?.qty ?? 0}
+        onChange={handleQtyChange}
+      />
+
+      {/* Wishlist picker for "Add missing" */}
+      <WishlistPickerModal
+        visible={showWLPicker}
+        onClose={() => setShowWLPicker(false)}
+        onSelect={handleWishlistPicked}
+      />
 
       {/* Rename modal */}
       <Modal visible={renaming} transparent animationType="fade" onRequestClose={() => setRenaming(false)}>
@@ -304,6 +281,27 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  wishBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.accentDim,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toast: {
+    marginHorizontal: spacing.lg,
+    marginBottom: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: radii.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  toastText: { fontSize: 13, fontFamily: fonts.uiMed, color: colors.text },
 
   grid: {
     flexDirection: 'row',

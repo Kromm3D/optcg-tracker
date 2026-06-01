@@ -67,6 +67,7 @@ export function FilterSheet({ visible, filters, onChange, onClose }: Props) {
   const toggleRarities   = useMemo(() => makeToggle('rarities'),   [makeToggle]);
   const toggleSets       = useMemo(() => makeToggle('sets'),       [makeToggle]);
   const toggleFamilies   = useMemo(() => makeToggle('families'),   [makeToggle]);
+  const toggleVariants   = useMemo(() => makeToggle('variants'),   [makeToggle]);
 
   return (
     <Modal
@@ -141,6 +142,15 @@ export function FilterSheet({ visible, filters, onChange, onClose }: Props) {
             selected={filters.rarities}
             onToggle={toggleRarities}
           />
+
+          {opts.variants.length > 0 && (
+            <ChipSection
+              title="Variant / Parallel"
+              options={opts.variants}
+              selected={filters.variants}
+              onToggle={toggleVariants}
+            />
+          )}
 
           <ChipSection
             title="Set"

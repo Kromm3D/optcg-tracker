@@ -19,17 +19,17 @@ import {
   View,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useIsFocused } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Svg, { Path, Circle } from 'react-native-svg';
 
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation';
-// ScanScreen is no longer a tab — used as a standalone modal from HomeScreen
-type ScanScreenProps = NativeStackScreenProps<RootStackParamList>;
+import type { ScanScreenProps } from '../navigation';
 import { CARDS } from '../data/loadIndex';
 import { adjust } from '../lib/collection';
+import { Icon } from '../components/Icon';
+import { isOcrAvailable, matchByArt, recognizeText } from '../lib/ocr';
+import { useT } from '../lib/i18n';
 import { colors, fonts, radii, spacing } from '../theme';
 
 // ─── Perona Ghost SVG ────────────────────────────────────────────────────────
@@ -72,6 +72,10 @@ function extractCode(text: string): string | null {
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export function ScanScreen({ navigation }: ScanScreenProps) {
+  const t = useT();
+  const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
+  const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [manualInput, setManualInput] = useState('');
   const [lastResult, setLastResult] = useState<{
@@ -158,6 +162,44 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
     if (code) handleCodeFound(code);
   }, [manualInput, handleCodeFound]);
 
+  // ── Live OCR loop ──────────────────────────────────────────────────────────
+  // Periodically capture a still, run ML Kit text recognition, and feed any
+  // recognized card code through the ID-first lookup. Art matching is the
+  // deferred fallback (matchByArt is a no-op for now).
+  const busyRef = useRef(false);
+
+  useEffect(() => {
+    if (!isFocused || !permission?.granted || !isOcrAvailable()) return;
+
+    let cancelled = false;
+    const scanOnce = async () => {
+      if (busyRef.current || cancelled) return;
+      busyRef.current = true;
+      try {
+        const photo: any = await cameraRef.current?.takePictureAsync({
+          quality: 0,
+          skipProcessing: true,
+          shutterSound: false,
+        } as any);
+        if (!photo?.uri || cancelled) return;
+        const text = await recognizeText(photo.uri);
+        let code = extractCode(text);
+        if (!code) code = await matchByArt(photo.uri); // deferred fallback
+        if (code && CARDS[code.toUpperCase()]) handleCodeFound(code);
+      } catch {
+        // ignore transient capture/recognition errors
+      } finally {
+        busyRef.current = false;
+      }
+    };
+
+    const interval = setInterval(scanOnce, 1200);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [isFocused, permission?.granted, handleCodeFound]);
+
   // ── Permission gate ──────────────────────────────────────────────────────
 
   if (!permission) {
@@ -172,12 +214,10 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
     return (
       <View style={s.center}>
         <PeronaGhost size={72} />
-        <Text style={s.permTitle}>Camera access needed</Text>
-        <Text style={s.permSub}>
-          Perona needs to see the card to add it to your vault!
-        </Text>
+        <Text style={s.permTitle}>{t('scan.permTitle')}</Text>
+        <Text style={s.permSub}>{t('scan.permBody')}</Text>
         <Pressable style={s.permBtn} onPress={requestPermission}>
-          <Text style={s.permBtnText}>Grant Permission</Text>
+          <Text style={s.permBtnText}>{t('scan.grant')}</Text>
         </Pressable>
       </View>
     );
@@ -188,7 +228,12 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
   return (
     <View style={s.root}>
       {/* Live camera feed */}
-      <CameraView style={StyleSheet.absoluteFill} facing="back" />
+      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
+
+      {/* Close button */}
+      <Pressable style={[s.closeBtn, { top: insets.top + 12 }]} onPress={() => navigation.goBack()}>
+        <Icon name="close" size={24} color="#fff" />
+      </Pressable>
 
       {/* Dark vignette overlay */}
       <View style={s.overlay} pointerEvents="none" />
@@ -213,7 +258,7 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
         ))}
         {/* Scan line */}
         <View style={s.scanLine} />
-        <Text style={s.focusHint}>Align the card code (e.g. OP01-001)</Text>
+        <Text style={s.focusHint}>{t('scan.hint')}</Text>
       </View>
 
       {/* Floating ghost decoration */}
@@ -240,13 +285,13 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
           <Text style={s.toastCard} numberOfLines={1}>
             {lastResult.code} · {lastResult.name}
           </Text>
-          <Text style={s.toastCount}>×{lastResult.count} in vault</Text>
+          <Text style={s.toastCount}>×{lastResult.count} {t('scan.inVault')}</Text>
         </View>
       )}
 
       {/* Bottom panel: manual input + confirm */}
       <View style={s.bottomPanel}>
-        <Text style={s.inputLabel}>Enter card code manually</Text>
+        <Text style={s.inputLabel}>{t('scan.manualLabel')}</Text>
         <View style={s.inputRow}>
           <TextInput
             style={s.input}
@@ -270,13 +315,11 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
             {isProcessing ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={s.confirmBtnText}>Add</Text>
+              <Text style={s.confirmBtnText}>{t('scan.add')}</Text>
             )}
           </Pressable>
         </View>
-        <Text style={s.inputHint}>
-          Tap "Add" after typing or scanning the code on the card.
-        </Text>
+        <Text style={s.inputHint}>{t('scan.manualHint')}</Text>
       </View>
     </View>
   );
@@ -292,8 +335,21 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
 
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(14,12,26,0.55)',
+  },
+
+  closeBtn: {
+    position: 'absolute',
+    top: 52,
+    right: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(21,18,38,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
 
   focusBox: {
@@ -358,7 +414,7 @@ const s = StyleSheet.create({
   },
 
   flashOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#ec4899',
   },
 

@@ -12,18 +12,26 @@ const STORAGE_KEY = 'optcg.collection.v1';
 type CollectionMap = Record<string, CollectionItem>;
 
 let cache: CollectionMap | null = null;
+let pendingRead: Promise<CollectionMap> | null = null;
 const listeners = new Set<() => void>();
 
 async function read(): Promise<CollectionMap> {
   if (cache) return cache;
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    cache = raw ? (JSON.parse(raw) as CollectionMap) : {};
-  } catch (e) {
-    console.warn('[collection] error leyendo storage:', e);
-    cache = {};
-  }
-  return cache;
+  if (pendingRead) return pendingRead;
+  pendingRead = AsyncStorage.getItem(STORAGE_KEY)
+    .then((raw) => {
+      cache = raw ? (JSON.parse(raw) as CollectionMap) : {};
+      return cache;
+    })
+    .catch((e) => {
+      console.warn('[collection] error leyendo storage:', e);
+      cache = {};
+      return cache;
+    })
+    .finally(() => {
+      pendingRead = null;
+    });
+  return pendingRead;
 }
 
 async function write(map: CollectionMap): Promise<void> {

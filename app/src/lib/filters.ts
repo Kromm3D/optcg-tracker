@@ -22,6 +22,8 @@ export type FilterState = {
   sets: Set<string>;
   /** Family / trait — match parcial sobre el campo family. */
   families: Set<string>;
+  /** Etiquetas de variante / parallel (Normal, Parallel, Manga, ...). */
+  variants: Set<string>;
 };
 
 export function emptyFilters(): FilterState {
@@ -35,6 +37,7 @@ export function emptyFilters(): FilterState {
     rarities: new Set(),
     sets: new Set(),
     families: new Set(),
+    variants: new Set(),
   };
 }
 
@@ -48,7 +51,8 @@ export function activeCount(f: FilterState): number {
     f.attributes.size +
     f.rarities.size +
     f.sets.size +
-    f.families.size
+    f.families.size +
+    f.variants.size
   );
 }
 
@@ -93,6 +97,14 @@ export function matches(card: Card, f: FilterState): boolean {
   }
   if (f.sets.size > 0) {
     if (!f.sets.has(setPrefix(card.code))) return false;
+  }
+  if (f.variants.size > 0) {
+    // La carta pasa si tiene al menos una variante con la etiqueta elegida.
+    let ok = false;
+    for (const v of card.variants) {
+      if (v.label && f.variants.has(v.label)) { ok = true; break; }
+    }
+    if (!ok) return false;
   }
   if (f.families.size > 0) {
     const fam = (card.family ?? '').toLowerCase();
@@ -164,6 +176,7 @@ export type FilterOptions = {
   rarities: string[];
   sets: string[];
   families: string[];
+  variants: string[];
 };
 
 export function deriveOptions(cards: Card[]): FilterOptions {
@@ -175,8 +188,10 @@ export function deriveOptions(cards: Card[]): FilterOptions {
   const rarities = new Set<string>();
   const sets = new Set<string>();
   const families = new Set<string>();
+  const variants = new Set<string>();
 
   for (const c of cards) {
+    for (const v of c.variants) if (v.label) variants.add(v.label);
     if (c.type) types.add(c.type);
     if (c.cost !== null && c.cost !== undefined) costs.add(c.cost);
     if (c.power !== null && c.power !== undefined) {
@@ -206,5 +221,6 @@ export function deriveOptions(cards: Card[]): FilterOptions {
     rarities: [...rarities].sort(),
     sets: [...sets].sort(),
     families: [...families].sort(),
+    variants: [...variants].sort(),
   };
 }

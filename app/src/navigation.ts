@@ -7,10 +7,13 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 export type RootStackParamList = {
   Tabs: undefined;
-  Detail: { code: string };
+  Detail: { code: string; suffix?: string };
   Sets: undefined;
   SetDetail: { setCode: string };
   DeckDetail: { deckId: string };
+  Scan: undefined;
+  Settings: undefined;
+  WishlistDetail: { wishlistId: string };
 };
 
 export type TabParamList = {
@@ -43,3 +46,6 @@ export type DecksScreenProps = CompositeScreenProps<
 export type DetailScreenProps = NativeStackScreenProps<RootStackParamList, 'Detail'>;
 export type SetDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'SetDetail'>;
 export type DeckDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'DeckDetail'>;
+export type ScanScreenProps = NativeStackScreenProps<RootStackParamList, 'Scan'>;
+export type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
+export type WishlistDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'WishlistDetail'>;

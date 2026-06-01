@@ -1,9 +1,9 @@
-// Sets: lista de expansiones con progreso de coleccion. Tap -> SetDetail.
+// Sets: lista de expansiones agrupadas por tipo con secciones colapsables.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -12,70 +12,147 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation';
 type SetsScreenProps = NativeStackScreenProps<RootStackParamList, 'Sets'>;
 import { colors, fonts } from '../theme';
-import { listSetCodes, summarizeSet } from '../lib/setsStats';
+import { Icon } from '../components/Icon';
+import { listSetCodes, summarizeSet, type SetSummary } from '../lib/setsStats';
 import { setNameFor, setDateFor } from '../lib/setMeta';
 import { SetBadge } from '../components/SetBadge';
 import { subscribe as subOwned } from '../lib/ownedAggregate';
+import { subscribe as subSettings } from '../lib/settings';
+import { useT } from '../lib/i18n';
+
+type GroupKey = 'regular' | 'starter' | 'promo' | 'other';
+
+function setGroupOf(code: string): GroupKey {
+  if (/^(OP|EB|PRB)\d/.test(code)) return 'regular';
+  if (/^ST\d/.test(code)) return 'starter';
+  if (code === 'P') return 'promo';
+  return 'other';
+}
 
 export function SetsScreen({ navigation }: SetsScreenProps) {
+  const t = useT();
   const [, force] = useState(0);
-  useEffect(() => subOwned(() => force((n) => n + 1)), []);
+  const [expanded, setExpanded] = useState<Record<GroupKey, boolean>>({
+    regular: true,
+    starter: false,
+    promo: false,
+    other: false,
+  });
 
-  const sets = useMemo(() => {
-    return listSetCodes().map((code) => summarizeSet(code));
+  useEffect(() => {
+    const u1 = subOwned(() => force((n) => n + 1));
+    const u2 = subSettings(() => force((n) => n + 1));
+    return () => { u1(); u2(); };
   }, []);
 
-  // Recalculamos tras cada cambio en collection. summarizeSet usa CARDS_BY_SET
-  // pero los owned son dinamicos, asi que forzamos rerender en lugar de memo.
-  const live = sets.map((s) => summarizeSet(s.code));
+  const setCodes = useMemo(() => listSetCodes(), []);
+  const live = setCodes.map((code) => summarizeSet(code));
+
+  const groups = useMemo<Record<GroupKey, SetSummary[]>>(() => {
+    const g: Record<GroupKey, SetSummary[]> = {
+      regular: [], starter: [], promo: [], other: [],
+    };
+    for (const s of live) g[setGroupOf(s.code)].push(s);
+    return g;
+  }, [live]);
+
+  const groupLabel: Record<GroupKey, string> = {
+    regular: t('sets.groupBooster'),
+    starter: t('sets.groupStarter'),
+    promo: t('sets.groupPromo'),
+    other: t('sets.groupOther'),
+  };
+
+  const toggle = (key: GroupKey) =>
+    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Text style={s.meta}>{live.length} sets</Text>
-      <FlatList
-        data={live}
-        keyExtractor={(it) => it.code}
-        contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 110 }}
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => navigation.navigate('SetDetail', { setCode: item.code })}
-            style={s.row}
-          >
-            <SetBadge setCode={item.code} size={56} />
-            <View style={{ flex: 1 }}>
-              <View style={s.headRow}>
-                <Text style={s.title}>{setNameFor(item.code)}</Text>
-                <Text style={s.pct}>{item.pct}%</Text>
-              </View>
-              {setDateFor(item.code) ? (
-                <Text style={s.date}>{setDateFor(item.code)}</Text>
-              ) : null}
-              <View style={s.barTrack}>
-                <View
-                  style={[
-                    s.barFill,
-                    { width: `${item.pct}%` },
-                  ]}
+      <View style={s.metaRow}>
+        <Text style={s.meta}>{live.length} {t('sets.title')}</Text>
+      </View>
+      <ScrollView contentContainerStyle={s.scroll}>
+        {(['regular', 'starter', 'promo', 'other'] as GroupKey[]).map((key) => {
+          const items = groups[key];
+          if (items.length === 0) return null;
+          const open = expanded[key];
+          return (
+            <View key={key}>
+              {/* Section header */}
+              <Pressable style={s.sectionHeader} onPress={() => toggle(key)}>
+                <Text style={s.sectionLabel}>{groupLabel[key]}</Text>
+                <Text style={s.sectionCount}>{items.length}</Text>
+                <Icon
+                  name={open ? 'chevD' : 'chevR'}
+                  size={16}
+                  color={colors.textDim}
                 />
-              </View>
-              <Text style={s.sub}>
-                {item.owned} / {item.total} cards
-              </Text>
+              </Pressable>
+
+              {/* Section rows */}
+              {open && items.map((item) => (
+                <Pressable
+                  key={item.code}
+                  onPress={() => navigation.navigate('SetDetail', { setCode: item.code })}
+                  style={s.row}
+                >
+                  <SetBadge setCode={item.code} size={56} />
+                  <View style={{ flex: 1 }}>
+                    <View style={s.headRow}>
+                      <Text style={s.title}>{setNameFor(item.code)}</Text>
+                      <Text style={s.pct}>{item.pct}%</Text>
+                    </View>
+                    {setDateFor(item.code) ? (
+                      <Text style={s.date}>{setDateFor(item.code)}</Text>
+                    ) : null}
+                    <View style={s.barTrack}>
+                      <View style={[s.barFill, { width: `${item.pct}%` }]} />
+                    </View>
+                    <Text style={s.sub}>{item.owned} / {item.total} cards</Text>
+                  </View>
+                </Pressable>
+              ))}
             </View>
-          </Pressable>
-        )}
-      />
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
 
 const s = StyleSheet.create({
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
   meta: {
     color: colors.textDim,
     fontFamily: fonts.ui,
     fontSize: 13,
+  },
+  scroll: {
     paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingBottom: 110,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 8,
+  },
+  sectionLabel: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: fonts.uiBold,
+    color: colors.text,
+    letterSpacing: 0.2,
+  },
+  sectionCount: {
+    fontSize: 12,
+    fontFamily: fonts.uiSemi,
+    color: colors.textDim,
   },
   row: {
     flexDirection: 'row',

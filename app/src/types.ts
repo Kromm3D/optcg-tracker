@@ -14,6 +14,17 @@ export interface Variant {
   image_local: string;
   /** URL original en el CDN de OPTCG API. */
   image_source: string;
+  /** Set donde esta variante fue lanzada (ej: "EB02"). Puede diferir del
+   *  prefijo del código base cuando es un reprint o parallel de otro set. */
+  set_source?: string;
+  /** Set canónico de impresión, derivado del corchete [XX-NN] en el get_info
+   *  del sitio oficial. `null` = evento/promo sin código de set (Treasure Cup,
+   *  Grand Battle, etc.). `undefined` = datos legacy sin este campo. */
+  printed_set?: string | null;
+  /** Texto legible de la sección "Card Set(s)" del sitio oficial para esta
+   *  variante concreta (ej: "Anime 25th Collection",
+   *  "Extra Grand Battle for Stores 2026 May"). */
+  get_info?: string;
 }
 
 export interface Card {
@@ -64,8 +75,27 @@ export interface CollectionItem {
   count: number;
 }
 
-/** Item de wishlist - solo codigo base. */
+/** @deprecated Legacy single-wishlist entry. Use WishlistCard instead. */
 export interface WishlistItem {
   code: string;
   addedAt: number;
+  needed?: number;
+}
+
+/** A single card+variant entry inside a named wishlist. */
+export interface WishlistCard {
+  code: string;
+  /** Variant suffix: "" = base/non-parallel, "_p1" = first parallel, etc. */
+  suffix: string;
+  needed: number;
+  addedAt: number;
+}
+
+/** A named wishlist containing multiple card entries. */
+export interface Wishlist {
+  id: string;
+  name: string;
+  /** Keyed by `${code}${suffix}` (same as collection variantKey). */
+  cards: Record<string, WishlistCard>;
+  createdAt: number;
 }

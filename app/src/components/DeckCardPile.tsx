@@ -26,7 +26,7 @@ const OFFSET_X = 3;   // px each card shifts right in the pile
 
 export function DeckCardPile({ card, qty, owned, width }: Props) {
   const v = card.variants[0];
-  const { uri, fallback: fallbackUri } = v ? resolveImageUris(v) : { uri: '' };
+  const { uri, fallback: fallbackUri } = v ? resolveImageUris(v) : { uri: '', fallback: undefined };
   const height = width / ASPECT;
 
   const layers = Math.min(qty, MAX_VISIBLE);
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   fallback: { alignItems: 'center', justifyContent: 'center' },
   fallbackText: { color: colors.textDim, fontSize: 10 },
   dim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(14,12,26,0.65)',
   },
   badge: {

@@ -6,10 +6,8 @@
 
 import type { Card, IndexPayload } from '../types';
 
-// El @ts-ignore evita que tsc intente inferir el tipo literal del JSON
-// (1.6 MB, sería lento). Casteamos al tipo correcto justo después.
-// @ts-ignore — Metro resuelve este import fuera del directorio app/.
-import rawJson from '../../../data/index.json';
+// @ts-ignore — avoids tsc inferring the huge literal type of the JSON.
+import rawJson from './index.json';
 
 const raw = rawJson as IndexPayload;
 

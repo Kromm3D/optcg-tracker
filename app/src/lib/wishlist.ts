@@ -49,9 +49,17 @@ export async function toggleWish(code: string): Promise<boolean> {
     await write(map);
     return false;
   }
-  map[code] = { code, addedAt: Date.now() };
+  map[code] = { code, addedAt: Date.now(), needed: 1 };
   await write(map);
   return true;
+}
+
+/** Add (or update) a wishlist entry with an explicit needed count.
+ *  If the card is already wished, the needed qty is replaced (not added). */
+export async function addToWishlist(code: string, needed: number): Promise<void> {
+  const map = { ...(await read()) };
+  map[code] = { code, addedAt: map[code]?.addedAt ?? Date.now(), needed: Math.max(1, needed) };
+  await write(map);
 }
 
 export function subscribe(listener: () => void): () => void {

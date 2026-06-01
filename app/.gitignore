@@ -5,3 +5,6 @@ dist/
 web-build/
 *.log
 .DS_Store
+
+# Generated card data (source of truth is data/index.json at repo root)
+src/data/index.json

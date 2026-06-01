@@ -6,12 +6,11 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CachedImage } from './CachedImage';
+import { Icon } from './Icon';
 import { colors, fonts } from '../theme';
-import { ColorDot } from './ColorDot';
-import { RarityPip } from './RarityPip';
 import { resolveImageUris } from '../lib/images';
 import { adjust, getCount, subscribe as subColl } from '../lib/collection';
-import type { Card } from '../types';
+import type { Card, Variant } from '../types';
 
 type Props = {
   card: Card;
@@ -23,8 +22,21 @@ type Props = {
   quickActions?: boolean;
   /** Si true, aplica una capa gris semitransparente (carta no poseída). */
   dimmed?: boolean;
+  /** Set code where this variant was released, when it differs from the card's
+   *  own set (e.g. "EB02" for Gold Leader parallels shown inside EB01). */
+  sourceSet?: string;
+  /** Si true, muestra un indicador de "varias artes poseídas". */
+  multiArt?: boolean;
+  /** Si true, dibuja un borde/overlay de selección (modo multi-select). */
+  selected?: boolean;
   /** Explicit pixel width; overrides the default '100%' flex width. */
   width?: number;
+  /** Override the variant used for image/display (default: variants[0]). */
+  variant?: Variant;
+  /** Inline +/- controls below the footer. qty = count shown between buttons. */
+  onAdjust?: (delta: number) => void;
+  /** Current count displayed in inline controls (when onAdjust is provided). */
+  qty?: number;
   onPress?: () => void;
 };
 
@@ -34,11 +46,17 @@ export function CardThumb({
   compact = false,
   quickActions = false,
   dimmed = false,
+  sourceSet,
+  multiArt = false,
+  selected = false,
   width,
+  variant,
+  onAdjust,
+  qty = 0,
   onPress,
 }: Props) {
-  const v = card.variants[0];
-  const { uri: primaryUrl, fallback: fallbackUrl } = v ? resolveImageUris(v) : { uri: '' };
+  const v = variant ?? card.variants[0];
+  const { uri: primaryUrl, fallback: fallbackUrl } = v ? resolveImageUris(v) : { uri: '', fallback: undefined };
 
   // Para los +/- locales necesitamos el count de la primera variante
   const [vCount, setVCount] = useState(0);
@@ -71,54 +89,31 @@ export function CardThumb({
           </View>
         )}
 
-        {(!compact || quickActions) && (
-          <View style={styles.topLeft}>
-            <ColorDot colors={card.colors} size={8} />
-            <Text style={styles.topName} numberOfLines={1}>{card.name}</Text>
-          </View>
-        )}
-
-        {(!compact || quickActions) && card.cost !== null && card.cost !== undefined && card.type !== 'Event' && (
-          <View style={styles.cost}>
-            <Text style={styles.costText}>{card.cost}</Text>
-          </View>
-        )}
-
-        {/* badge owned arriba a la derecha (no en modo quickActions). */}
-        {!quickActions && (owned > 0 ? (
-          <View style={[styles.ownedBadge, compact && styles.badgeSm]}>
-            <Text style={[styles.ownedText, compact && styles.badgeSmText]}>x{owned}</Text>
-          </View>
-        ) : compact ? null : (
-          <View style={styles.zeroBadge}>
-            <Text style={styles.zeroText}>0</Text>
-          </View>
-        ))}
-
-        {/* Poder arriba a la derecha (estilo referencia). */}
-        {quickActions && card.power ? (
-          <Text style={styles.powerTop}>{card.power.toLocaleString()}</Text>
-        ) : null}
-
-        {!compact && !quickActions && (
-          <View style={styles.bottomBar}>
-            <RarityPip rarity={v?.rarity ?? ''} />
-            {card.power ? (
-              <Text style={styles.power}>{card.power.toLocaleString()}</Text>
-            ) : null}
-          </View>
-        )}
-
         {/* Dim overlay for missing cards. */}
-        {dimmed && (
-          <View style={styles.dimOverlay} />
+        {dimmed && <View style={styles.dimOverlay} />}
+
+        {/* Selection ring (multi-select mode). */}
+        {selected && <View style={styles.selOverlay} />}
+
+        {/* Multi-art indicator: owned across several art versions. */}
+        {multiArt && (
+          <View style={styles.multiArt}>
+            <Icon name="layers" size={12} color="#fff" stroke={2} />
+          </View>
+        )}
+
+        {/* Source-set badge: shown when this variant released in a different set. */}
+        {sourceSet && (
+          <View style={styles.sourceSetBadge}>
+            <Text style={styles.sourceSetText}>{sourceSet}</Text>
+          </View>
         )}
 
         {/* Quick actions: dos botones circulares grandes centrados abajo. */}
         {quickActions && v ? (
           <View style={styles.qa}>
             <Pressable
-              onPress={(e) => {
+              onPress={(e: any) => {
                 (e as any).stopPropagation?.();
                 adjust(card.code, v.suffix, -1);
               }}
@@ -127,7 +122,7 @@ export function CardThumb({
               <Text style={styles.qaSign}>−</Text>
             </Pressable>
             <Pressable
-              onPress={(e) => {
+              onPress={(e: any) => {
                 (e as any).stopPropagation?.();
                 adjust(card.code, v.suffix, +1);
               }}
@@ -139,22 +134,52 @@ export function CardThumb({
         ) : null}
       </View>
 
-      {/* Burbuja-contador roja que desborda la esquina superior derecha. */}
-      {quickActions ? (
+      {/* Count bubble — bleeds out of top-right corner of the image. */}
+      {!quickActions && owned > 0 && (
         <View style={styles.countBubble}>
-          <Text style={styles.countBubbleText}>{vCount}</Text>
+          <Text style={styles.countBubbleText}>×{owned}</Text>
         </View>
-      ) : null}
+      )}
 
+      {/* quickActions counter bubble */}
+      {quickActions && vCount > 0 && (
+        <View style={styles.countBubble}>
+          <Text style={styles.countBubbleText}>×{vCount}</Text>
+        </View>
+      )}
+
+      {/* Footer: card name bold + card ID below */}
       {!quickActions && (
-        <Text style={[styles.code, compact && styles.codeSm]} numberOfLines={1}>{card.code}</Text>
+        <View style={styles.footer}>
+          <Text style={[styles.cardName, compact && styles.cardNameSm]} numberOfLines={1}>{card.name}</Text>
+          <Text style={[styles.code, compact && styles.codeSm]} numberOfLines={1}>{card.code}</Text>
+        </View>
+      )}
+
+      {/* Inline ±  controls — shown whenever onAdjust is provided */}
+      {!quickActions && onAdjust && (
+        <View style={styles.inlineControls}>
+          <Pressable
+            style={styles.inlineBtn}
+            onPress={(e: any) => { (e as any).stopPropagation?.(); onAdjust(-1); }}
+          >
+            <Text style={styles.inlineSign}>−</Text>
+          </Pressable>
+          <Text style={styles.inlineQty}>{qty}</Text>
+          <Pressable
+            style={styles.inlineBtn}
+            onPress={(e: any) => { (e as any).stopPropagation?.(); onAdjust(+1); }}
+          >
+            <Text style={styles.inlineSign}>+</Text>
+          </Pressable>
+        </View>
       )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { width: '100%' },
+  wrap: { width: '100%', overflow: 'visible' },
   imgWrap: {
     width: '100%',
     aspectRatio: 200 / 280,
@@ -166,93 +191,6 @@ const styles = StyleSheet.create({
   img: { width: '100%', height: '100%' },
   fallback: { alignItems: 'center', justifyContent: 'center' },
   fallbackText: { color: colors.textDim, fontSize: 12 },
-  topLeft: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    right: 38,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  topName: {
-    marginLeft: 5,
-    fontSize: 11,
-    fontFamily: fonts.display,
-    color: '#fff',
-    flexShrink: 1,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  cost: {
-    position: 'absolute',
-    top: 30,
-    left: 8,
-    width: 22,
-    height: 22,
-    borderRadius: 7,
-    backgroundColor: 'rgba(5,7,10,0.7)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  costText: { fontSize: 12, color: '#fff', fontFamily: fonts.display },
-  ownedBadge: {
-    position: 'absolute',
-    top: 7,
-    right: 7,
-    minWidth: 22,
-    height: 22,
-    paddingHorizontal: 6,
-    borderRadius: 99,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ownedText: { fontSize: 11, color: '#0a0c10', fontFamily: fonts.uiBold },
-  zeroBadge: {
-    position: 'absolute',
-    top: 7,
-    right: 7,
-    width: 22,
-    height: 22,
-    borderRadius: 99,
-    backgroundColor: 'rgba(5,7,10,0.75)',
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  zeroText: { fontSize: 11, color: colors.textDim, fontFamily: fonts.uiSemi },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 7,
-    left: 7,
-    right: 7,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  power: {
-    fontSize: 12,
-    color: '#fff',
-    fontFamily: fonts.display,
-    textShadowColor: 'rgba(0,0,0,0.9)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  powerTop: {
-    position: 'absolute',
-    top: 7,
-    right: 9,
-    fontSize: 13,
-    color: '#fff',
-    fontFamily: fonts.display,
-    textShadowColor: 'rgba(0,0,0,0.9)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
   qa: {
     position: 'absolute',
     bottom: '12%',
@@ -271,14 +209,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   qaSign: { color: '#0d0f14', fontSize: 22, fontFamily: fonts.uiBold, lineHeight: 26 },
+  // Bleeds slightly outside the top-right corner of the card image.
   countBubble: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    minWidth: 30,
-    height: 30,
-    paddingHorizontal: 7,
-    borderRadius: 15,
+    top: -7,
+    right: -7,
+    minWidth: 26,
+    height: 26,
+    paddingHorizontal: 6,
+    borderRadius: 13,
     backgroundColor: colors.badge,
     borderWidth: 2,
     borderColor: colors.bg,
@@ -286,14 +225,69 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,
   },
-  countBubbleText: { fontSize: 13, color: '#fff', fontFamily: fonts.uiBold },
-  code: { fontSize: 11, fontFamily: fonts.uiSemi, color: colors.textMut, marginTop: 6 },
-  codeSm: { fontSize: 9.5, marginTop: 4 },
-  badgeSm: { minWidth: 16, height: 16, paddingHorizontal: 4, top: 4, right: 4 },
-  badgeSmText: { fontSize: 9 },
-  dimOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(14,12,26,0.65)',
-    // Slight desaturation effect via opacity — image is still visible but muted
+  countBubbleText: { fontSize: 12, color: '#fff', fontFamily: fonts.uiBold },
+  footer: { marginTop: 5, marginBottom: 2 },
+  inlineControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
   },
+  inlineBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inlineSign: { fontSize: 16, color: colors.text, fontFamily: fonts.uiBold, lineHeight: 20 },
+  inlineQty: {
+    fontSize: 13,
+    fontFamily: fonts.display,
+    color: colors.text,
+    minWidth: 16,
+    textAlign: 'center',
+  },
+  cardName: { fontSize: 11, fontFamily: fonts.uiBold, color: colors.text, lineHeight: 14 },
+  cardNameSm: { fontSize: 9.5 },
+  code: { fontSize: 10, fontFamily: fonts.uiSemi, color: colors.textMut, lineHeight: 13 },
+  codeSm: { fontSize: 8.5 },
+  dimOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(14,12,26,0.65)',
+  },
+  selOverlay: {
+    ...StyleSheet.absoluteFill,
+    borderWidth: 3,
+    borderColor: colors.accent,
+    borderRadius: 14,
+    backgroundColor: colors.accentDim,
+  },
+  multiArt: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  sourceSetBadge: {
+    position: 'absolute',
+    bottom: 5,
+    left: 5,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(14,12,26,0.78)',
+    zIndex: 10,
+  },
+  sourceSetText: { fontSize: 9, fontFamily: fonts.uiBold, color: '#fff', letterSpacing: 0.3 },
 });

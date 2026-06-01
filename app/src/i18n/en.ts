@@ -1,0 +1,198 @@
+// English UI strings. Keys are dot-namespaced by area.
+// es.ts must mirror these keys exactly.
+
+export const en = {
+  // Tabs / nav
+  'tab.home': 'Home',
+  'tab.cards': 'Cards',
+  'tab.binder': 'Binder',
+  'tab.decks': 'Decks',
+  'tab.scan': 'Scan',
+
+  // Home
+  'home.collection': 'Collection',
+  'home.cardsLabel': 'cards',
+  'home.unique': 'unique',
+  'home.ofIndex': 'of index',
+  'home.vaultValue': 'vault value',
+  'home.cards': 'Cards',
+  'home.inIndex': 'in index',
+  'home.decks': 'Decks',
+  'home.createDeck': 'Create deck',
+  'home.deck': 'deck',
+  'home.decksPlural': 'decks',
+  'home.scan': 'Scan',
+  'home.addCards': 'Add cards',
+  'home.sets': 'Sets',
+  'home.setsCount': 'sets',
+  'home.wishlist': 'Wishlist',
+  'home.stats': 'Stats',
+  'home.settings': 'Settings',
+
+  // Binder
+  'binder.title': 'My Binder',
+  'binder.collection': 'Collection',
+  'binder.wishlist': 'Wishlist',
+  'binder.trade': 'Trade',
+  'binder.uniqueCards': 'unique cards',
+  'binder.units': 'units',
+  'binder.wishes': 'wishes',
+  'binder.pending': 'pending',
+  'binder.tradeable': 'tradeable',
+  'binder.copies': 'copies',
+  'binder.showAll': 'Show all',
+  'binder.ownedOnly': 'Owned only',
+  'binder.shareImage': 'Share image',
+  'binder.emptyOwned': 'Your binder is empty',
+  'binder.emptyOwnedBody': 'Search a card and tap + on a variant to add it.',
+  'binder.emptyWishlist': 'Wishlist empty',
+  'binder.emptyWishlistBody': 'On a card detail use the heart to add it to your wishlist.',
+  'binder.emptyTrade': 'No cards to trade',
+  'binder.emptyTradeBody': 'Cards beyond your playset size will appear here automatically.',
+
+  // Wishlists
+  'wl.newWishlist': 'New Wishlist',
+  'wl.createWishlist': 'Create Wishlist',
+  'wl.namePlaceholder': 'Wishlist name…',
+  'wl.create': 'Create',
+  'wl.wipe': 'Clear all cards',
+  'wl.wipeConfirm': 'Remove all cards from "{name}"?',
+  'wl.wipeAction': 'Clear',
+  'wl.delete': 'Delete wishlist',
+  'wl.deleteConfirm': 'Delete "{name}"? This cannot be undone.',
+  'wl.pickTitle': 'Add to wishlist',
+  'wl.pickBody': 'Choose an existing wishlist or create a new one.',
+  'wl.noWishlists': 'No wishlists yet. Create one to start.',
+  'wl.variantTitle': 'Choose variant',
+  'wl.variantBody': 'Select the version and quantity you need.',
+  'wl.normal': 'Normal',
+  'wl.confirm': 'Confirm',
+
+  // Wishlist detail
+  'wl.entries': 'entries',
+  'wl.copiesNeeded': 'needed',
+  'wl.owned': 'owned',
+  'wl.addCards': 'Add Cards',
+  'wl.rename': 'Rename Wishlist',
+  'wl.renameAction': 'Rename',
+  'wl.emptyTitle': 'Empty wishlist',
+  'wl.emptyBody': 'Tap + to add cards to this wishlist.',
+
+  // Settings
+  'settings.wishlistDefault': 'Default variant when adding to wishlist',
+  'settings.wishlistNormal': 'Normal (non-parallel)',
+  'settings.wishlistParallel': 'Parallel (if available)',
+
+  // Sort direction
+  'sort.asc': 'Asc',
+  'sort.desc': 'Desc',
+
+  // Add cards modal
+  'add.title': 'Add Cards',
+  'add.searchPlaceholder': 'yellow luffy op01, red OP01-001…',
+  'add.owned': 'owned',
+
+  // Decks
+  'decks.title': 'Decks',
+  'decks.newDeck': 'New Deck',
+  'decks.importSim': 'Import from OPTCGSim',
+  'decks.importTitle': 'Import deck',
+  'decks.importPlaceholder': '1xOP11-041 4xOP14-102 2xOP06-106…',
+  'decks.import': 'Import',
+  'decks.deckName': 'Deck name',
+  'decks.create': 'Create',
+  'decks.cancel': 'Cancel',
+  'decks.slots': 'slots',
+  'decks.cards': 'cards',
+  'decks.emptyTitle': 'No decks yet',
+  'decks.emptyBody': 'Create a deck or import one from OPTCGSim.',
+  'decks.importedNone': 'No valid cards found in that code.',
+  'decks.importedOk': 'Imported {n} cards.',
+
+  // Deck detail
+  'deck.empty': 'Empty deck',
+  'deck.emptyBody': 'Tap + to add cards to the deck.',
+  'deck.rename': 'Rename Deck',
+  'deck.renameAction': 'Rename',
+  'deck.addMissing': 'Add missing to wishlist',
+  'deck.missingAdded': '{n} missing cards added to wishlist.',
+  'deck.missingNone': 'No missing cards — you own them all!',
+
+  // Scan
+  'scan.permTitle': 'Camera access needed',
+  'scan.permBody': 'Perona needs to see the card to add it to your vault!',
+  'scan.grant': 'Grant Permission',
+  'scan.hint': 'Align the card code (e.g. OP01-001)',
+  'scan.manualLabel': 'Enter card code manually',
+  'scan.add': 'Add',
+  'scan.manualHint': 'Tap "Add" after typing or scanning the code on the card.',
+  'scan.inVault': 'in vault',
+
+  // Sets
+  'sets.title': 'Sets',
+  'sets.countParallels': 'Count parallels',
+  'sets.groupBooster': 'Booster Packs',
+  'sets.groupStarter': 'Starter Decks',
+  'sets.groupPromo': 'Promos',
+  'sets.groupOther': 'Other',
+
+  // Settings
+  'settings.title': 'Settings',
+  'settings.language': 'Language',
+  'settings.english': 'English',
+  'settings.spanish': 'Español',
+  'settings.gridColumns': 'Grid columns',
+  'settings.countParallels': 'Count parallels as completed',
+  'settings.countParallelsDesc': 'A set counts as complete only when every variant is owned.',
+  'settings.playsetSize': 'Playset size',
+  'settings.playsetSizeDesc': 'Copies kept before extras go to the Trade binder.',
+  'settings.showAltArt': 'Show alternate art',
+  'settings.showAltArtDesc': 'Show each parallel / alternate art as its own card. Off shows only the standard art.',
+
+  // Bulk actions
+  'bulk.select': 'Select',
+  'bulk.done': 'Done',
+  'bulk.selected': '{n} selected',
+  'bulk.clear': 'Clear',
+  'bulk.toCollection': 'Collection',
+  'bulk.toWishlist': 'Wishlist',
+  'bulk.toTrade': 'Trade',
+  'bulk.toDeck': 'Deck',
+  'bulk.addTitle': 'Add {n} cards',
+  'bulk.quantity': 'Quantity per card',
+  'bulk.pickDeck': 'Choose a deck',
+  'bulk.noDecks': 'No decks yet. Create one from the Decks tab.',
+  'bulk.confirmAdd': 'Add to {target}',
+  'bulk.added': 'Added {n} cards to {target}.',
+
+  // Set-level bulk wishlist
+  'setwl.addMissing': 'Add missing to wishlist',
+  'setwl.title': 'Add missing cards',
+  'setwl.missingCount': '{n} missing cards in this set',
+  'setwl.printing': 'Printing',
+  'setwl.normal': 'Normal',
+  'setwl.parallel': 'Parallel',
+  'setwl.both': 'Both',
+  'setwl.perRarity': 'Copies per rarity',
+  'setwl.none': 'Nothing missing — you own them all!',
+  'setwl.added': 'Added {n} entries to the wishlist.',
+
+  // Filters
+  'filter.title': 'Filters',
+  'filter.variant': 'Variant / Parallel',
+  'filter.clear': 'Clear',
+  'filter.apply': 'Apply',
+  'filter.sort': 'Sort',
+  'sort.code': 'Code',
+  'sort.set': 'Set',
+  'sort.rarity': 'Rarity',
+  'sort.power': 'Power',
+  'sort.cost': 'Cost',
+  'sort.owned': 'Owned',
+
+  // Generic
+  'common.cancel': 'Cancel',
+  'common.done': 'Done',
+};
+
+export type TKey = keyof typeof en;
