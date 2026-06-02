@@ -114,7 +114,7 @@ export function FilterSheet({ visible, filters, onChange, onClose }: Props) {
           />
 
           <ChipSection
-            title="Power (bucket)"
+            title="Power"
             options={opts.powers.map(String)}
             renderLabel={(v) => (v === '0' ? '0' : `${Number(v) / 1000}k`)}
             selected={filters.powers}
@@ -158,6 +158,9 @@ export function FilterSheet({ visible, filters, onChange, onClose }: Props) {
             selected={filters.sets}
             onToggle={toggleSets}
             searchable
+            renderLabel={(code) =>
+              opts.setNames[code] ? `${code} · ${opts.setNames[code]}` : code
+            }
           />
 
           {opts.families.length > 0 && (

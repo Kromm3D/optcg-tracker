@@ -100398,5 +100398,163 @@
         }
       ]
     }
+  },
+  "set_meta": {
+    "PRB02": {
+      "release_order": 0
+    },
+    "PRB01": {
+      "release_order": 1
+    },
+    "EB03": {
+      "release_order": 2
+    },
+    "EB02": {
+      "release_order": 3
+    },
+    "EB01": {
+      "release_order": 4
+    },
+    "OP16": {
+      "release_order": 5
+    },
+    "OP15": {
+      "release_order": 6
+    },
+    "EB04": {
+      "release_order": 6
+    },
+    "OP14": {
+      "release_order": 7
+    },
+    "OP13": {
+      "release_order": 8
+    },
+    "OP12": {
+      "release_order": 9
+    },
+    "OP11": {
+      "release_order": 10
+    },
+    "OP10": {
+      "release_order": 11
+    },
+    "OP09": {
+      "release_order": 12
+    },
+    "OP08": {
+      "release_order": 13
+    },
+    "OP07": {
+      "release_order": 14
+    },
+    "OP06": {
+      "release_order": 15
+    },
+    "OP05": {
+      "release_order": 16
+    },
+    "OP04": {
+      "release_order": 17
+    },
+    "OP03": {
+      "release_order": 18
+    },
+    "OP02": {
+      "release_order": 19
+    },
+    "OP01": {
+      "release_order": 20
+    },
+    "ST30": {
+      "release_order": 21
+    },
+    "ST29": {
+      "release_order": 22
+    },
+    "ST28": {
+      "release_order": 23
+    },
+    "ST27": {
+      "release_order": 24
+    },
+    "ST26": {
+      "release_order": 25
+    },
+    "ST25": {
+      "release_order": 26
+    },
+    "ST24": {
+      "release_order": 27
+    },
+    "ST23": {
+      "release_order": 28
+    },
+    "ST22": {
+      "release_order": 29
+    },
+    "ST21": {
+      "release_order": 30
+    },
+    "ST20": {
+      "release_order": 31
+    },
+    "ST19": {
+      "release_order": 32
+    },
+    "ST18": {
+      "release_order": 33
+    },
+    "ST17": {
+      "release_order": 34
+    },
+    "ST16": {
+      "release_order": 35
+    },
+    "ST15": {
+      "release_order": 36
+    },
+    "ST14": {
+      "release_order": 37
+    },
+    "ST13": {
+      "release_order": 38
+    },
+    "ST12": {
+      "release_order": 39
+    },
+    "ST11": {
+      "release_order": 40
+    },
+    "ST10": {
+      "release_order": 41
+    },
+    "ST09": {
+      "release_order": 42
+    },
+    "ST08": {
+      "release_order": 43
+    },
+    "ST07": {
+      "release_order": 44
+    },
+    "ST06": {
+      "release_order": 45
+    },
+    "ST05": {
+      "release_order": 46
+    },
+    "ST04": {
+      "release_order": 47
+    },
+    "ST03": {
+      "release_order": 48
+    },
+    "ST02": {
+      "release_order": 49
+    },
+    "ST01": {
+      "release_order": 50
+    }
   }
 }

@@ -164,6 +164,7 @@ export const en = {
   'bulk.noDecks': 'No decks yet. Create one from the Decks tab.',
   'bulk.confirmAdd': 'Add to {target}',
   'bulk.added': 'Added {n} cards to {target}.',
+  'bulk.chooseIndividually': 'Choose individually',
 
   // Set-level bulk wishlist
   'setwl.addMissing': 'Add missing to wishlist',

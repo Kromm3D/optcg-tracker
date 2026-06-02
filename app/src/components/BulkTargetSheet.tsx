@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -21,6 +22,7 @@ import { adjust } from '../lib/collection';
 import { getTradeQty, setTradeOverride } from '../lib/trade';
 import { listDecks, getDeck, setDeckCard } from '../lib/decks';
 import { listWishlists, createWishlist, addCard, subscribe as subWishlists } from '../lib/wishlists';
+import { CARDS } from '../data/loadIndex';
 import type { Deck } from '../lib/decks';
 import type { Wishlist } from '../types';
 
@@ -43,6 +45,8 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [chooseIndividually, setChooseIndividually] = useState(false);
+  const [individualQtys, setIndividualQtys] = useState<Record<string, number>>({});
 
   const needsPick = target === 'deck' || target === 'wishlist';
 
@@ -52,12 +56,26 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
     setPickedId(null);
     setCreating(false);
     setNewName('');
+    setChooseIndividually(false);
+    setIndividualQtys({});
     if (target === 'deck') listDecks().then(setDecks);
     if (target === 'wishlist') {
       listWishlists().then(setWishlists);
       return subWishlists(() => listWishlists().then(setWishlists));
     }
   }, [visible, target]);
+
+  const handleToggleIndividually = (val: boolean) => {
+    if (val) {
+      const init: Record<string, number> = {};
+      for (const sel of selections) init[`${sel.code}${sel.suffix}`] = qty;
+      setIndividualQtys(init);
+    }
+    setChooseIndividually(val);
+  };
+
+  const setIndivQty = (key: string, delta: number) =>
+    setIndividualQtys((prev) => ({ ...prev, [key]: Math.max(1, (prev[key] ?? 1) + delta) }));
 
   if (!target) return null;
 
@@ -76,17 +94,23 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
     setPickedId(wl.id);
   };
 
+  const getQtyFor = (sel: BulkSelection): number =>
+    chooseIndividually ? (individualQtys[`${sel.code}${sel.suffix}`] ?? qty) : qty;
+
   const apply = async () => {
     if (selections.length === 0) return;
     if (target === 'collection') {
-      for (const sel of selections) await adjust(sel.code, sel.suffix, qty);
+      for (const sel of selections) await adjust(sel.code, sel.suffix, getQtyFor(sel));
     } else if (target === 'trade') {
       // Trade is base-code only — dedupe by code so we add once per card.
       const codes = [...new Set(selections.map((s) => s.code))];
-      for (const code of codes) await setTradeOverride(code, getTradeQty(code) + qty);
+      for (const code of codes) {
+        const sel = selections.find((s) => s.code === code)!;
+        await setTradeOverride(code, getTradeQty(code) + getQtyFor(sel));
+      }
     } else if (target === 'wishlist') {
       if (!pickedId) return;
-      for (const sel of selections) await addCard(pickedId, sel.code, sel.suffix, qty);
+      for (const sel of selections) await addCard(pickedId, sel.code, sel.suffix, getQtyFor(sel));
     } else if (target === 'deck') {
       if (!pickedId) return;
       const deck = await getDeck(pickedId);
@@ -94,7 +118,8 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
       // Deck is base-code only and capped at 4 copies.
       const codes = [...new Set(selections.map((s) => s.code))];
       for (const code of codes) {
-        const next = Math.min(4, (existing.get(code) ?? 0) + qty);
+        const sel = selections.find((s) => s.code === code)!;
+        const next = Math.min(4, (existing.get(code) ?? 0) + getQtyFor(sel));
         await setDeckCard(pickedId, code, next);
       }
     }
@@ -124,6 +149,47 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
               </Pressable>
             </View>
           </View>
+
+          {/* Choose individually toggle */}
+          {selections.length > 1 && (
+            <View style={s.indivToggleRow}>
+              <Text style={s.indivToggleLabel}>{t('bulk.chooseIndividually')}</Text>
+              <Switch
+                value={chooseIndividually}
+                onValueChange={handleToggleIndividually}
+                thumbColor={chooseIndividually ? colors.accent : colors.textDim}
+                trackColor={{ false: colors.surface2, true: colors.accentDim }}
+              />
+            </View>
+          )}
+
+          {/* Per-card qty list (individually mode) */}
+          {chooseIndividually && (
+            <ScrollView style={s.indivList} contentContainerStyle={{ gap: 8 }}>
+              {selections.map((sel) => {
+                const card = CARDS[sel.code];
+                const key = `${sel.code}${sel.suffix}`;
+                const itemQty = individualQtys[key] ?? 1;
+                return (
+                  <View key={key} style={s.indivRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.indivName} numberOfLines={1}>{card?.name ?? sel.code}</Text>
+                      <Text style={s.indivCode}>{sel.code}{sel.suffix || ''}</Text>
+                    </View>
+                    <View style={s.stepper}>
+                      <Pressable style={s.stepBtn} onPress={() => setIndivQty(key, -1)}>
+                        <Text style={s.stepSign}>−</Text>
+                      </Pressable>
+                      <Text style={s.stepVal}>{itemQty}</Text>
+                      <Pressable style={s.stepBtn} onPress={() => setIndivQty(key, +1)}>
+                        <Text style={s.stepSign}>+</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          )}
 
           {/* Deck / Wishlist picker */}
           {needsPick && (
@@ -249,4 +315,17 @@ const s = StyleSheet.create({
   smallBtnText: { fontSize: 14, fontFamily: fonts.uiBold, color: '#fff' },
   confirmBtn: { backgroundColor: colors.accent, borderRadius: radii.xl, paddingVertical: 14, alignItems: 'center' },
   confirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: '#fff' },
+  indivToggleRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  indivToggleLabel: { fontSize: 14, fontFamily: fonts.uiSemi, color: colors.text },
+  indivList: { maxHeight: 240 },
+  indivRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border,
+    borderRadius: radii.lg, paddingHorizontal: 14, paddingVertical: 10,
+  },
+  indivName: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.text },
+  indivCode: { fontSize: 11, fontFamily: fonts.ui, color: colors.textMut, marginTop: 2 },
 });

@@ -165,6 +165,7 @@ export const es: Record<TKey, string> = {
   'bulk.noDecks': 'Aún no hay mazos. Crea uno desde la pestaña Mazos.',
   'bulk.confirmAdd': 'Añadir a {target}',
   'bulk.added': 'Añadidas {n} cartas a {target}.',
+  'bulk.chooseIndividually': 'Elegir individualmente',
 
   // Set-level bulk wishlist
   'setwl.addMissing': 'Añadir faltantes a wishlist',

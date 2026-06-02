@@ -7,7 +7,7 @@
 // EB01 (su print normal + parallel) y en EB02 (la reimpresion Gold Leader
 // EB01-001_p2), mostrando en cada set solo las variantes que le corresponden.
 
-import { CARD_LIST } from '../data/loadIndex';
+import { CARD_LIST, SET_META } from '../data/loadIndex';
 import { setPrefix } from './filters';
 import { getOwnedFor, getVariantOwned } from './ownedAggregate';
 import { getSettings } from './settings';
@@ -93,12 +93,18 @@ function getEntriesBySet(): Map<string, SetEntry[]> {
   return out;
 }
 
-/** Lista de codigos de set ordenados (OP01, OP02, ..., ST01, ..., EB01).
- *  Excluye el bucket especial de eventos/promos sin set code. */
+/** Lista de codigos de set ordenados por fecha de lanzamiento (más reciente primero).
+ *  El orden proviene del desplegable del sitio oficial (release_order en set_meta).
+ *  Sets sin entrada conocida (promos sueltos, __event__) van al final por código. */
 export function listSetCodes(): string[] {
   return [...getEntriesBySet().keys()]
     .filter((k) => k !== '__event__')
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    .sort((a, b) => {
+      const ra = SET_META[a]?.release_order ?? 9999;
+      const rb = SET_META[b]?.release_order ?? 9999;
+      if (ra !== rb) return ra - rb;           // por release_order (0 = más reciente)
+      return a.localeCompare(b, undefined, { numeric: true });
+    });
 }
 
 /** Entradas de un set (carta + variantes en ese set). */

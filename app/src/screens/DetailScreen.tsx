@@ -20,7 +20,7 @@ import { Icon } from '../components/Icon';
 import { ColorDot } from '../components/ColorDot';
 import { RarityPip } from '../components/RarityPip';
 import { resolveImageUris } from '../lib/images';
-import { adjust, getCount, subscribe as subColl } from '../lib/collection';
+import { adjust, getCount, getCountSync, subscribe as subColl } from '../lib/collection';
 import { buildCardmarketSearchUrl } from '../lib/cardmarket';
 import {
   isInAnyWishlist,
@@ -29,6 +29,7 @@ import {
 } from '../lib/wishlists';
 import { getDefaultWishlistSuffix } from '../lib/settings';
 import { WishlistPickerModal } from '../components/WishlistPickerModal';
+import { EffectText } from '../components/EffectText';
 import type { Variant, Wishlist } from '../types';
 
 export function DetailScreen({ route, navigation }: DetailScreenProps) {
@@ -107,7 +108,7 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
         />
         <View style={s.hero}>
           {url ? (
-            <CachedImage uri={url} fallbackUri={urlFallback} style={s.heroImg} contentFit="contain" />
+            <CachedImage key={heroIdx} uri={url} fallbackUri={urlFallback} style={s.heroImg} contentFit="contain" />
           ) : (
             <View style={[s.heroImg, s.heroFallback]}>
               <Text style={{ color: colors.textDim }}>{card.code}</Text>
@@ -189,7 +190,7 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
       {card.effect ? (
         <View style={s.panel}>
           <Text style={s.panelLabel}>Effect</Text>
-          <Text style={s.effect}>{card.effect}</Text>
+          <EffectText text={card.effect} />
         </View>
       ) : null}
 
@@ -230,9 +231,7 @@ function VariantRow({ code, cardSet, variant }: { code: string; cardSet: string;
       if (alive) setCountState(n);
     });
     const unsub = subColl(() => {
-      getCount(code, variant.suffix).then((n) => {
-        if (alive) setCountState(n);
-      });
+      if (alive) setCountState(getCountSync(code, variant.suffix));
     });
     return () => {
       alive = false;
@@ -251,21 +250,17 @@ function VariantRow({ code, cardSet, variant }: { code: string; cardSet: string;
       </View>
       <View style={s.varBody}>
         <Text style={s.varLabel}>{variant.label}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
           <RarityPip rarity={variant.rarity} />
           <Text style={s.varFull} numberOfLines={1}>
             {variant.full_name}
+            {(() => {
+              const tag = variant.printed_set !== undefined
+                ? (variant.printed_set ?? variant.get_info)
+                : (variant.set_source !== cardSet ? variant.get_info : null);
+              return tag ? <Text style={s.varSet}>{' · '}{tag}</Text> : null;
+            })()}
           </Text>
-          {(variant.printed_set !== undefined
-            ? variant.printed_set ?? variant.get_info
-            : variant.set_source !== cardSet ? variant.get_info : null
-          ) ? (
-            <Text style={s.varSet} numberOfLines={1}>
-              · {variant.printed_set !== undefined
-                  ? (variant.printed_set ?? variant.get_info)
-                  : variant.get_info}
-            </Text>
-          ) : null}
         </View>
         <View style={s.counter}>
           <Pressable
@@ -401,12 +396,6 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 6,
   },
-  effect: {
-    fontSize: 14,
-    fontFamily: fonts.ui,
-    color: colors.text,
-    lineHeight: 20,
-  },
   cmBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -464,7 +453,6 @@ const s = StyleSheet.create({
     fontSize: 11,
     fontFamily: fonts.uiSemi,
     color: colors.textDim,
-    flexShrink: 1,
   },
   counter: {
     flexDirection: 'row',

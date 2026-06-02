@@ -3,7 +3,7 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-06-01
+**Last updated:** 2026-06-02
 **Current branch:** `main`
 **App version:** 0.1.0 (pre-release)
 
@@ -129,6 +129,61 @@
 - **DetailScreen variant row**: the `· printed_set` tag (or `get_info` for null-printed_set events)
   is shown inline alongside the rarity and name on every variant that differs from the card's home set.
 
+### Performance — collection counter responsiveness
+- `collection.ts`: listeners now fire **before** `AsyncStorage.setItem`, so the UI updates instantly.
+  Writes are debounced 300 ms (rapid taps → 1 disk write). `adjust()` merged into one read+write.
+- `ownedAggregate.ts`: `refresh()` is now synchronous (reads `getCacheSync()` directly); initial
+  hydration still awaits the first async disk read.
+- `CardThumb` / `DetailScreen` subscriptions use `getCountSync()` — no microtask delay on update.
+
+### UI — DetailScreen improvements
+- **EffectText component** (`components/EffectText.tsx`): parses `[Label]` tokens from card effect
+  text and renders them as color-coded inline chips (violet=timing, red=keywords, teal=conditions,
+  amber=DON!!, green=trigger). Used in DetailScreen's effect panel.
+- **printed_set tag**: now rendered as nested `<Text>` inside the card name on VariantRow — appears
+  immediately right of the name (`Yamato · EB02`) instead of pushed to the far right edge.
+- **Hero image gallery**: added `key={heroIdx}` to the hero `CachedImage` to force remount when
+  the user selects a different variant, ensuring the correct art loads rather than showing a
+  transition artifact from the previous variant.
+
+### Filter improvements (2026-06-02)
+- **Attributes separated**: compound attributes like "Strike/Ranged" are split into individual chips in `deriveOptions()` and matched individually in `matches()`.
+- **Rarity sort order**: rarities now display as L → C → UC → R → SR → SEC → P (defined by `RARITY_DISPLAY_ORDER` constant in `filters.ts`).
+- **Set chips with full names**: `deriveOptions()` builds a `setNames: Record<string,string>` by picking the set_name from the lowest-numbered card per prefix. `FilterSheet` renders chips as "OP01 · ROMANCE DAWN"; searching "dawn" matches OP01.
+- **Power label**: "Power (bucket)" renamed to "Power" in `FilterSheet`.
+
+### Expanded fuzzy search (2026-06-02)
+- Search haystack now includes `card.type`, `card.family`, `card.attribute`, `card.effect`, and `card.trigger` (not just name+code). Typing "blocker", "on play", "if your leader", "stage", "character" all return matching cards.
+- Cost shorthand: "2c" or "c2" filters cards with cost=2.
+- Counter shorthand: "1k" (= 1000), "c1000", "c2000" filters by counter value.
+- SET_TOKEN_RE updated to accept 3-letter prefixes (e.g. "prb", "st" already worked).
+
+### Rarity in card footer (2026-06-02)
+- `CardThumb` footer now shows rarity next to the code: "OP01-001 · L". Uses the first variant's rarity.
+
+### BinderScreen multi-select (2026-06-02)
+- Long-press any card in the Owned or Trade tab enters select mode.
+- Tap cards while in select mode to toggle selection.
+- `BulkActionBar` and `BulkTargetSheet` are now wired to BinderScreen (same as BrowseScreen).
+- `onLongPress` prop added to `CardThumb`.
+- Tab switching clears selection automatically.
+- Select-mode disables inline +/- controls on selected cards.
+- QoL §10 resolved.
+
+### Multi-select individual quantities (2026-06-02)
+- `BulkTargetSheet` now has a "Choose individually" toggle (shown when 2+ cards are selected).
+- When on: a scrollable list shows each selected card with its own +/- stepper (initialized to the global qty).
+- When off: existing single global quantity applies to all (unchanged behavior).
+- Per-card quantities are used in all four targets (Collection, Wishlist, Trade, Deck).
+
+### Multi-select / bulk actions (already implemented)
+Long-press on any card in **Browse** or **SetDetail** enters multi-select mode. `BulkActionBar`
+shows 4 targets (Add to Collection / Wishlist / Trade / Deck). `BulkTargetSheet` handles all 4:
+- Trade: calls `setTradeOverride(code, getTradeQty(code) + qty)` — no playset constraint, any card
+  can be added regardless of owned count.
+- Deck: capped at 4 copies per card (OPTCG rule).
+- This does NOT currently exist in BinderScreen (QoL §10).
+
 ## Known Bugs
 
 ### B-01 — CDN repo name mismatch
@@ -196,6 +251,13 @@ Requires the real price integration (QoL §1) first.
 ### 7. Bulk scan mode
 A "scan session" flow in `ScanScreen` that queues identified cards and lets the user confirm/
 add them all at once, rather than one-at-a-time. Useful for cataloging a new booster box.
+
+### ~~10. Multi-select in BinderScreen~~ — resolved 2026-06-02
+
+### 11. EffectText border-radius limitation
+React Native nested `<Text>` with `backgroundColor` renders rectangular highlights (no rounded
+corners). A `<View flexWrap="wrap">` layout would allow rounded chips but breaks mid-sentence
+label reflow. Accept limitation for now or investigate a custom inline renderer.
 
 ### 8. New Architecture migration
 `newArchEnabled: false` in `app.json`. `@react-native-ml-kit/text-recognition` needs to be

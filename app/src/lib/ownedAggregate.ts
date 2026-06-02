@@ -1,15 +1,17 @@
 // Helper que agrega los counts de variantes por codigo base.
 // Util para el badge de "owned" en CardThumb sin tener que sumar a mano.
 
-import { listCollection, subscribe as subscribeCollection } from './collection';
+import { listCollection, getCacheSync, subscribe as subscribeCollection } from './collection';
 
 let totals: Record<string, number> = {};
 let variantTotals: Record<string, number> = {};
 let ready = false;
 const listeners = new Set<() => void>();
 
-async function refresh() {
-  const items = await listCollection();
+// Recalculo síncrono desde la caché en memoria: se ejecuta en el mismo tick
+// que el listener de collection, así la UI nunca ve un estado intermedio.
+function refresh() {
+  const items = Object.values(getCacheSync());
   const next: Record<string, number> = {};
   const nextVar: Record<string, number> = {};
   for (const it of items) {
@@ -22,8 +24,8 @@ async function refresh() {
   listeners.forEach((l) => l());
 }
 
-// Hidratacion inicial + suscripcion a cambios en collection
-refresh();
+// Hidratacion inicial: esperar a que collection cargue del disco, luego sync.
+listCollection().then(() => refresh());
 subscribeCollection(refresh);
 
 export function getOwnedTotals(): Record<string, number> {

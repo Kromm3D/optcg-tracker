@@ -14,6 +14,7 @@ type CollectionMap = Record<string, CollectionItem>;
 let cache: CollectionMap | null = null;
 let pendingRead: Promise<CollectionMap> | null = null;
 const listeners = new Set<() => void>();
+let writeTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function read(): Promise<CollectionMap> {
   if (cache) return cache;
@@ -34,14 +35,18 @@ async function read(): Promise<CollectionMap> {
   return pendingRead;
 }
 
-async function write(map: CollectionMap): Promise<void> {
+function write(map: CollectionMap): void {
   cache = map;
-  try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-  } catch (e) {
-    console.warn('[collection] error escribiendo storage:', e);
-  }
+  // Notificar inmediatamente (la UI se actualiza sin esperar al disco).
   listeners.forEach((l) => l());
+  // Persistir en background con debounce: N taps rápidos → 1 sola escritura.
+  if (writeTimer) clearTimeout(writeTimer);
+  writeTimer = setTimeout(() => {
+    writeTimer = null;
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map)).catch((e) =>
+      console.warn('[collection] error escribiendo storage:', e)
+    );
+  }, 300);
 }
 
 /** Clave que identifica una variante concreta dentro de la colección. */
@@ -61,6 +66,17 @@ export async function getCount(code: string, suffix: string): Promise<number> {
   return map[variantKey(code, suffix)]?.count ?? 0;
 }
 
+/** Snapshot síncrono de toda la colección. Vacío si la caché aún no está lista. */
+export function getCacheSync(): CollectionMap {
+  return cache ?? {};
+}
+
+/** Devuelve cuántas copias tienes de una variante, síncronamente desde la caché.
+ *  Devuelve 0 si la caché aún no se ha cargado. */
+export function getCountSync(code: string, suffix: string): number {
+  return cache?.[variantKey(code, suffix)]?.count ?? 0;
+}
+
 /** Pone la cantidad de una variante. count <= 0 la elimina. */
 export async function setCount(
   code: string,
@@ -74,7 +90,7 @@ export async function setCount(
   } else {
     map[key] = { key, code, suffix, count };
   }
-  await write(map);
+  write(map);
 }
 
 /** Suma `delta` (típicamente +1 o -1) al contador de una variante. */
@@ -83,8 +99,16 @@ export async function adjust(
   suffix: string,
   delta: number
 ): Promise<number> {
-  const next = Math.max(0, (await getCount(code, suffix)) + delta);
-  await setCount(code, suffix, next);
+  const map = await read();
+  const key = variantKey(code, suffix);
+  const next = Math.max(0, (map[key]?.count ?? 0) + delta);
+  const newMap = { ...map };
+  if (next <= 0) {
+    delete newMap[key];
+  } else {
+    newMap[key] = { key, code, suffix, count: next };
+  }
+  write(newMap);
   return next;
 }
 

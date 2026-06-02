@@ -58,11 +58,19 @@ export interface Card {
   variants: Variant[];
 }
 
+/** Metadatos de un set derivados del desplegable del sitio oficial. */
+export interface SetMeta {
+  /** Posición en el desplegable: 0 = más reciente. */
+  release_order: number;
+}
+
 /** Estructura del fichero data/index.json. */
 export interface IndexPayload {
   generated_with: string;
   source: string;
   card_count: number;
+  /** release_order por código de set (p.ej. "OP01": {release_order: 20}). */
+  set_meta?: Record<string, SetMeta>;
   cards: Record<string, Card>;
 }
 

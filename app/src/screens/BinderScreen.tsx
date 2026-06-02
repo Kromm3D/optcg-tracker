@@ -22,6 +22,8 @@ import { CachedImage } from '../components/CachedImage';
 import { AddCardsModal } from '../components/AddCardsModal';
 import { ShareSheet } from '../components/ShareSheet';
 import { FilterSheet } from '../components/FilterSheet';
+import { BulkActionBar, type BulkTarget } from '../components/BulkActionBar';
+import { BulkTargetSheet, type BulkSelection } from '../components/BulkTargetSheet';
 import { Icon } from '../components/Icon';
 import { RARITY_ORDER } from '../theme';
 import {
@@ -94,6 +96,21 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
 
   const [showAll, setShowAll] = useState(false);
 
+  // Multi-select / bulk actions (Owned + Trade tabs)
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Record<string, BulkSelection>>({});
+  const [bulkTarget, setBulkTarget] = useState<BulkTarget | null>(null);
+  const selectedList = Object.values(selected);
+
+  const toggleSel = (key: string, code: string, suffix: string) =>
+    setSelected((prev) => {
+      const next = { ...prev };
+      if (next[key]) delete next[key];
+      else next[key] = { code, suffix };
+      return next;
+    });
+  const clearSel = () => { setSelected({}); setSelectMode(false); };
+
   const refreshWishlists = useCallback(() => {
     listWishlists().then(setWishlists);
   }, []);
@@ -106,6 +123,13 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
     const unsubT = subTrade(bump);
     return () => { unsubO(); unsubW(); unsubS(); unsubT(); };
   }, [refreshWishlists, bump]);
+
+  // Clear multi-select when switching tabs
+  const handleTabChange = useCallback((newTab: Tab) => {
+    clearSel();
+    setTab(newTab);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Toggle sort key or flip direction if already active
   const handleSort = useCallback((key: SortKey) => {
@@ -226,7 +250,7 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
           <Pressable
             key={tabKey}
             style={[s.tab, tab === tabKey && s.tabOn]}
-            onPress={() => setTab(tabKey)}
+            onPress={() => handleTabChange(tabKey)}
           >
             <Text style={[s.tabLabel, tab === tabKey && s.tabLabelOn]}>
               {tabKey === 'owned'
@@ -362,6 +386,12 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
               >
                 <Icon name="filter" size={15} color={activeCount(filters) > 0 ? colors.accent : colors.textMut} />
               </Pressable>
+              <Pressable
+                style={[s.iconBtn, selectMode && s.iconBtnOn]}
+                onPress={() => { if (selectMode) clearSel(); else setSelectMode(true); }}
+              >
+                <Icon name={selectMode ? 'close' : 'check'} size={15} color={selectMode ? colors.accent : colors.textMut} />
+              </Pressable>
               <ColumnsToggle />
               {tab === 'owned' && (
                 <Pressable style={s.addBtn} onPress={() => setShowAdd(true)}>
@@ -388,31 +418,38 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
               data={gridData}
               keyExtractor={(e) => e.key}
               numColumns={columns}
+              extraData={{ selectMode, selected }}
               columnWrapperStyle={{ gap, paddingHorizontal: hPadding }}
-              contentContainerStyle={{ paddingVertical: 8, paddingBottom: 110, gap: gap + 4 }}
+              contentContainerStyle={{ paddingVertical: 8, paddingBottom: selectMode ? 180 : 110, gap: gap + 4 }}
               renderItem={({ item }) => {
                 const { card, variant } = item;
-                const qty = tab === 'trade'
+                const itemQty = tab === 'trade'
                   ? getTradeQty(card.code)
                   : showAlt ? getVariantOwned(card.code, variant.suffix) : getOwnedFor(card.code);
                 return (
                   <CardThumb
                     card={card}
                     variant={variant}
-                    owned={qty}
-                    qty={qty}
+                    owned={itemQty}
+                    qty={itemQty}
                     compact={columns >= 3}
                     multiArt={tab === 'owned' && !showAlt && getOwnedVariantCount(card.code) >= 2}
                     dimmed={
                       tab === 'owned' && showAll &&
                       (showAlt ? getVariantOwned(card.code, variant.suffix) === 0 : getOwnedFor(card.code) === 0)
                     }
-                    onAdjust={
+                    selected={selectMode && !!selected[item.key]}
+                    onAdjust={selectMode ? undefined : (
                       tab === 'trade'
                         ? (delta) => setTradeOverride(card.code, Math.max(0, getTradeQty(card.code) + delta))
                         : (delta) => adjust(card.code, variant?.suffix ?? '', delta)
+                    )}
+                    onLongPress={() => { if (!selectMode) setSelectMode(true); toggleSel(item.key, card.code, variant.suffix); }}
+                    onPress={() =>
+                      selectMode
+                        ? toggleSel(item.key, card.code, variant.suffix)
+                        : navigation.navigate('Detail', { code: card.code })
                     }
-                    onPress={() => navigation.navigate('Detail', { code: card.code })}
                     width={cardWidth}
                   />
                 );
@@ -421,6 +458,19 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
           )}
         </>
       )}
+
+      {/* Bulk select bar + sheet (Owned + Trade tabs) */}
+      {tab !== 'wishlist' && selectMode && (
+        <BulkActionBar count={selectedList.length} onClear={clearSel} onPick={setBulkTarget} bottomGap={84} />
+      )}
+
+      <BulkTargetSheet
+        visible={bulkTarget !== null}
+        target={bulkTarget}
+        selections={selectedList}
+        onClose={() => setBulkTarget(null)}
+        onDone={() => { setBulkTarget(null); clearSel(); }}
+      />
 
       {/* Modals for Collection tab */}
       <AddCardsModal

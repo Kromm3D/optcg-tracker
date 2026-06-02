@@ -9,7 +9,7 @@ import { CachedImage } from './CachedImage';
 import { Icon } from './Icon';
 import { colors, fonts } from '../theme';
 import { resolveImageUris } from '../lib/images';
-import { adjust, getCount, subscribe as subColl } from '../lib/collection';
+import { adjust, getCount, getCountSync, subscribe as subColl } from '../lib/collection';
 import type { Card, Variant } from '../types';
 
 type Props = {
@@ -38,6 +38,7 @@ type Props = {
   /** Current count displayed in inline controls (when onAdjust is provided). */
   qty?: number;
   onPress?: () => void;
+  onLongPress?: () => void;
 };
 
 export function CardThumb({
@@ -54,6 +55,7 @@ export function CardThumb({
   onAdjust,
   qty = 0,
   onPress,
+  onLongPress,
 }: Props) {
   const v = variant ?? card.variants[0];
   const { uri: primaryUrl, fallback: fallbackUrl } = v ? resolveImageUris(v) : { uri: '', fallback: undefined };
@@ -64,9 +66,9 @@ export function CardThumb({
     if (!quickActions || !v) return;
     let alive = true;
     getCount(card.code, v.suffix).then((n) => alive && setVCount(n));
-    const unsub = subColl(() =>
-      getCount(card.code, v.suffix).then((n) => alive && setVCount(n))
-    );
+    const unsub = subColl(() => {
+      if (alive) setVCount(getCountSync(card.code, v.suffix));
+    });
     return () => {
       alive = false;
       unsub();
@@ -74,7 +76,7 @@ export function CardThumb({
   }, [quickActions, card.code, v]);
 
   return (
-    <Pressable onPress={onPress} style={[styles.wrap, width !== undefined && { width }]}>
+    <Pressable onPress={onPress} onLongPress={onLongPress} style={[styles.wrap, width !== undefined && { width }]}>
       <View style={styles.imgWrap}>
         {primaryUrl ? (
           <CachedImage
@@ -152,7 +154,9 @@ export function CardThumb({
       {!quickActions && (
         <View style={styles.footer}>
           <Text style={[styles.cardName, compact && styles.cardNameSm]} numberOfLines={1}>{card.name}</Text>
-          <Text style={[styles.code, compact && styles.codeSm]} numberOfLines={1}>{card.code}</Text>
+          <Text style={[styles.code, compact && styles.codeSm]} numberOfLines={1}>
+            {card.code}{v?.rarity ? ` · ${v.rarity}` : ''}
+          </Text>
         </View>
       )}
 

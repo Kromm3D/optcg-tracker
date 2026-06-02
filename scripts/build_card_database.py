@@ -136,6 +136,30 @@ def title_type(raw):
     return raw.strip().title()
 
 
+def set_codes_from_label(label):
+    """Extrae los códigos de set del texto de una opción del desplegable.
+
+    Maneja códigos simples '[OP-01]' y compuestos '[OP15-EB04]' (booster que
+    incluye cartas de dos series a la vez).
+
+    Ejemplos:
+      '-ROMANCE DAWN- [OP-01]'       -> ['OP01']
+      '-ADVENTURE ON KAMI- [OP15-EB04]' -> ['OP15', 'EB04']
+      'Promotion card'               -> []
+    """
+    # Código compuesto: [LETRAS+DIGITOS-LETRAS+DIGITOS] p.ej. [OP15-EB04]
+    m = re.search(r"\[([A-Z]+)(\d+)-([A-Z]+)(\d+)\]", label)
+    if m:
+        c1 = f"{m.group(1)}{int(m.group(2)):02d}"
+        c2 = f"{m.group(3)}{int(m.group(4)):02d}"
+        return [c1, c2]
+    # Código simple: [XX-NN] p.ej. [OP-01], [PRB-02], [ST-16]
+    m = re.search(r"\[([A-Z]+)-0*(\d+)\]", label)
+    if m:
+        return [f"{m.group(1)}{int(m.group(2)):02d}"]
+    return []
+
+
 def split_code(dl_id):
     """De 'OP16-001_p1' devuelve (base='OP16-001', suffix='_p1').
     De 'OP16-001' devuelve ('OP16-001', '')."""
@@ -246,7 +270,13 @@ def resolve_image_local(code, suffix, img_url):
 # FASE 1 — Descubrir series y scrapear cada una
 # ---------------------------------------------------------------------------
 def discover_series(session):
-    """Parsea el <select> de series del sitio. Devuelve [(series_id, label)]."""
+    """Parsea el <select> de series del sitio.
+
+    Devuelve [(series_id, label, set_codes)] donde set_codes son los codigos
+    de set extraídos del corchete del label (p.ej. ['OP01'] o ['OP15','EB04']).
+    Las opciones del desplegable aparecen en orden cronológico INVERSO
+    (índice 0 = set más reciente), lo que usamos como release_order.
+    """
     print(f"[*] Descubriendo series desde {CARDLIST_URL}")
     resp = session.get(CARDLIST_URL, timeout=HTTP_TIMEOUT)
     resp.raise_for_status()
@@ -264,9 +294,25 @@ def discover_series(session):
         # Texto limpio de la etiqueta (los <br> se vuelven espacios)
         label = opt.get_text(" ", strip=True)
         seen.add(val)
-        series.append((val, label))
+        codes = set_codes_from_label(label)
+        series.append((val, label, codes))
     print(f"    {len(series)} series encontradas")
     return series
+
+
+def build_set_meta(series):
+    """Construye el mapa de metadatos por set a partir del orden del desplegable.
+
+    release_order: entero donde 0 = set más reciente. Los sets sin entrada en
+    el desplegable (como promos sueltos) reciben un orden muy alto (999) para
+    aparecer al final.
+    """
+    set_meta = {}
+    for rank, (_sid, _label, codes) in enumerate(series):
+        for code in codes:
+            if code not in set_meta:   # primera aparición gana (rank más bajo = más nuevo)
+                set_meta[code] = {"release_order": rank}
+    return set_meta
 
 
 def fetch_series_html(session, series_id):
@@ -400,34 +446,55 @@ def build_index(cards):
         if suffix not in existing_suffixes:
             entry["variants"].append(variant)
 
+    # Ordenar variantes: base ("") -> paralelas (_p1, _p2…) -> reprints (_r1…) -> resto
+    for entry in index.values():
+        entry["variants"].sort(key=_variant_sort_key)
+
     return index
 
 
+def _variant_sort_key(v):
+    s = v["suffix"]
+    if s == "":
+        return (0, 0)
+    inner = s.lstrip("_")   # "p1", "r1", etc.
+    if inner.startswith("p"):
+        try:
+            return (1, int(inner[1:]))
+        except ValueError:
+            return (1, 999)
+    if inner.startswith("r"):
+        try:
+            return (2, int(inner[1:]))
+        except ValueError:
+            return (2, 999)
+    return (3, 0)
+
+
 def scrape_all(session):
-    """Recorre todas las series y devuelve la lista completa de cartas crudas."""
+    """Recorre todas las series y devuelve (cartas_crudas, set_meta)."""
     series = discover_series(session)
+    set_meta = build_set_meta(series)
     all_cards = []
-    for i, (sid, label) in enumerate(series, 1):
+    for i, (sid, label, _codes) in enumerate(series, 1):
         try:
             html, url = fetch_series_html(session, sid)
             cards = parse_cards(html, url)
-            # El set de cada variante se determina por su corchete getInfo
-            # (ver set_code_from_getinfo), no por la pagina en que aparece, asi
-            # que basta con acumular las cartas tal cual.
             all_cards.extend(cards)
             print(f"  [{i}/{len(series)}] {label[:48]:48}  {len(cards)} cartas")
         except Exception as e:
             print(f"  [{i}/{len(series)}] {label[:48]:48}  [!] FALLO: {e}")
         time.sleep(REQUEST_DELAY)
-    return all_cards
+    return all_cards, set_meta
 
 
-def save_index(index):
+def save_index(index, set_meta=None):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     payload = {
         "generated_with": "build_card_database.py",
         "source": "https://en.onepiece-cardgame.com/cardlist/",
         "card_count": len(index),
+        "set_meta": set_meta or {},
         "cards": index,
     }
     with open(INDEX_PATH, "w", encoding="utf-8") as f:
@@ -597,13 +664,13 @@ def main():
     if not args.images_only:
         session = make_session()
         print("\n[FASE 1] Scrapeando el sitio oficial")
-        cards = scrape_all(session)
+        cards, set_meta = scrape_all(session)
         print(f"[*] Total recogido: {len(cards)} entradas (variantes incluidas)")
         if not cards:
             print("[!] Sin datos. Revisa la conexión o si cambió el HTML del sitio.")
             sys.exit(1)
         index = build_index(cards)
-        save_index(index)
+        save_index(index, set_meta)
         with_variants = sum(1 for c in index.values() if len(c["variants"]) > 1)
         print(f"     Códigos únicos: {len(index)} · con variantes: {with_variants}")
     else:

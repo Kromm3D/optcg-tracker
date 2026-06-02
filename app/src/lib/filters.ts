@@ -3,6 +3,9 @@
 
 import type { Card } from '../types';
 
+/** Orden de visualizacion de rarezas en el FilterSheet. */
+const RARITY_DISPLAY_ORDER = ['L', 'C', 'UC', 'R', 'SR', 'SEC', 'P', 'SP', 'TR'];
+
 export type FilterState = {
   /** Colores OPTCG seleccionados (Red, Green, ...). */
   colors: Set<string>;
@@ -90,7 +93,11 @@ export function matches(card: Card, f: FilterState): boolean {
     const c = card.counter ?? 0;
     if (!f.counters.has(String(c))) return false;
   }
-  if (f.attributes.size > 0 && (!card.attribute || !f.attributes.has(card.attribute))) return false;
+  if (f.attributes.size > 0) {
+    if (!card.attribute) return false;
+    const cardAttrs = card.attribute.split('/').map((a) => a.trim());
+    if (!cardAttrs.some((a) => f.attributes.has(a))) return false;
+  }
   if (f.rarities.size > 0) {
     const r = card.variants[0]?.rarity?.toUpperCase() ?? '';
     if (!f.rarities.has(r)) return false;
@@ -124,13 +131,22 @@ const COLOR_ALIASES: Record<string, string> = {
 };
 
 // Tokens like "op01", "op15", "eb02", "st01" → set prefix
-const SET_TOKEN_RE = /^[a-z]{2}\d{2,3}$/i;
+const SET_TOKEN_RE = /^[a-z]{2,3}\d{2,3}$/i;
+
+// Cost shorthand: "2c" or "c2" (1–2 digit number = cost value)
+const COST_RE = /^(\d{1,2})c$|^c(\d{1,2})$/i;
+// Counter shorthand: "1k" = 1000, "2k" = 2000
+const COUNTER_K_RE = /^(\d+)k$/i;
+// Counter full: "c1000", "c2000" (3+ digits after c = counter value)
+const COUNTER_FULL_RE = /^c(\d{3,})$/i;
 
 /**
  * Token-based fuzzy filter. Each space-separated token is classified:
- * - color name  → must match card.colors
- * - set code    → must match card's set prefix (e.g. "op15")
- * - anything else → must appear in card.name or card.code
+ * - color name      → must match card.colors
+ * - set code        → must match card's set prefix (e.g. "op15")
+ * - "2c" / "c2"    → must match card.cost
+ * - "1k" / "c1000" → must match card.counter
+ * - anything else  → must appear in name/code/type/effect/trigger/family/attribute
  * All tokens must pass (AND logic). Empty query returns all cards.
  */
 export function fuzzyFilter(cards: Card[], q: string): Card[] {
@@ -140,12 +156,20 @@ export function fuzzyFilter(cards: Card[], q: string): Card[] {
   const tokens = raw.split(/\s+/);
   const colorTokens: string[] = [];
   const setTokens: string[] = [];
-  const nameTokens: string[] = [];
+  const costTokens: number[] = [];
+  const counterTokens: number[] = [];
+  const textTokens: string[] = [];
 
-  for (const t of tokens) {
-    if (COLOR_ALIASES[t]) colorTokens.push(COLOR_ALIASES[t]);
-    else if (SET_TOKEN_RE.test(t)) setTokens.push(t.toUpperCase());
-    else nameTokens.push(t);
+  for (const tok of tokens) {
+    const cm = COST_RE.exec(tok);
+    if (cm) { costTokens.push(parseInt(cm[1] ?? cm[2], 10)); continue; }
+    const km = COUNTER_K_RE.exec(tok);
+    if (km) { counterTokens.push(parseInt(km[1], 10) * 1000); continue; }
+    const cfm = COUNTER_FULL_RE.exec(tok);
+    if (cfm) { counterTokens.push(parseInt(cfm[1], 10)); continue; }
+    if (COLOR_ALIASES[tok]) { colorTokens.push(COLOR_ALIASES[tok]); continue; }
+    if (SET_TOKEN_RE.test(tok)) { setTokens.push(tok.toUpperCase()); continue; }
+    textTokens.push(tok);
   }
 
   return cards.filter((c) => {
@@ -157,9 +181,20 @@ export function fuzzyFilter(cards: Card[], q: string): Card[] {
       const prefix = c.code.split('-')[0].toUpperCase();
       if (!setTokens.some((s) => prefix === s)) return false;
     }
-    if (nameTokens.length > 0) {
-      const haystack = `${c.name} ${c.code}`.toLowerCase();
-      if (!nameTokens.every((t) => haystack.includes(t))) return false;
+    if (costTokens.length > 0) {
+      if (c.cost === null || c.cost === undefined) return false;
+      if (!costTokens.some((n) => c.cost === n)) return false;
+    }
+    if (counterTokens.length > 0) {
+      const cc = c.counter ?? 0;
+      if (!counterTokens.some((n) => cc === n)) return false;
+    }
+    if (textTokens.length > 0) {
+      const haystack = [
+        c.name, c.code, c.type ?? '', c.family ?? '',
+        c.attribute ?? '', c.effect ?? '', c.trigger ?? '',
+      ].join(' ').toLowerCase();
+      if (!textTokens.every((t) => haystack.includes(t))) return false;
     }
     return true;
   });
@@ -175,6 +210,8 @@ export type FilterOptions = {
   attributes: string[];
   rarities: string[];
   sets: string[];
+  /** Nombre canonico del set por codigo (derivado de la carta con codigo mas bajo). */
+  setNames: Record<string, string>;
   families: string[];
   variants: string[];
 };
@@ -190,6 +227,10 @@ export function deriveOptions(cards: Card[]): FilterOptions {
   const families = new Set<string>();
   const variants = new Set<string>();
 
+  // Para set names: carta con codigo mas bajo de cada prefijo → set_name mas fiable
+  const setLowest: Record<string, string> = {};
+  const setNames: Record<string, string> = {};
+
   for (const c of cards) {
     for (const v of c.variants) if (v.label) variants.add(v.label);
     if (c.type) types.add(c.type);
@@ -199,10 +240,21 @@ export function deriveOptions(cards: Card[]): FilterOptions {
       powers.add(b);
     }
     counters.add(c.counter ?? 0);
-    if (c.attribute) attributes.add(c.attribute);
+    // Atributos compuestos ("Strike/Ranged") → individuales
+    if (c.attribute) {
+      for (const attr of c.attribute.split('/')) {
+        const trimmed = attr.trim();
+        if (trimmed) attributes.add(trimmed);
+      }
+    }
     const r = c.variants[0]?.rarity?.toUpperCase() ?? '';
     if (r) rarities.add(r);
-    sets.add(setPrefix(c.code));
+    const sp = setPrefix(c.code);
+    sets.add(sp);
+    if (!setLowest[sp] || c.code < setLowest[sp]) {
+      setLowest[sp] = c.code;
+      if (c.set_name) setNames[sp] = c.set_name;
+    }
     if (c.family) {
       // family puede ser "Pirate/Whitebeard Pirates" -> split por /
       for (const f of c.family.split('/')) {
@@ -218,8 +270,13 @@ export function deriveOptions(cards: Card[]): FilterOptions {
     powers: [...powers].sort((a, b) => a - b),
     counters: [...counters].sort((a, b) => a - b),
     attributes: [...attributes].sort(),
-    rarities: [...rarities].sort(),
+    rarities: [...rarities].sort((a, b) => {
+      const ia = RARITY_DISPLAY_ORDER.indexOf(a);
+      const ib = RARITY_DISPLAY_ORDER.indexOf(b);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    }),
     sets: [...sets].sort(),
+    setNames,
     families: [...families].sort(),
     variants: [...variants].sort(),
   };
