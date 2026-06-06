@@ -37,6 +37,7 @@ type SortState = { key: SortKey; dir: 'asc' | 'desc' };
 
 export function BrowseScreen({ navigation }: BrowseScreenProps) {
   const [q, setQ] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
   const [filters, setFilters] = useState<FilterState>(emptyFilters());
   const [showFilters, setShowFilters] = useState(false);
   const [sort, setSort] = useState<SortState>({ key: 'code', dir: 'asc' });
@@ -62,6 +63,12 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
   useEffect(() => subOwned(() => force((n) => n + 1)), []);
   useEffect(() => subSettings(() => { setColumnsState(getSettings().columns); force((n) => n + 1); }), []);
 
+  // Debounce: retrasa el filtrado 180 ms para no procesar en cada pulsación.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQ(q), 180);
+    return () => clearTimeout(id);
+  }, [q]);
+
   const showAlt = getSettings().showAlternateArt;
 
   const handleSort = (key: SortKey) =>
@@ -73,7 +80,7 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
 
   const list = useMemo<Card[]>(() => {
     let result = CARD_LIST.filter((c) => matches(c, filters));
-    result = fuzzyFilter(result, q);
+    result = fuzzyFilter(result, debouncedQ);
 
     const dir = sort.dir === 'asc' ? 1 : -1;
 
@@ -102,7 +109,7 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
       );
     }
     return result;
-  }, [q, filters, sort]);
+  }, [debouncedQ, filters, sort]);
 
   // Expand into display tiles (one per variant when Show Alternate Art is on).
   const entries = useMemo(() => expandCards(list), [list, showAlt]);
@@ -210,15 +217,22 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
         renderItem={({ item }) => {
           const src = item.variant.set_source;
           const cardSet = setPrefix(item.card.code);
+          const totalOwned = getOwnedFor(item.card.code);
+          const varOwned = getVariantOwned(item.card.code, item.variant.suffix);
           return (
             <CardThumb
               card={item.card}
-              variant={item.variant}
-              owned={showAlt ? getVariantOwned(item.card.code, item.variant.suffix) : getOwnedFor(item.card.code)}
+              // En modo showAlt pasamos la variante concreta; en modo normal
+              // no forzamos ninguna para que CardThumb muestre la más rara poseída.
+              variant={showAlt ? item.variant : undefined}
+              owned={showAlt ? varOwned : totalOwned}
+              dimmed={showAlt ? varOwned === 0 : totalOwned === 0}
               multiArt={!showAlt && getOwnedVariantCount(item.card.code) >= 2}
               sourceSet={showAlt && src && src !== cardSet ? src : undefined}
               selected={selectMode && !!selected[item.key]}
               compact={columns >= 3}
+              quickActions={!selectMode}
+              showFooter
               onPress={() =>
                 selectMode
                   ? toggleSel(item.key, item.card.code, item.variant.suffix)

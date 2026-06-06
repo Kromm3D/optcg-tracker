@@ -26,6 +26,15 @@ const SET_NAMES: Record<string, string> = {
   PRB01: 'One Piece Card the Best',
   PRB02: 'Premium Booster 02',
   P: 'Promos',
+  // Sub-buckets de evento/promo (sin código de set canónico)
+  '__ev_prerelease':  'Pre-Release Events',
+  '__ev_treasurecup': 'Treasure Cup',
+  '__ev_regional':    'Regionals',
+  '__ev_cs':          'Championship Series',
+  '__ev_tournament':  'Tournament Packs',
+  '__ev_store':       'Store Events',
+  '__ev_collection':  'Special Collections',
+  '__ev_other':       'Other Events',
 };
 
 // Fecha de lanzamiento (formato DD/MM/YYYY) tal como la muestra el header.

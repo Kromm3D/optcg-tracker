@@ -1,0 +1,11 @@
+# Let EAS run a fresh expo prebuild on the server instead of uploading
+# the large pre-generated native project.
+android/
+ios/
+
+# Build artefacts inside android/
+**/.gradle/
+**/build/
+
+# Node modules are reinstalled on the build server
+node_modules/

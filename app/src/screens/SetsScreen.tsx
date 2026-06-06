@@ -20,12 +20,13 @@ import { subscribe as subOwned } from '../lib/ownedAggregate';
 import { subscribe as subSettings } from '../lib/settings';
 import { useT } from '../lib/i18n';
 
-type GroupKey = 'regular' | 'starter' | 'promo' | 'other';
+type GroupKey = 'regular' | 'starter' | 'promo' | 'events' | 'other';
 
 function setGroupOf(code: string): GroupKey {
   if (/^(OP|EB|PRB)\d/.test(code)) return 'regular';
   if (/^ST\d/.test(code)) return 'starter';
   if (code === 'P') return 'promo';
+  if (code.startsWith('__ev_')) return 'events';
   return 'other';
 }
 
@@ -36,6 +37,7 @@ export function SetsScreen({ navigation }: SetsScreenProps) {
     regular: true,
     starter: false,
     promo: false,
+    events: false,
     other: false,
   });
 
@@ -50,7 +52,7 @@ export function SetsScreen({ navigation }: SetsScreenProps) {
 
   const groups = useMemo<Record<GroupKey, SetSummary[]>>(() => {
     const g: Record<GroupKey, SetSummary[]> = {
-      regular: [], starter: [], promo: [], other: [],
+      regular: [], starter: [], promo: [], events: [], other: [],
     };
     for (const s of live) g[setGroupOf(s.code)].push(s);
     return g;
@@ -60,6 +62,7 @@ export function SetsScreen({ navigation }: SetsScreenProps) {
     regular: t('sets.groupBooster'),
     starter: t('sets.groupStarter'),
     promo: t('sets.groupPromo'),
+    events: t('sets.groupEvents'),
     other: t('sets.groupOther'),
   };
 
@@ -72,7 +75,7 @@ export function SetsScreen({ navigation }: SetsScreenProps) {
         <Text style={s.meta}>{live.length} {t('sets.title')}</Text>
       </View>
       <ScrollView contentContainerStyle={s.scroll}>
-        {(['regular', 'starter', 'promo', 'other'] as GroupKey[]).map((key) => {
+        {(['regular', 'starter', 'promo', 'events', 'other'] as GroupKey[]).map((key) => {
           const items = groups[key];
           if (items.length === 0) return null;
           const open = expanded[key];

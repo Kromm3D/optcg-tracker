@@ -1,11 +1,12 @@
-// ScanScreen — Sprint 2 & 3: Camera viewport + card-code OCR-style detection.
+// ScanScreen — art-based card recognition via perceptual hash matching.
 //
 // Architecture:
-//   • expo-camera  → live camera feed, rear-facing
-//   • Regex match  → validates One Piece TCG code format ([A-Z]{2,4}\d{2}-\d{3})
-//   • expo-haptics → success vibration pulse
-//   • Debounce     → processes at most once every 800 ms (plan §4)
-//   • Fallback     → manual text-entry field beneath the viewfinder
+//   • expo-camera            → live camera feed, rear-facing
+//   • expo-image-manipulator → crop to focus box + resize to 16×16
+//   • lib/phash              → 256-bit average hash + hamming search (pure JS)
+//   • lib/ocr.matchByArtFull → matches cropped photo to hashes.json database
+//   • expo-haptics           → success vibration on match
+//   • Manual text fallback   → type a code if scan fails
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -13,9 +14,11 @@ import {
   Animated,
   Easing,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -25,12 +28,22 @@ import * as Haptics from 'expo-haptics';
 import Svg, { Path, Circle } from 'react-native-svg';
 
 import type { ScanScreenProps } from '../navigation';
+import type { Card, Variant } from '../types';
 import { CARDS } from '../data/loadIndex';
 import { adjust } from '../lib/collection';
 import { Icon } from '../components/Icon';
-import { isOcrAvailable, matchByArt, recognizeText } from '../lib/ocr';
+import { CardThumb } from '../components/CardThumb';
+import { matchTopK, recognizeText, isOcrAvailable } from '../lib/ocr';
 import { useT } from '../lib/i18n';
 import { colors, fonts, radii, spacing } from '../theme';
+
+// A scan candidate resolved to its card + exact variant for the confirmation sheet.
+type ScanCandidate = { card: Card; variant: Variant; suffix: string; score: number };
+
+// Auto-confirm only when the top match clearly beats the runner-up; otherwise the
+// user disambiguates same-art reprints in the sheet (ManaBox-style). Score scale
+// differs by path (ONNX cosine vs ahash) so we compare margin, not absolutes.
+const AUTO_CONFIRM_MARGIN = 0.05;
 
 // ─── Perona Ghost SVG ────────────────────────────────────────────────────────
 
@@ -75,6 +88,7 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
   const t = useT();
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [manualInput, setManualInput] = useState('');
@@ -84,6 +98,10 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
     count: number;
   } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  // Top-K candidates awaiting user confirmation (null = sheet hidden).
+  const [candidates, setCandidates] = useState<ScanCandidate[] | null>(null);
+  // Pause the live scan loop while the confirmation sheet is open.
+  const pausedRef = useRef(false);
 
   // Flash overlay opacity
   const flashAnim = useRef(new Animated.Value(0)).current;
@@ -113,7 +131,7 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
   const lastScan = useRef(0);
 
   const handleCodeFound = useCallback(
-    async (rawCode: string) => {
+    async (rawCode: string, variantSuffix?: string) => {
       const now = Date.now();
       if (now - lastScan.current < 800) return; // 800 ms debounce
       lastScan.current = now;
@@ -126,8 +144,7 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
       }
 
       setIsProcessing(true);
-      // Increment the first (default) variant
-      const suffix = card.variants[0]?.suffix ?? '';
+      const suffix = variantSuffix ?? card.variants[0]?.suffix ?? '';
       const newCount = await adjust(code, suffix, 1);
       setIsProcessing(false);
 
@@ -162,18 +179,90 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
     if (code) handleCodeFound(code);
   }, [manualInput, handleCodeFound]);
 
-  // ── Live OCR loop ──────────────────────────────────────────────────────────
-  // Periodically capture a still, run ML Kit text recognition, and feed any
-  // recognized card code through the ID-first lookup. Art matching is the
-  // deferred fallback (matchByArt is a no-op for now).
+  // Resolve a raw {code, suffix, score} match to its card + exact variant.
+  const resolveCandidate = useCallback(
+    (code: string, suffix: string, score: number): ScanCandidate | null => {
+      const card = CARDS[code.toUpperCase()];
+      if (!card) return null;
+      const variant = card.variants.find((v) => v.suffix === suffix) ?? card.variants[0];
+      return { card, variant, suffix: variant.suffix, score };
+    },
+    []
+  );
+
+  // Auto-confirm the top candidate when it clearly beats the runner-up; otherwise
+  // freeze the loop and show the picker for the user to disambiguate the variant.
+  const decideCandidates = useCallback(
+    (cands: ScanCandidate[]) => {
+      if (cands.length === 0) return;
+      const clearWinner =
+        cands.length === 1 || cands[0].score - cands[1].score >= AUTO_CONFIRM_MARGIN;
+      if (clearWinner) {
+        handleCodeFound(cands[0].card.code, cands[0].suffix);
+      } else {
+        pausedRef.current = true; // freeze the loop until the user picks
+        setCandidates(cands);
+      }
+    },
+    [handleCodeFound]
+  );
+
+  // Combine the art match (top-K) with the printed-code OCR.
+  // The printed code uniquely identifies the CARD (variants share it), so when OCR
+  // reads a valid code it's authoritative — even if the art match is weak. The art
+  // scores then just rank that card's variants (suffix). Falls back to art-only
+  // when OCR is unavailable (Expo Go) or finds no code.
+  const handleScanResults = useCallback(
+    (results: Array<{ code: string; suffix: string; score: number }>, ocrCode?: string) => {
+      const card = ocrCode ? CARDS[ocrCode.toUpperCase()] : undefined;
+      if (card) {
+        const scoreOf = (suffix: string) =>
+          results.find(
+            (r) => r.code.toUpperCase() === card.code.toUpperCase() && r.suffix === suffix,
+          )?.score ?? 0;
+        const cands: ScanCandidate[] = card.variants
+          .map((v) => ({ card, variant: v, suffix: v.suffix, score: scoreOf(v.suffix) }))
+          .sort((a, b) => b.score - a.score);
+        decideCandidates(cands);
+        return;
+      }
+
+      // Art-only path (no authoritative code).
+      const resolved = results
+        .map((r) => resolveCandidate(r.code, r.suffix, r.score))
+        .filter((c): c is ScanCandidate => c != null);
+      decideCandidates(resolved);
+    },
+    [resolveCandidate, decideCandidates]
+  );
+
+  const confirmCandidate = useCallback(
+    (c: ScanCandidate) => {
+      setCandidates(null);
+      pausedRef.current = false;
+      handleCodeFound(c.card.code, c.suffix);
+    },
+    [handleCodeFound]
+  );
+
+  const dismissCandidates = useCallback(() => {
+    setCandidates(null);
+    pausedRef.current = false;
+  }, []);
+
+  // ── Live scan loop (art match + printed-code OCR) ───────────────────────────
+  // 1. Capture a full photo from the camera.
+  // 2. Map the on-screen focus box coords → photo pixel coords (crop the card).
+  // 3. In parallel: art top-K (ONNX embedding / RGB-ahash) + ML Kit OCR of the code.
+  // 4. Combine: OCR code → authoritative card; art ranks the variant. Confirm/auto-add.
   const busyRef = useRef(false);
 
   useEffect(() => {
-    if (!isFocused || !permission?.granted || !isOcrAvailable()) return;
+    if (!isFocused || !permission?.granted) return;
 
     let cancelled = false;
     const scanOnce = async () => {
-      if (busyRef.current || cancelled) return;
+      if (busyRef.current || cancelled || pausedRef.current) return;
       busyRef.current = true;
       try {
         const photo: any = await cameraRef.current?.takePictureAsync({
@@ -182,10 +271,39 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
           shutterSound: false,
         } as any);
         if (!photo?.uri || cancelled) return;
-        const text = await recognizeText(photo.uri);
-        let code = extractCode(text);
-        if (!code) code = await matchByArt(photo.uri); // deferred fallback
-        if (code && CARDS[code.toUpperCase()]) handleCodeFound(code);
+
+        // Map focus box screen coords → photo pixel coords.
+        // The camera fills the screen; scale proportionally from each axis.
+        const photoW: number = photo.width ?? screenW;
+        const photoH: number = photo.height ?? screenH;
+        const scaleX = photoW / screenW;
+        const scaleY = photoH / screenH;
+
+        const boxLeft = (screenW - ART_FOCUS_W) / 2;
+        const boxTop = screenH * 0.25;
+
+        const cropX = Math.max(0, Math.round(boxLeft * scaleX));
+        const cropY = Math.max(0, Math.round(boxTop * scaleY));
+        const cropW = Math.min(Math.round(ART_FOCUS_W * scaleX), photoW - cropX);
+        const cropH = Math.min(Math.round(ART_FOCUS_H * scaleY), photoH - cropY);
+
+        if (cropW <= 0 || cropH <= 0) return;
+
+        // Run the art match and the printed-code OCR together.
+        const [results, ocrCode] = await Promise.all([
+          matchTopK(photo.uri, { originX: cropX, originY: cropY, width: cropW, height: cropH }, 3),
+          (async (): Promise<string | undefined> => {
+            if (!isOcrAvailable()) return undefined;
+            try {
+              return extractCode(await recognizeText(photo.uri)) ?? undefined;
+            } catch {
+              return undefined;
+            }
+          })(),
+        ]);
+        if (!cancelled && !pausedRef.current && (results.length || ocrCode)) {
+          handleScanResults(results, ocrCode);
+        }
       } catch {
         // ignore transient capture/recognition errors
       } finally {
@@ -193,12 +311,12 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
       }
     };
 
-    const interval = setInterval(scanOnce, 1200);
+    const interval = setInterval(scanOnce, 1500);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [isFocused, permission?.granted, handleCodeFound]);
+  }, [isFocused, permission?.granted, handleScanResults, screenW, screenH]);
 
   // ── Permission gate ──────────────────────────────────────────────────────
 
@@ -238,9 +356,8 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
       {/* Dark vignette overlay */}
       <View style={s.overlay} pointerEvents="none" />
 
-      {/* Focus box */}
+      {/* Focus box — card-shaped, matches the crop region sent to the hasher */}
       <View style={s.focusBox} pointerEvents="none">
-        {/* Corner brackets */}
         {[
           { top: -2, left: -2, borderTopWidth: 3, borderLeftWidth: 3 },
           { top: -2, right: -2, borderTopWidth: 3, borderRightWidth: 3 },
@@ -249,16 +366,10 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
         ].map((style, i) => (
           <View
             key={i}
-            style={[
-              s.corner,
-              style as object,
-              { borderColor: colors.accent },
-            ]}
+            style={[s.corner, style as object, { borderColor: colors.accent }]}
           />
         ))}
-        {/* Scan line */}
-        <View style={s.scanLine} />
-        <Text style={s.focusHint}>{t('scan.hint')}</Text>
+        <Text style={s.focusHint}>{t('scan.hintArt')}</Text>
       </View>
 
       {/* Floating ghost decoration */}
@@ -286,6 +397,35 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
             {lastResult.code} · {lastResult.name}
           </Text>
           <Text style={s.toastCount}>×{lastResult.count} {t('scan.inVault')}</Text>
+        </View>
+      )}
+
+      {/* Variant confirmation sheet — shown when the match is ambiguous */}
+      {candidates && (
+        <View style={s.confirmBackdrop}>
+          <View style={s.confirmSheet}>
+            <Text style={s.confirmTitle}>{t('scan.pickVariant')}</Text>
+            <Text style={s.confirmSub}>{t('scan.pickVariantHint')}</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={s.confirmRow}
+            >
+              {candidates.map((c) => (
+                <Pressable
+                  key={`${c.card.code}${c.suffix}`}
+                  style={s.confirmCard}
+                  onPress={() => confirmCandidate(c)}
+                >
+                  <CardThumb card={c.card} variant={c.variant} width={110} />
+                  <Text style={s.confirmScore}>{Math.round(c.score * 100)}%</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <Pressable style={s.confirmCancel} onPress={dismissCandidates}>
+              <Text style={s.confirmCancelText}>{t('scan.cancel')}</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -327,8 +467,9 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const FOCUS_W = 280;
-const FOCUS_H = 80;
+// These must match the crop calculation in the scan loop (scanOnce).
+export const ART_FOCUS_W = 220;
+export const ART_FOCUS_H = 308; // ~5:7 OPTCG card ratio
 const CORNER_SIZE = 20;
 
 const s = StyleSheet.create({
@@ -354,11 +495,11 @@ const s = StyleSheet.create({
 
   focusBox: {
     position: 'absolute',
-    top: '38%',
+    top: '25%',
     alignSelf: 'center',
-    width: FOCUS_W,
-    height: FOCUS_H,
-    borderRadius: radii.md,
+    width: ART_FOCUS_W,
+    height: ART_FOCUS_H,
+    borderRadius: radii.lg,
     overflow: 'visible',
     alignItems: 'center',
     justifyContent: 'center',
@@ -369,16 +510,6 @@ const s = StyleSheet.create({
     width: CORNER_SIZE,
     height: CORNER_SIZE,
     borderRadius: 3,
-  },
-
-  scanLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: colors.accent,
-    opacity: 0.7,
-    borderRadius: 99,
   },
 
   focusHint: {
@@ -455,6 +586,72 @@ const s = StyleSheet.create({
     fontFamily: fonts.ui,
     color: colors.textMut,
     marginTop: 2,
+  },
+
+  // ── Variant confirmation sheet ──────────────────────────────────────────
+  confirmBackdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(8,7,16,0.72)',
+    justifyContent: 'flex-end',
+    zIndex: 20,
+  },
+
+  confirmSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    borderTopWidth: 1.5,
+    borderColor: colors.accent,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: 36,
+    gap: spacing.sm,
+  },
+
+  confirmTitle: {
+    fontSize: 17,
+    fontFamily: fonts.uiBold,
+    color: colors.text,
+  },
+
+  confirmSub: {
+    fontSize: 12.5,
+    fontFamily: fonts.ui,
+    color: colors.textMut,
+    marginBottom: spacing.sm,
+  },
+
+  confirmRow: {
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+
+  confirmCard: {
+    alignItems: 'center',
+    gap: 6,
+  },
+
+  confirmScore: {
+    fontSize: 12,
+    fontFamily: fonts.uiSemi,
+    color: colors.accent,
+  },
+
+  confirmCancel: {
+    marginTop: spacing.sm,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+
+  confirmCancelText: {
+    fontSize: 14,
+    fontFamily: fonts.uiSemi,
+    color: colors.textMut,
   },
 
   bottomPanel: {

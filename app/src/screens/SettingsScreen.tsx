@@ -1,7 +1,7 @@
 // SettingsScreen — language, set-completion mode, playset size, grid columns.
 // All controls read/write lib/settings.ts; the i18n layer re-renders on change.
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SettingsScreenProps } from '../navigation';
@@ -12,6 +12,7 @@ import {
   getSettings,
   setColumns,
   setCountParallels,
+  setImagesDownloaded,
   setLanguage,
   setPlaysetSize,
   setShowAlternateArt,
@@ -20,6 +21,11 @@ import {
   type Language,
   type WishlistDefaultVariant,
 } from '../lib/settings';
+import {
+  prefetchAllImages,
+  type PrefetchCancel,
+  type PrefetchProgress,
+} from '../lib/imagePrefetch';
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const t = useT();
@@ -27,6 +33,27 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [, force] = useState(0);
   useEffect(() => subSettings(() => force((n) => n + 1)), []);
   const settings = getSettings();
+
+  const [dlProgress, setDlProgress] = useState<PrefetchProgress | null>(null);
+  const cancelRef = useRef<PrefetchCancel>({ cancelled: false });
+  const downloading = dlProgress !== null;
+
+  async function startDownload() {
+    cancelRef.current = { cancelled: false };
+    setDlProgress({ done: 0, total: 0 });
+    await setImagesDownloaded(false);
+    const completed = await prefetchAllImages(
+      (p) => setDlProgress(p),
+      cancelRef.current,
+    );
+    setDlProgress(null);
+    if (completed) await setImagesDownloaded(true);
+  }
+
+  function cancelDownload() {
+    cancelRef.current.cancelled = true;
+    setDlProgress(null);
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -131,6 +158,49 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             );
           })}
         </View>
+
+        {/* Offline images */}
+        <Text style={s.sectionLabel}>{t('offline.title')}</Text>
+        <Text style={s.desc}>{t('offline.desc')}</Text>
+
+        {downloading && dlProgress ? (
+          <View style={s.offlineBox}>
+            <View style={s.progressTrack}>
+              <View
+                style={[
+                  s.progressFill,
+                  {
+                    width: dlProgress.total > 0
+                      ? `${Math.round((dlProgress.done / dlProgress.total) * 100)}%`
+                      : '0%',
+                  },
+                ]}
+              />
+            </View>
+            <Text style={s.progressLabel}>
+              {t('offline.progress')
+                .replace('{done}', String(dlProgress.done))
+                .replace('{total}', String(dlProgress.total))}
+            </Text>
+            <Pressable style={s.btnOutline} onPress={cancelDownload}>
+              <Text style={s.btnOutlineText}>{t('offline.cancel')}</Text>
+            </Pressable>
+          </View>
+        ) : settings.imagesDownloaded ? (
+          <View style={s.offlineBox}>
+            <View style={s.offlineDoneRow}>
+              <Icon name="check" size={16} color={colors.accent} />
+              <Text style={s.offlineDoneText}>{t('offline.doneDesc')}</Text>
+            </View>
+            <Pressable style={s.btnOutline} onPress={startDownload}>
+              <Text style={s.btnOutlineText}>{t('offline.redownload')}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable style={s.btnPrimary} onPress={startDownload}>
+            <Text style={s.btnPrimaryText}>{t('offline.download')}</Text>
+          </Pressable>
+        )}
       </ScrollView>
     </View>
   );
@@ -194,4 +264,36 @@ const s = StyleSheet.create({
   },
   stepSign: { fontSize: 20, color: colors.text, fontFamily: fonts.uiBold, lineHeight: 24 },
   stepVal: { fontSize: 20, fontFamily: fonts.display, color: colors.text, minWidth: 28, textAlign: 'center' },
+  offlineBox: { gap: 10 },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.surface2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.accent,
+  },
+  progressLabel: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut },
+  offlineDoneRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  offlineDoneText: { fontSize: 13, fontFamily: fonts.ui, color: colors.textMut, flex: 1 },
+  btnPrimary: {
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: radii.lg,
+    backgroundColor: colors.accent,
+    alignSelf: 'flex-start',
+  },
+  btnPrimaryText: { fontSize: 14, fontFamily: fonts.uiSemi, color: '#fff' },
+  btnOutline: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignSelf: 'flex-start',
+  },
+  btnOutlineText: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.textMut },
 });

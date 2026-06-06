@@ -13,16 +13,50 @@ import { getOwnedFor, getVariantOwned } from './ownedAggregate';
 import { getSettings } from './settings';
 import type { Card, Variant } from '../types';
 
-/** Clave especial para variantes de evento/promo sin código de set canónico. */
-const EVENT_BUCKET = '__event__';
+/** Claves de los sub-buckets de evento/promo. */
+export const EV_PRERELEASE   = '__ev_prerelease';
+export const EV_TREASURECUP  = '__ev_treasurecup';
+export const EV_REGIONAL     = '__ev_regional';
+export const EV_CS           = '__ev_cs';
+export const EV_TOURNAMENT   = '__ev_tournament';
+export const EV_STORE        = '__ev_store';
+export const EV_COLLECTION   = '__ev_collection';
+export const EV_OTHER        = '__ev_other';
+
+/** Lista ordenada de sub-buckets de evento (para SetsScreen). */
+export const EVENT_BUCKETS = [
+  EV_PRERELEASE, EV_TREASURECUP, EV_REGIONAL, EV_CS,
+  EV_TOURNAMENT, EV_STORE, EV_COLLECTION, EV_OTHER,
+] as const;
+
+/**
+ * Clasifica un get_info sin código de set en el sub-bucket de evento correcto.
+ * El orden importa: primero los patrones más específicos.
+ */
+function eventBucketOf(getInfo: string): string {
+  const gi = getInfo.toLowerCase();
+  if (gi.includes('pre-release')) return EV_PRERELEASE;
+  if (gi.includes('treasure cup')) return EV_TREASURECUP;
+  if (gi.startsWith('cs ') || gi.startsWith('championship') || gi.startsWith('bandai card games fest')) return EV_CS;
+  if (gi.includes('regional')) return EV_REGIONAL;
+  if (gi.includes('tournament pack') || gi.includes('winner pack') || gi.includes('tournament kit') || gi.includes('sealed battle')) return EV_TOURNAMENT;
+  if (gi.includes('release event') || gi.includes('grand battle') || gi.includes('2-on-2') ||
+      gi.includes('heroines battle') || gi.includes('deck battle') ||
+      gi.includes('pirates league') || gi.includes('pirates party')) return EV_STORE;
+  if (gi.includes('premium card collection') || gi.includes('illustration box') ||
+      gi.includes('binder set') || gi.includes('anniversary') || gi.includes('special goods') ||
+      gi.includes('official playmat') || gi.includes('learn together') ||
+      gi.includes('heroines campaign')) return EV_COLLECTION;
+  return EV_OTHER;
+}
 
 /** Set al que pertenece una variante concreta.
  *  - printed_set (string) → set canónico del corchete del sitio oficial
- *  - printed_set (null)   → evento/promo sin set code; se agrupa aparte
+ *  - printed_set (null)   → evento/promo sin set code; se clasifica por get_info
  *  - printed_set ausente  → datos legacy; cae a set_source o prefijo */
 export function variantSetOf(card: Card, v: Variant): string {
   if (v.printed_set !== undefined) {
-    return v.printed_set ?? EVENT_BUCKET;
+    return v.printed_set ?? eventBucketOf(v.get_info ?? '');
   }
   return v.set_source || setPrefix(card.code);
 }

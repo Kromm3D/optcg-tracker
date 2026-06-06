@@ -3,7 +3,7 @@
 // "quickActions" para mostrar +/- directamente sobre la card (afecta
 // a la primera variante).
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CachedImage } from './CachedImage';
 import { Icon } from './Icon';
@@ -11,6 +11,17 @@ import { colors, fonts } from '../theme';
 import { resolveImageUris } from '../lib/images';
 import { adjust, getCount, getCountSync, subscribe as subColl } from '../lib/collection';
 import type { Card, Variant } from '../types';
+
+// Rareza → rango numérico (mayor = más rara). SEC en la cima.
+const RARITY_RANK: Record<string, number> = {
+  SEC: 8, SP: 7, TR: 6, SR: 5, R: 4, UC: 3, C: 2, L: 1, P: 1,
+};
+function rarityRank(r: string | undefined): number {
+  return RARITY_RANK[(r ?? '').toUpperCase()] ?? 0;
+}
+
+const STACK_OFFSET = 4;  // px de desplazamiento por capa fantasma
+const MAX_STACK    = 4;  // capas totales máximas (main + fantasmas)
 
 type Props = {
   card: Card;
@@ -37,6 +48,8 @@ type Props = {
   onAdjust?: (delta: number) => void;
   /** Current count displayed in inline controls (when onAdjust is provided). */
   qty?: number;
+  /** Muestra el footer (nombre + código) incluso en modo quickActions. */
+  showFooter?: boolean;
   onPress?: () => void;
   onLongPress?: () => void;
 };
@@ -54,11 +67,39 @@ export function CardThumb({
   variant,
   onAdjust,
   qty = 0,
+  showFooter = false,
   onPress,
   onLongPress,
 }: Props) {
-  const v = variant ?? card.variants[0];
+  // Variante mostrada encima: la más rara que se posea; en quickActions siempre
+  // se usa variants[0] (o el override explícito) para no cambiar el control +/-.
+  const v = (() => {
+    if (variant) return variant;
+    if (!quickActions && owned > 0) {
+      const ownedVars = card.variants
+        .filter(vv => getCountSync(card.code, vv.suffix) > 0)
+        .sort((a, b) => rarityRank(b.rarity) - rarityRank(a.rarity));
+      if (ownedVars.length > 0) return ownedVars[0];
+    }
+    return card.variants[0];
+  })();
   const { uri: primaryUrl, fallback: fallbackUrl } = v ? resolveImageUris(v) : { uri: '', fallback: undefined };
+
+  // Capas fantasma: min(owned, MAX_STACK) - 1, nunca en quickActions ni compacto
+  const ghostCount = quickActions ? 0 : Math.max(0, Math.min(owned, MAX_STACK) - 1);
+
+  // Hold-repeat: mantener pulsado → incrementar/decrementar continuamente.
+  const holdRef = useRef<{ t?: ReturnType<typeof setTimeout>; i?: ReturnType<typeof setInterval> }>({});
+  const startHold = (action: () => void) => {
+    action();
+    holdRef.current.t = setTimeout(() => {
+      holdRef.current.i = setInterval(action, 80);
+    }, 350);
+  };
+  const stopHold = () => {
+    clearTimeout(holdRef.current.t);
+    clearInterval(holdRef.current.i);
+  };
 
   // Para los +/- locales necesitamos el count de la primera variante
   const [vCount, setVCount] = useState(0);
@@ -77,63 +118,85 @@ export function CardThumb({
 
   return (
     <Pressable onPress={onPress} onLongPress={onLongPress} style={[styles.wrap, width !== undefined && { width }]}>
-      <View style={styles.imgWrap}>
-        {primaryUrl ? (
-          <CachedImage
-            uri={primaryUrl}
-            fallbackUri={fallbackUrl}
-            style={styles.img}
-            placeholderBg={colors.surface2}
-          />
-        ) : (
-          <View style={[styles.img, styles.fallback]}>
-            <Text style={styles.fallbackText}>{card.code}</Text>
-          </View>
-        )}
+      {/* Contenedor externo: define tamaño, permite overflow para las capas fantasma */}
+      <View style={styles.imgContainer}>
+        {/* Capas fantasma: de atrás (i=0) hacia adelante (i=ghostCount-1) */}
+        {Array.from({ length: ghostCount }, (_, i) => {
+          const depth = ghostCount - i; // i=0 → más al fondo → mayor offset
+          return (
+            <View
+              key={i}
+              style={[
+                StyleSheet.absoluteFill,
+                styles.ghost,
+                {
+                  transform: [
+                    { translateX: depth * STACK_OFFSET },
+                    { translateY: depth * STACK_OFFSET },
+                  ],
+                  zIndex: i,
+                },
+              ]}
+            />
+          );
+        })}
 
-        {/* Dim overlay for missing cards. */}
-        {dimmed && <View style={styles.dimOverlay} />}
+        {/* Carta principal (la más rara poseída, encima del stack) */}
+        <View style={[StyleSheet.absoluteFill, styles.imgMain, { zIndex: ghostCount + 1 }]}>
+          {primaryUrl ? (
+            <CachedImage
+              uri={primaryUrl}
+              fallbackUri={fallbackUrl}
+              style={styles.img}
+              placeholderBg={colors.surface2}
+            />
+          ) : (
+            <View style={[styles.img, styles.fallback]}>
+              <Text style={styles.fallbackText}>{card.code}</Text>
+            </View>
+          )}
 
-        {/* Selection ring (multi-select mode). */}
-        {selected && <View style={styles.selOverlay} />}
+          {/* Dim overlay for missing cards. */}
+          {dimmed && <View style={styles.dimOverlay} />}
 
-        {/* Multi-art indicator: owned across several art versions. */}
-        {multiArt && (
-          <View style={styles.multiArt}>
-            <Icon name="layers" size={12} color="#fff" stroke={2} />
-          </View>
-        )}
+          {/* Selection ring (multi-select mode). */}
+          {selected && <View style={styles.selOverlay} />}
 
-        {/* Source-set badge: shown when this variant released in a different set. */}
-        {sourceSet && (
-          <View style={styles.sourceSetBadge}>
-            <Text style={styles.sourceSetText}>{sourceSet}</Text>
-          </View>
-        )}
+          {/* Multi-art indicator: owned across several art versions. */}
+          {multiArt && (
+            <View style={styles.multiArt}>
+              <Icon name="layers" size={12} color="#fff" stroke={2} />
+            </View>
+          )}
 
-        {/* Quick actions: dos botones circulares grandes centrados abajo. */}
-        {quickActions && v ? (
-          <View style={styles.qa}>
-            <Pressable
-              onPress={(e: any) => {
-                (e as any).stopPropagation?.();
-                adjust(card.code, v.suffix, -1);
-              }}
-              style={styles.qaBtn}
-            >
-              <Text style={styles.qaSign}>−</Text>
-            </Pressable>
-            <Pressable
-              onPress={(e: any) => {
-                (e as any).stopPropagation?.();
-                adjust(card.code, v.suffix, +1);
-              }}
-              style={styles.qaBtn}
-            >
-              <Text style={styles.qaSign}>+</Text>
-            </Pressable>
-          </View>
-        ) : null}
+          {/* Source-set badge: shown when this variant released in a different set. */}
+          {sourceSet && (
+            <View style={styles.sourceSetBadge}>
+              <Text style={styles.sourceSetText}>{sourceSet}</Text>
+            </View>
+          )}
+
+          {/* Quick actions: dos botones circulares grandes centrados abajo.
+              onPressIn inicia; mantener pulsado repite a 80 ms tras 350 ms. */}
+          {quickActions && v ? (
+            <View style={styles.qa}>
+              <Pressable
+                onPressIn={() => startHold(() => adjust(card.code, v.suffix, -1))}
+                onPressOut={stopHold}
+                style={styles.qaBtn}
+              >
+                <Text style={styles.qaSign}>−</Text>
+              </Pressable>
+              <Pressable
+                onPressIn={() => startHold(() => adjust(card.code, v.suffix, +1))}
+                onPressOut={stopHold}
+                style={styles.qaBtn}
+              >
+                <Text style={styles.qaSign}>+</Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </View>
       </View>
 
       {/* Count bubble — bleeds out of top-right corner of the image. */}
@@ -151,7 +214,7 @@ export function CardThumb({
       )}
 
       {/* Footer: card name bold + card ID below */}
-      {!quickActions && (
+      {(!quickActions || showFooter) && (
         <View style={styles.footer}>
           <Text style={[styles.cardName, compact && styles.cardNameSm]} numberOfLines={1}>{card.name}</Text>
           <Text style={[styles.code, compact && styles.codeSm]} numberOfLines={1}>
@@ -184,13 +247,31 @@ export function CardThumb({
 
 const styles = StyleSheet.create({
   wrap: { width: '100%', overflow: 'visible' },
-  imgWrap: {
+  // Contenedor del stack: define el tamaño de la imagen y permite overflow visible
+  // para que las capas fantasma asomen por fuera.
+  imgContainer: {
     width: '100%',
     aspectRatio: 200 / 280,
+    position: 'relative',
+    overflow: 'visible',
+  },
+  // La carta principal (clipping container para la imagen y los overlays).
+  imgMain: {
     borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: colors.surface2,
-    position: 'relative',
+  },
+  // Capa fantasma: rectángulo con forma de carta que asoma detrás de la principal.
+  ghost: {
+    borderRadius: 14,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    shadowOffset: { width: 1, height: 2 },
+    elevation: 2,
   },
   img: { width: '100%', height: '100%' },
   fallback: { alignItems: 'center', justifyContent: 'center' },

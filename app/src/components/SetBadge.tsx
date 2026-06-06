@@ -12,10 +12,22 @@ type Props = {
   size?: number;
 };
 
+const EV_BADGE_LABELS: Record<string, string> = {
+  '__ev_prerelease':  'PR',
+  '__ev_treasurecup': 'TC',
+  '__ev_regional':    'RG',
+  '__ev_cs':          'CS',
+  '__ev_tournament':  'TP',
+  '__ev_store':       'SE',
+  '__ev_collection':  'SC',
+  '__ev_other':       'EV',
+};
+
 /** Parte el codigo en letras + numero. "OP16" -> ["OP","16"]. */
 function splitCode(code: string): [string, string] {
+  if (code in EV_BADGE_LABELS) return [EV_BADGE_LABELS[code], ''];
   const m = code.match(/^([A-Za-z]+)(\d*)$/);
-  if (!m) return [code, ''];
+  if (!m) return [code.slice(0, 4), ''];
   return [m[1], m[2]];
 }
 

@@ -33,7 +33,11 @@
         {
           "cameraPermission": "Used to scan One Piece TCG card codes."
         }
-      ]
+      ],
+      "onnxruntime-react-native"
+    ],
+    "assetBundlePatterns": [
+      "assets/**"
     ],
     "extra": {
       "eas": {

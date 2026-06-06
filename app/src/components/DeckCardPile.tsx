@@ -7,7 +7,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { CachedImage } from './CachedImage';
 import { colors, fonts } from '../theme';
 import { resolveImageUris } from '../lib/images';
-import type { Card } from '../types';
+import type { Card, Variant } from '../types';
 
 interface Props {
   card: Card;
@@ -17,6 +17,8 @@ interface Props {
   owned: number;
   /** Width of the bottom card in the pile (height auto from aspect). */
   width: number;
+  /** Override the variant shown in every layer (default: variants[0]). */
+  variant?: Variant;
 }
 
 const ASPECT = 200 / 280;
@@ -24,8 +26,8 @@ const MAX_VISIBLE = 4; // render at most 4 layers
 const OFFSET_Y = 6;   // px each card shifts upward in the pile
 const OFFSET_X = 3;   // px each card shifts right in the pile
 
-export function DeckCardPile({ card, qty, owned, width }: Props) {
-  const v = card.variants[0];
+export function DeckCardPile({ card, qty, owned, width, variant }: Props) {
+  const v = variant ?? card.variants[0];
   const { uri, fallback: fallbackUri } = v ? resolveImageUris(v) : { uri: '', fallback: undefined };
   const height = width / ASPECT;
 

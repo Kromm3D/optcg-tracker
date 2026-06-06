@@ -5,6 +5,7 @@ import { listCollection, getCacheSync, subscribe as subscribeCollection } from '
 
 let totals: Record<string, number> = {};
 let variantTotals: Record<string, number> = {};
+let variantCounts: Record<string, number> = {}; // code → nº de variantes poseídas (count > 0)
 let ready = false;
 const listeners = new Set<() => void>();
 
@@ -14,12 +15,15 @@ function refresh() {
   const items = Object.values(getCacheSync());
   const next: Record<string, number> = {};
   const nextVar: Record<string, number> = {};
+  const nextCounts: Record<string, number> = {};
   for (const it of items) {
     next[it.code] = (next[it.code] ?? 0) + it.count;
     nextVar[`${it.code}${it.suffix}`] = it.count;
+    if (it.count > 0) nextCounts[it.code] = (nextCounts[it.code] ?? 0) + 1;
   }
   totals = next;
   variantTotals = nextVar;
+  variantCounts = nextCounts;
   ready = true;
   listeners.forEach((l) => l());
 }
@@ -44,12 +48,7 @@ export function getVariantOwned(code: string, suffix: string): number {
 /** Number of distinct art variants of a card owned with count > 0.
  *  Powers the multi-art indicator (≥ 2 means owned across several arts). */
 export function getOwnedVariantCount(code: string): number {
-  let n = 0;
-  for (const key of Object.keys(variantTotals)) {
-    // key === `${code}${suffix}`; match exact code or code + "_…" suffix.
-    if ((key === code || key.startsWith(`${code}_`)) && variantTotals[key] > 0) n += 1;
-  }
-  return n;
+  return variantCounts[code] ?? 0;
 }
 
 export function isReady(): boolean {

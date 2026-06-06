@@ -124,6 +124,24 @@ export function matches(card: Card, f: FilterState): boolean {
   return true;
 }
 
+// Caché de haystack por carta: evita re-concatenar los campos en cada búsqueda.
+// WeakMap → los objetos Card son referencias estables de CARD_LIST.
+const haystackCache = new WeakMap<Card, string>();
+function getHaystack(c: Card): string {
+  let h = haystackCache.get(c);
+  if (!h) {
+    h = [c.name, c.code, c.type ?? '', c.family ?? '', c.attribute ?? '', c.effect ?? '', c.trigger ?? '']
+      .join(' ').toLowerCase();
+    haystackCache.set(c, h);
+  }
+  return h;
+}
+
+/** Escapa caracteres especiales de regex en un token de búsqueda. */
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Color aliases for fuzzy token search (lowercase → canonical OPTCG color key)
 const COLOR_ALIASES: Record<string, string> = {
   red: 'Red', green: 'Green', blue: 'Blue',
@@ -158,7 +176,7 @@ export function fuzzyFilter(cards: Card[], q: string): Card[] {
   const setTokens: string[] = [];
   const costTokens: number[] = [];
   const counterTokens: number[] = [];
-  const textTokens: string[] = [];
+  const textRegexes: RegExp[] = [];
 
   for (const tok of tokens) {
     const cm = COST_RE.exec(tok);
@@ -169,7 +187,7 @@ export function fuzzyFilter(cards: Card[], q: string): Card[] {
     if (cfm) { counterTokens.push(parseInt(cfm[1], 10)); continue; }
     if (COLOR_ALIASES[tok]) { colorTokens.push(COLOR_ALIASES[tok]); continue; }
     if (SET_TOKEN_RE.test(tok)) { setTokens.push(tok.toUpperCase()); continue; }
-    textTokens.push(tok);
+    textRegexes.push(new RegExp(`\\b${escapeRe(tok)}`, 'i'));
   }
 
   return cards.filter((c) => {
@@ -189,12 +207,9 @@ export function fuzzyFilter(cards: Card[], q: string): Card[] {
       const cc = c.counter ?? 0;
       if (!counterTokens.some((n) => cc === n)) return false;
     }
-    if (textTokens.length > 0) {
-      const haystack = [
-        c.name, c.code, c.type ?? '', c.family ?? '',
-        c.attribute ?? '', c.effect ?? '', c.trigger ?? '',
-      ].join(' ').toLowerCase();
-      if (!textTokens.every((t) => haystack.includes(t))) return false;
+    if (textRegexes.length > 0) {
+      const haystack = getHaystack(c);
+      if (!textRegexes.every((re) => re.test(haystack))) return false;
     }
     return true;
   });

@@ -118,16 +118,20 @@ export const es: Record<TKey, string> = {
   'deck.addMissing': 'Añadir faltantes a wishlist',
   'deck.missingAdded': '{n} cartas faltantes añadidas a la wishlist.',
   'deck.missingNone': 'No faltan cartas — ¡las tienes todas!',
+  'deck.overLimit': 'Supera el límite de 50 cartas',
 
   // Scan
   'scan.permTitle': 'Se necesita acceso a la cámara',
   'scan.permBody': '¡Perona necesita ver la carta para añadirla a tu vault!',
   'scan.grant': 'Conceder permiso',
-  'scan.hint': 'Alinea el código de la carta (ej. OP01-001)',
+  'scan.hintArt': 'Encuadra la ilustración de la carta',
   'scan.manualLabel': 'Introduce el código manualmente',
   'scan.add': 'Añadir',
   'scan.manualHint': 'Pulsa "Añadir" tras escribir o escanear el código de la carta.',
   'scan.inVault': 'en vault',
+  'scan.pickVariant': '¿Qué versión?',
+  'scan.pickVariantHint': 'Varias cartas comparten esta ilustración — toca la que escaneaste.',
+  'scan.cancel': 'Cancelar',
 
   // Sets
   'sets.title': 'Sets',
@@ -135,6 +139,7 @@ export const es: Record<TKey, string> = {
   'sets.groupBooster': 'Sobres',
   'sets.groupStarter': 'Mazos Iniciales',
   'sets.groupPromo': 'Promos',
+  'sets.groupEvents': 'Eventos y Promos',
   'sets.groupOther': 'Otros',
 
   // Settings
@@ -191,6 +196,16 @@ export const es: Record<TKey, string> = {
   'sort.power': 'Poder',
   'sort.cost': 'Coste',
   'sort.owned': 'Poseídas',
+
+  // Offline images
+  'offline.title': 'Imágenes sin conexión',
+  'offline.desc': 'Descarga todo el arte de cartas para usarlo sin conexión (~400 MB). Recomendado con Wi-Fi.',
+  'offline.download': 'Descargar todo',
+  'offline.redownload': 'Volver a descargar',
+  'offline.cancel': 'Cancelar descarga',
+  'offline.progress': '{done} / {total} imágenes',
+  'offline.done': 'Descargado',
+  'offline.doneDesc': 'Todo el arte de cartas está disponible sin conexión.',
 
   // Generic
   'common.cancel': 'Cancelar',

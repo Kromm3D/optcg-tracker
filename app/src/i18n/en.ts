@@ -117,16 +117,20 @@ export const en = {
   'deck.addMissing': 'Add missing to wishlist',
   'deck.missingAdded': '{n} missing cards added to wishlist.',
   'deck.missingNone': 'No missing cards — you own them all!',
+  'deck.overLimit': 'Over 50-card limit',
 
   // Scan
   'scan.permTitle': 'Camera access needed',
   'scan.permBody': 'Perona needs to see the card to add it to your vault!',
   'scan.grant': 'Grant Permission',
-  'scan.hint': 'Align the card code (e.g. OP01-001)',
+  'scan.hintArt': 'Frame the card art inside the box',
   'scan.manualLabel': 'Enter card code manually',
   'scan.add': 'Add',
   'scan.manualHint': 'Tap "Add" after typing or scanning the code on the card.',
   'scan.inVault': 'in vault',
+  'scan.pickVariant': 'Which version?',
+  'scan.pickVariantHint': 'A few cards share this art — tap the one you scanned.',
+  'scan.cancel': 'Cancel',
 
   // Sets
   'sets.title': 'Sets',
@@ -134,6 +138,7 @@ export const en = {
   'sets.groupBooster': 'Booster Packs',
   'sets.groupStarter': 'Starter Decks',
   'sets.groupPromo': 'Promos',
+  'sets.groupEvents': 'Events & Promos',
   'sets.groupOther': 'Other',
 
   // Settings
@@ -190,6 +195,16 @@ export const en = {
   'sort.power': 'Power',
   'sort.cost': 'Cost',
   'sort.owned': 'Owned',
+
+  // Offline images
+  'offline.title': 'Offline card images',
+  'offline.desc': 'Download all card art for offline use (~400 MB). Recommended on Wi-Fi.',
+  'offline.download': 'Download all',
+  'offline.redownload': 'Re-download',
+  'offline.cancel': 'Cancel download',
+  'offline.progress': '{done} / {total} images',
+  'offline.done': 'Downloaded',
+  'offline.doneDesc': 'All card art is available offline.',
 
   // Generic
   'common.cancel': 'Cancel',

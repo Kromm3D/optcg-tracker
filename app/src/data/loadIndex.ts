@@ -8,8 +8,11 @@ import type { Card, IndexPayload } from '../types';
 
 // @ts-ignore — avoids tsc inferring the huge literal type of the JSON.
 import rawJson from './index.json';
+// @ts-ignore
+import rawHashes from './hashes.json';
 
 const raw = rawJson as IndexPayload;
+const hashData = rawHashes as { hash_algo: string; hash_size: number; hash_count: number; hashes: Record<string, string> };
 
 /** Orden canónico de variantes: base > _p1 > _p2 > … > _r1 > _r2 > … > resto. */
 function variantSortKey(suffix: string): [number, number] {
@@ -46,3 +49,6 @@ export const INDEX_META = {
 
 /** release_order por código de set (0 = más reciente). */
 export const SET_META: Record<string, { release_order: number }> = raw.set_meta ?? {};
+
+/** Pre-computed perceptual hashes: variantKey -> 16-char hex string. */
+export const PHASHES: Record<string, string> = hashData.hashes;

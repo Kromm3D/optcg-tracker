@@ -135,6 +135,7 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
   }
 
   const total = deckTotal(deck);
+  const overLimit = total > 50;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -145,7 +146,13 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
         </Pressable>
         <Pressable onPress={() => { setNewName(deck.name); setRenaming(true); }} style={{ flex: 1 }}>
           <Text style={s.headerTitle} numberOfLines={1}>{deck.name}</Text>
-          <Text style={s.headerSub}>{deck.cards.length} {t('decks.slots')} · {total} {t('decks.cards')}</Text>
+          <Text style={s.headerSub}>
+            {deck.cards.length} {t('decks.slots')} ·{' '}
+            <Text style={overLimit ? { color: colors.down, fontFamily: fonts.uiBold } : undefined}>
+              {total} {t('decks.cards')}
+            </Text>
+            {overLimit ? <Text style={s.overLimitTag}>  ⚠ {t('deck.overLimit')}</Text> : null}
+          </Text>
         </Pressable>
         <Pressable style={s.wishBtn} onPress={handleAddMissing} accessibilityLabel={t('deck.addMissing')}>
           <Icon name="heart" size={20} color={colors.accent} />
@@ -272,6 +279,10 @@ const s = StyleSheet.create({
     fontFamily: fonts.ui,
     color: colors.textMut,
     marginTop: 2,
+  },
+  overLimitTag: {
+    fontFamily: fonts.uiBold,
+    color: colors.down,
   },
   addBtn: {
     width: 40,

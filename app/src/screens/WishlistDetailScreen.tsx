@@ -155,7 +155,7 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
             return (
               <View key={`${wc.code}${wc.suffix}`} style={[s.pileWrap, { width: cardW }]}>
                 <Pressable onPress={() => { setPickerCard(card); setShowPicker(true); }}>
-                  <DeckCardPile card={card} qty={wc.needed} owned={owned} width={cardW} />
+                  <DeckCardPile card={card} qty={wc.needed} owned={owned} width={cardW} variant={variant} />
                 </Pressable>
 
                 {/* owned / needed fraction */}

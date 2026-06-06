@@ -6,7 +6,7 @@ Construye la base de datos de cartas de One Piece TCG scrapeando el SITIO
 OFICIAL (https://en.onepiece-cardgame.com/cardlist/) y genera:
 
   - data/index.json               -> índice de todas las cartas y sus variantes
-  - images/<SET>/<CODE>[_pN].xxx  -> imágenes (descarga opcional en paralelo)
+  - images/<SET>/<CODE>[_pN].webp -> imágenes (descarga opcional en paralelo)
 
 Diseño en DOS FASES SEPARADAS:
 
@@ -22,15 +22,23 @@ Diseño en DOS FASES SEPARADAS:
   Fase 2 (download_images):
     Recorre el índice y descarga las imágenes oficiales en PARALELO. Salta las
     que ya existen en disco (reanudable). DURANTE LA DESCARGA: redimensiona a
-    max 480px ancho, convierte a RGB, guarda como JPEG q82 (75% más pequeño).
+    max 480px ancho, guarda como WebP q80 (≈40% más pequeño que JPEG 82 al
+    mismo nivel de calidad visual). WebP soporta transparencia nativamente.
     Por defecto NO hace falta: el repo ya trae las imágenes; esta fase solo es
     útil para sets nuevos o después de --wipe.
 
+  Fase 3 (build_hashes):
+    Recorre el índice y las imágenes descargadas para calcular un *average hash*
+    de 64 bits por variante (hash_size=8). Lo guarda en data/hashes.json.
+    Este fichero se copia a app/src/data/ para que el escáner de arte pueda
+    comparar fotos de cámara contra la base de datos sin red ni ML.
+
 USO:
-    pip install requests beautifulsoup4
-    python build_card_database.py                    # ambas fases (pregunta si wipe)
+    pip install requests beautifulsoup4 pillow imagehash
+    python build_card_database.py                    # las 3 fases (pregunta si wipe)
     python build_card_database.py --index-only       # solo fase 1 (metadatos)
     python build_card_database.py --images-only      # solo fase 2 (usa index.json existente)
+    python build_card_database.py --hashes-only      # solo fase 3 (genera hashes.json)
     python build_card_database.py --workers 16       # ajustar paralelismo (defecto 8)
     python build_card_database.py --wipe             # borrar index anterior sin preguntar
 """
@@ -65,6 +73,11 @@ except ImportError:
     print("Falta 'pillow'. Instálalo con:  pip install pillow")
     sys.exit(1)
 
+try:
+    import imagehash
+except ImportError:
+    imagehash = None
+
 # ---------------------------------------------------------------------------
 # Configuración
 # ---------------------------------------------------------------------------
@@ -80,6 +93,11 @@ ROOT = Path(__file__).resolve().parent.parent
 IMAGES_DIR = ROOT / "images"
 DATA_DIR = ROOT / "data"
 INDEX_PATH = DATA_DIR / "index.json"
+HASHES_PATH = DATA_DIR / "hashes.json"
+
+# Configuración de compresión de imágenes
+MAX_IMG_WIDTH = 480   # ancho máximo en píxeles (LANCZOS si es mayor)
+WEBP_QUALITY  = 80    # calidad WebP 0-100 (80 ≈ JPEG 90, ~35% más pequeño que JPEG 82)
 
 
 # ---------------------------------------------------------------------------
@@ -251,19 +269,15 @@ def resolve_image_local(code, suffix, img_url):
     """Devuelve la ruta local de la imagen para esta variante.
 
     Prioridad: si ya existe un fichero en images/<SET>/ con el mismo stem
-    (<code><suffix>), usamos ESE (preserva el .jpg/.png que ya sirve la app via
-    jsDelivr). Si no existe (set nuevo), caemos al basename oficial (.png)."""
+    (<code><suffix>), usamos ESE (compatibilidad con .jpg existentes servidos
+    via jsDelivr). Si no existe (imagen nueva), usamos .webp."""
     set_prefix = set_prefix_of(code)
     stem = f"{code}{suffix}"
     existing = _local_files_for_set(set_prefix).get(stem)
     if existing:
         return existing
-    # Fallback: usar el nombre del fichero de la URL oficial (sin query)
-    if img_url:
-        name = img_url.rsplit("/", 1)[-1].split("?", 1)[0]
-        if name:
-            return f"images/{set_prefix}/{name}"
-    return f"images/{set_prefix}/{stem}.png"
+    # Nueva imagen → WebP
+    return f"images/{set_prefix}/{stem}.webp"
 
 
 # ---------------------------------------------------------------------------
@@ -513,19 +527,20 @@ def load_index():
 # ---------------------------------------------------------------------------
 # Compresión de imágenes
 # ---------------------------------------------------------------------------
-def to_rgb(img):
-    """Convierte cualquier modo a RGB, compositing transparencia sobre blanco."""
-    if img.mode == "RGB":
+def to_webp_ready(img):
+    """Normaliza el modo de imagen a RGB o RGBA para guardar como WebP.
+
+    WebP soporta RGBA nativamente (transparencia sin compositing).
+    Los modos P (paleta con transparencia) se convierten a RGBA; el resto a RGB.
+    """
+    if img.mode in ("RGB", "RGBA"):
         return img
-    if img.mode == "RGBA":
-        bg = PILImage.new("RGB", img.size, (255, 255, 255))
-        bg.paste(img, mask=img.split()[3])
-        return bg
-    # P (palette), L (greyscale), CMYK, etc.
+    if img.mode == "P" and "transparency" in img.info:
+        return img.convert("RGBA")
     return img.convert("RGB")
 
 
-def resize_if_needed(img, max_width=480):
+def resize_if_needed(img, max_width=MAX_IMG_WIDTH):
     """Redimensiona si el ancho excede max_width, manteniendo aspecto."""
     if img.width <= max_width:
         return img
@@ -554,12 +569,13 @@ def collect_download_tasks(index):
 
 
 def download_one(session, url, dest):
-    """Descarga, comprime y guarda una imagen como JPEG.
+    """Descarga, redimensiona y guarda una imagen como WebP.
 
     - Descarga desde URL
-    - Redimensiona a max 480px de ancho (LANCZOS)
-    - Convierte a RGB (compositing transparencia)
-    - Guarda como JPEG q82
+    - Redimensiona a max MAX_IMG_WIDTH px de ancho (LANCZOS)
+    - Normaliza a RGB/RGBA (WebP soporta transparencia nativamente)
+    - Guarda como WebP q80 con method=6 (mejor compresión)
+      → ~35% más pequeño que JPEG 82 a calidad visual equivalente
     """
     try:
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -567,16 +583,14 @@ def download_one(session, url, dest):
         if not (r.ok and r.content):
             return False, f"HTTP {r.status_code}"
 
-        # Abrir imagen desde bytes, comprimir, guardar como JPEG
         img = PILImage.open(io.BytesIO(r.content))
-        img = to_rgb(img)
-        img = resize_if_needed(img, max_width=480)
+        img = to_webp_ready(img)
+        img = resize_if_needed(img)
 
-        # Cambiar extensión a .jpg si no lo es
-        dest_jpg = dest.with_suffix('.jpg')
-        tmp = dest_jpg.with_suffix(dest_jpg.suffix + ".tmp")
-        img.save(tmp, "JPEG", quality=82, optimize=True)
-        tmp.replace(dest_jpg)
+        dest_webp = dest.with_suffix(".webp")
+        tmp = dest_webp.with_suffix(".webp.tmp")
+        img.save(tmp, "WEBP", quality=WEBP_QUALITY, method=6)
+        tmp.replace(dest_webp)
         return True, None
     except Exception as e:
         return False, str(e)
@@ -588,7 +602,7 @@ def download_all(index, workers=8):
         print("[OK] Nada que descargar (todas las imágenes ya están en disco).")
         return
 
-    print(f"[*] {len(tasks)} imágenes pendientes (se comprimen a JPEG 82q/480px) · {workers} hilos")
+    print(f"[*] {len(tasks)} imágenes pendientes → WebP {WEBP_QUALITY}q / {MAX_IMG_WIDTH}px · {workers} hilos")
     session = make_session()
     done = 0
     failed = []
@@ -616,33 +630,107 @@ def download_all(index, workers=8):
     else:
         print("\n[OK] Todas las imágenes descargadas y comprimidas.")
 
-    # Actualizar el índice para que todas las imágenes apunten a .jpg
-    print("[*] Actualizando index.json para apuntar a imágenes .jpg...")
+    # Actualizar el índice para que todas las rutas apunten a .webp
+    print("[*] Actualizando index.json para apuntar a imágenes .webp...")
     for code, entry in index.items():
         for variant in entry.get("variants", []):
             loc = variant.get("image_local", "")
-            if loc and not loc.endswith(".jpg"):
-                variant["image_local"] = loc.rsplit(".", 1)[0] + ".jpg"
+            if loc and not loc.endswith(".webp"):
+                variant["image_local"] = loc.rsplit(".", 1)[0] + ".webp"
+
+
+# ---------------------------------------------------------------------------
+# FASE 3 — Generar hashes perceptuales de las imágenes
+# ---------------------------------------------------------------------------
+HASH_SIZE = 16  # 16×16 = 256 bits → mucho más discriminante que 8×8
+
+def rgb_average_hash(img):
+    """24-bit average hash: un average_hash por plano R, G, B concatenado (R‖G‖B).
+
+    Discrimina cartas con el mismo layout pero distinto color — el punto débil del
+    ahash en escala de grises. Debe coincidir bit a bit con computeAhash() en
+    app/src/lib/phash.ts (mismo orden de canales y empaquetado de imagehash)."""
+    rgb = img.convert("RGB")
+    return "".join(
+        str(imagehash.average_hash(channel, hash_size=HASH_SIZE))
+        for channel in rgb.split()  # (R, G, B) como imágenes 'L'
+    )
+
+
+def build_hashes(index):
+    """Calcula el rgb_average_hash (3 × HASH_SIZE² bits) de cada variante."""
+    if imagehash is None:
+        print("[!] Falta 'imagehash'. Instálalo con:  pip install imagehash")
+        print("    Saltando generación de hashes.")
+        return
+
+    print(f"[FASE 3] Generando hashes perceptuales (rgb_average_hash, 3×{HASH_SIZE}×{HASH_SIZE})")
+    hashes = {}
+    skipped = 0
+    for code, entry in index.items():
+        for v in entry.get("variants", []):
+            rel = v.get("image_local", "")
+            if not rel:
+                skipped += 1
+                continue
+            img_path = ROOT / rel
+            if not img_path.exists():
+                skipped += 1
+                continue
+            try:
+                img = PILImage.open(img_path)
+                key = f"{code}{v['suffix']}"
+                hashes[key] = rgb_average_hash(img)
+            except Exception as e:
+                skipped += 1
+                print(f"    [!] {code}{v['suffix']}: {e}")
+
+    payload = {
+        "hash_algo": "rgb_average_hash",
+        "hash_size": HASH_SIZE,
+        "hash_count": len(hashes),
+        "hashes": hashes,
+    }
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    with open(HASHES_PATH, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False)
+    print(f"[OK] {len(hashes)} hashes guardados en {HASHES_PATH}  (saltados: {skipped})")
+
+    # Copiar a la app (mismo patrón que build_embeddings.py) para mantener sincronía.
+    app_hashes = ROOT / "app" / "src" / "data" / "hashes.json"
+    if app_hashes.parent.exists():
+        import shutil
+        shutil.copy2(HASHES_PATH, app_hashes)
+        print(f"[OK] Copiado a {app_hashes}")
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main():
-    parser = argparse.ArgumentParser(description="Constructor de base de datos OPTCG (sitio oficial, 2 fases).")
+    parser = argparse.ArgumentParser(description="Constructor de base de datos OPTCG (sitio oficial, 3 fases).")
     parser.add_argument("--index-only", action="store_true", help="Solo construir el índice (metadatos).")
     parser.add_argument("--images-only", action="store_true", help="Solo descargar imágenes (usa index.json existente).")
+    parser.add_argument("--hashes-only", action="store_true", help="Solo generar hashes perceptuales (usa index.json existente).")
     parser.add_argument("--workers", type=int, default=8, help="Hilos paralelos para descargar (defecto 8).")
     parser.add_argument("--wipe", action="store_true", help="Borrar index.json anterior sin preguntar.")
     args = parser.parse_args()
 
-    if args.index_only and args.images_only:
-        print("[!] --index-only y --images-only son mutuamente excluyentes.")
+    exclusive = sum([args.index_only, args.images_only, args.hashes_only])
+    if exclusive > 1:
+        print("[!] --index-only, --images-only y --hashes-only son mutuamente excluyentes.")
         sys.exit(2)
 
     print("=" * 60)
     print(" Constructor de base de datos · One Piece TCG (sitio oficial)")
     print("=" * 60)
+
+    # Si --hashes-only, solo generar hashes y salir
+    if args.hashes_only:
+        index = load_index()
+        build_hashes(index)
+        print("\n[DONE]")
+        return
 
     # Si --index-only (o no --images-only), preguntar sobre el wipe si el index existe
     if not args.images_only and INDEX_PATH.exists():
@@ -680,6 +768,11 @@ def main():
     if not args.index_only:
         print("\n[FASE 2] Descargando imágenes en paralelo")
         download_all(index, workers=args.workers)
+
+    # Fase 3
+    if not args.index_only and not args.images_only:
+        print()
+        build_hashes(index)
 
     print("\n[DONE]")
 

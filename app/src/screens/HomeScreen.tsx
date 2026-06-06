@@ -97,7 +97,7 @@ function HeroTile({ onPress, totalOwned, uniqueOwned, completion, vaultValue }: 
         </View>
         <View style={s.heroStatDiv} />
         <View style={s.heroStat}>
-          <Text style={[s.heroStatVal, { color: colors.accent }]}>€{vaultValue.toFixed(0)}</Text>
+          <Text style={[s.heroStatVal, { color: colors.accent }]}>~€{vaultValue.toFixed(0)}</Text>
           <Text style={s.heroStatLbl}>{t('home.vaultValue')}</Text>
         </View>
       </View>

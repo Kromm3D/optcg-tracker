@@ -97,6 +97,16 @@ android {
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
+    // Split per-ABI so each device only gets its native libs (~80 MB each vs 351 MB fat debug).
+    // For Google Play use AAB instead; for direct install use the arm64 APK.
+    splits {
+        abi {
+            reset()
+            enable true
+            universalApk false
+            include "arm64-v8a", "armeabi-v7a", "x86_64"
+        }
+    }
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -153,6 +163,9 @@ android {
 }
 
 dependencies {
+    // onnxruntime-react-native @generated begin onnxruntime-react-native - expo prebuild (DO NOT MODIFY) sync-ec94e2a0d49f04b1bbc51ec3f57c45710b04aad8
+    implementation project(':onnxruntime-react-native')
+    // onnxruntime-react-native @generated end onnxruntime-react-native
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 

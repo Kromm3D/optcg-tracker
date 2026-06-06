@@ -24,6 +24,8 @@ export type Settings = {
   /** Si true, los grids muestran cada variante (parallels/alt-art) como su
    *  propia carta/slot. Si false, solo se muestra el arte normal por defecto. */
   showAlternateArt: boolean;
+  /** true si el usuario ha completado la descarga offline de todas las imágenes. */
+  imagesDownloaded: boolean;
 };
 
 const DEFAULTS: Settings = {
@@ -33,6 +35,7 @@ const DEFAULTS: Settings = {
   playsetSize: 4,
   wishlistDefaultVariant: 'normal',
   showAlternateArt: false,
+  imagesDownloaded: false,
 };
 
 let cache: Settings | null = null;
@@ -97,6 +100,11 @@ export async function setWishlistDefaultVariant(v: WishlistDefaultVariant): Prom
 export async function setShowAlternateArt(v: boolean): Promise<void> {
   const current = await read();
   await write({ ...current, showAlternateArt: v });
+}
+
+export async function setImagesDownloaded(v: boolean): Promise<void> {
+  const current = await read();
+  await write({ ...current, imagesDownloaded: v });
 }
 
 /** Helper: pick the right variant suffix from a card based on the user's default setting. */

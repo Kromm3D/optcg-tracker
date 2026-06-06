@@ -22,11 +22,11 @@ export function imageUrl(imageLocal: string): string {
 /**
  * Returns { uri, fallback? } ready to pass to <CachedImage>.
  *
- * CDN available  → uri = jsDelivr URL (fichero .jpg comprimido del repo),
+ * CDN available  → uri = jsDelivr URL (fichero .webp comprimido del repo),
  *                  fallback = image_source (sitio oficial) por si jsDelivr 403/404.
  * CDN blocked    → uri = image_source, no fallback (sitio oficial directo).
  *
- * Cargar primero el .jpg del repo vía CDN evita los PNG pesados del sitio
+ * Cargar primero el .webp del repo vía CDN evita los PNG pesados del sitio
  * oficial y los fallos de hotlink que hacían que algunas cartas no se vieran.
  */
 export function resolveImageUris(v: Pick<Variant, 'image_local' | 'image_source'>): {
