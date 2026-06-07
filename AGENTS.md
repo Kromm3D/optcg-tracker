@@ -3,9 +3,33 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-06-05
-**Current branch:** `main`
+**Last updated:** 2026-06-07
+**Current branch:** `feature/grid-workflow-refactor`
 **App version:** 0.1.0 (pre-release)
+
+---
+
+## Current uncommitted state (read before committing)
+
+The working tree has a large set of **uncommitted** changes that span two themes.
+Typecheck is **green** (`npm run typecheck` clean as of this refresh). Nothing is
+committed yet — review before staging.
+
+1. **On-device scanner removed** — ONNX/embeddings/phash/OCR/vision-camera libs,
+   models (`*.onnx`), hashes/embeddings JSON, the onnxruntime patch, and the
+   `train_embeddings.py` / `build_embeddings.py` scripts are all deleted.
+   `ScanScreen` is now a placeholder with manual code lookup. See "Card Scanner —
+   REMOVED" below. Rebuild plan = cloud-AI scanner (QoL §12).
+2. **Real price pipeline added** — replaces mock prices (see B-03 resolved).
+   New/untracked: `scripts/build_prices.py` (cloudscraper Cardmarket scraper),
+   `scripts/scrape_browser_console.js` + `scripts/import_browser_prices.py`
+   (manual DevTools-console fallback for when Cloudflare blocks the scraper),
+   `data/prices.json` + `app/src/data/prices.json`.
+
+**Housekeeping:** `venv_optcg/` and `data/browser_dump.json` are now gitignored —
+do not stage them. **Follow-ups still pending** from the scanner removal: run
+`npm install` in `app/` to prune dropped packages from the lockfile, then
+`npx expo prebuild --clean` before the next native build.
 
 ---
 
@@ -52,9 +76,10 @@
   owned progress visible). Add cards by search, adjust `needed` qty, rename.
 - `SetWishlistSheet` — bulk-add an entire set's missing cards to a chosen wishlist.
 - `WishlistPickerModal` — pick target wishlist (used from DeckDetail "add missing" flow).
-- **Note:** `WishlistItem` (single-wishlist, code-only) is deprecated in `types.ts`.
-  The live system is `Wishlist` + `WishlistCard`. No migration code exists yet — any user
-  who had the old format would silently lose data (not yet a concern since app is pre-release).
+- **Note:** the legacy single-wishlist system (`lib/wishlist.ts` + `WishlistItem`,
+  key `optcg.wishlist.v1`) was **removed** 2026-06-06 (dead code, imported by nothing).
+  The live system is `Wishlist` + `WishlistCard` (`lib/wishlists.ts`). No migration
+  from the old key exists — see B-06 (not a concern while pre-release).
 
 ### Deck Builder
 - `lib/decks.ts` — AsyncStorage key `optcg.decks.v1`. `Deck` model: `{ id, name, leaderId?,
@@ -65,30 +90,84 @@
 - `lib/optcgsim.ts` — parses OPTCGSim export format (`NxCODE` tokens) into `{ code, qty }[]`.
   Import from DecksScreen to pre-populate a new deck.
 
-### OCR / Card Scanner
-- `ScanScreen` — art-only scanner (code mode removed). Card-shaped focus box (220×308, ~5:7 ratio).
-  Pipeline per 1.5s capture:
-  1. `takePictureAsync` → full photo with `photo.width`/`photo.height`
-  2. Map focus box screen coords → photo pixel coords using `screenW/H` from `useWindowDimensions`
-  3. `expo-image-manipulator` crops to focus box region
-  4. `matchByArtFull` → tries ONNX neural embedding first, falls back to ahash
-  5. On match: adjust exact variant in collection, haptic + toast
-- **Three scanning strategies** (auto-selected, best first):
-  1. **ONNX neural** — `lib/onnx.ts` loads `assets/model.onnx` (MobileNetV2+PCA, 2.4 MB) via
-     `expo-asset` + `onnxruntime-react-native`. Crops+resizes to 224×224, normalises ImageNet,
-     runs inference → 64-dim embedding → cosine search in `lib/embeddings.ts`. Requires dev build.
-  2. **ahash fallback** — `lib/phash.ts`, 256-bit hash, hamming distance ≤ 20. Pure JS, Expo Go safe.
-  3. **OCR (unused by screen)** — ML Kit functions still present in `lib/ocr.ts`.
-- `lib/embeddings.ts` — loads `src/data/embeddings.json` (base64 binary, 1.5 MB, 4571 × 64 float32).
-  `findNearestEmbedding(emb, threshold=0.70)` — linear cosine search, <5 ms.
-  `findTopK(emb, k)` — top-K matches with scores, useful for debugging.
-- `lib/ocr.ts` — `matchByArtFull(uri, crop?)` — ONNX first, ahash fallback. `matchTopK` for top-K.
-- `lib/phash.ts` — `_deflate` now exported so `onnx.ts` can reuse the inline PNG decoder.
-- **Assets** (run `scripts/build_embeddings.py` after adding new sets):
-  - `data/embeddings.json` + `app/src/data/embeddings.json` — embedding DB, 1.5 MB
-  - `data/model.onnx` + `app/assets/model.onnx` — quantized ONNX model, 2.4 MB
-  - `data/hashes.json` + `app/src/data/hashes.json` — ahash DB (fallback), 370 KB
-- Manual text-entry fallback, Perona Ghost, debounce (800ms) still present.
+### Card Scanner — REMOVED, rebuilding as cloud-AI (2026-06-06)
+The entire on-device scanner was **removed** this session. The old pipeline
+(expo-camera focus box + ONNX MobileNet embeddings + 24-bit RGB ahash + ML Kit
+printed-code OCR + VisionCamera/OpenCV detect-and-rectify) never reached usable
+accuracy and carried a heavy native-dependency + ML-training burden. Decision
+(with the user): **start fresh with a cloud-AI scanner** — capture a photo, send
+it to a vision backend, get the identified card back (same UX family as
+hakitcg.com, but server-side instead of on-device).
+- **`ScanScreen` is now a placeholder** (`src/screens/ScanScreen.tsx`): a
+  "coming soon" hero + a dependency-free **manual code lookup** (type `OP01-001`
+  → opens `Detail`). Uses only `CARDS` from the local index. The center **Scan
+  FAB** and `Scan` route are kept (per the user) so the entry point survives.
+- **Deleted libs**: `lib/{ocr,onnx,phash,embeddings,cardDetect}.ts`.
+- **Deleted assets**: `app/src/data/{embeddings,hashes}.json`, `app/assets/model.onnx`,
+  `data/{embeddings,model.onnx,hashes}.json`, `data/embedding_checkpoint.pt`.
+- **Deleted scripts**: `scripts/{train_embeddings,build_embeddings}.py`.
+- **Removed deps** (`app/package.json`): `@react-native-ml-kit/text-recognition`,
+  `onnxruntime-react-native`, `react-native-fast-opencv`, `react-native-nitro-modules`,
+  `react-native-vision-camera`, `react-native-worklets-core`, `vision-camera-resize-plugin`.
+  Also removed the `react-native-worklets-core/plugin` babel plugin, the
+  `onnxruntime-react-native` + `react-native-vision-camera` expo plugins in
+  `app.json`, the `.onnx` Metro assetExt, and the onnxruntime `patch-package` patch.
+- **Kept** `expo-camera` (+ its expo plugin / CAMERA permission), `expo-image-manipulator`
+  and `expo-haptics` — likely reused by the upcoming cloud capture/feedback flow.
+- `loadIndex.ts` no longer imports `hashes.json` / exports `PHASHES`.
+- **Follow-up for the user**: run `npm install` in `app/` to prune the removed
+  packages from `node_modules`/lockfile, then `npx expo prebuild --clean` before
+  the next native build so the dropped native modules leave the Android/iOS projects.
+- **Next session**: design the cloud-AI scanner (capture → upload → identify).
+  See QoL §12.
+
+### Card Scanner v2 — on-device detect+rectify+pHash (REBUILT 2026-06-07)
+Rebuilt the on-device scanner (Opción C: sin coste recurrente, offline) tras la
+investigación de QoL §12. La lección clave: **el problema de los ángulos se
+resuelve en la Etapa-1 (detección + rectificación de perspectiva), no en el
+matcher** — justo lo que faltaba en el v1. Typecheck verde; **pendiente de build
+nativo + verificación en dispositivo por el usuario**.
+- **Pipeline de dos etapas**:
+  - **Etapa-1 (detect+rectify)** — `lib/cardDetect.ts`: CV clásico
+    (grayscale→blur→Canny→contornos→quad 5:7) + `rectifyCardCrop` (worklet nuevo:
+    `getPerspectiveTransform`→`warpPerspective`→`toJSValue(png)`→data-URI base64).
+    Corre en el runtime de worklet de vision-camera. Guarda `isCardDetectAvailable()`.
+  - **Etapa-2 (identify)** — `lib/cardMatch.ts` (NUEVO, slim): `matchTopK` con RGB
+    average hash de 768-bit (`lib/phash.ts`, puro JS) + búsqueda hamming sobre
+    `PHASHES`. Sin ONNX, sin OCR, sin GPU. `AHASH_MAX_DISTANCE=60` exportado para
+    recalibrar. Como la Etapa-1 entrega un recorte frontal, el hash ya no pelea
+    contra perspectiva/recorte impreciso (la causa del fallo del v1).
+- **`screens/NativeScanCamera.tsx` (NUEVO)** — aísla TODO el path nativo
+  (vision-camera `<Camera>` + `useFrameProcessor` + `vision-camera-resize-plugin`
+  + `react-native-worklets-core`). Se carga con `require()` perezoso SOLO cuando
+  `isCardDetectAvailable()` → nunca se importa en Expo Go (degradación elegante,
+  mismo contrato que `lib/cardDetect`/`phash`). Frame: `resize(480×640 bgr)` →
+  `detectCardQuad` → overlay SVG `<Polygon>` verde → throttle por estabilidad de
+  quad (centro <14px durante ≥300ms) → `rectifyCardCrop` → `onStableCard(uri)`.
+- **`screens/ScanScreen.tsx`** — dual-path: `nativeMode` (NativeScanCamera) o
+  fallback expo-camera focus-box (Expo Go). Identificación + flujo
+  código→variantes→hoja de confirmación top-K compartidos. **Quitado el OCR**
+  (Stage-3): la desambiguación de variantes la hace la hoja top-K visual.
+  **Aplicado fix B-05** en el bucle focus-box (sin `skipProcessing`/`shutterSound`,
+  `quality` 0.5). Auto-confirma si top − runner-up ≥ `AUTO_CONFIRM_MARGIN` (0.05).
+- **Datos**: `data/hashes.json` + `app/src/data/hashes.json` recuperados (4571
+  hashes, 192-hex). `loadIndex.ts` reexporta `PHASHES`. `build_card_database.py`
+  ya conservaba `build_hashes()`/`rgb_average_hash()` (no se tocó).
+- **Config nativa**: `package.json` +`react-native-vision-camera@4.7.3`,
+  `react-native-worklets-core@1.6.3`, `vision-camera-resize-plugin@3.2.0`,
+  `react-native-fast-opencv@0.4.8`. `app.json` + plugin vision-camera.
+  `babel.config.js` + `react-native-worklets-core/plugin` (último).
+- **Fuera de alcance (futuro)**: modos de escaneo (ver/colección/deck/wishlist —
+  nunca se commitearon, no había código que recuperar; ahora añade +1 a colección),
+  embedding ONNX fine-tuneado (si el pHash no basta), OCR de código (Stage-3).
+- **Pasos del usuario**: `cd app && npm install --legacy-peer-deps` →
+  `npx expo prebuild --clean` → `npm run android` en dispositivo físico.
+  **Riesgos a verificar**: firmas de `react-native-fast-opencv` (drift entre
+  releases: `getPerspectiveTransform`/`warpPerspective`/`toJSValue`), que
+  `useSharedValue`/`Worklets` se importen bien de `react-native-worklets-core`,
+  autolink de vision-camera v4 con RN 0.85/React 19.2. Recalibrar
+  `AHASH_MAX_DISTANCE` (60→100-120) si falla con brillo/ángulo. Confía en
+  `docs/scanner-native-handoff.md`.
 
 ### Browse Screen
 - Full-text + fuzzy search over `CARD_LIST`. Multi-criteria `FilterSheet` (set, color, type,
@@ -289,17 +368,37 @@ verified Stage-2 (shipped) and a native Stage-1 (handoff).
   (`pausedRef`) while the sheet is open. i18n: `scan.pickVariant`, `scan.pickVariantHint`,
   `scan.cancel` (en+es).
 
-**Stage-1 — native card detection (handoff, NOT in the build yet):**
-- `app/src/lib/cardDetect.ts` — **dormant** (nothing imports it; out of the Metro bundle;
-  typecheck-green via a guarded `@ts-ignore` import). Contains `isCardDetectAvailable()`,
-  pure-TS geometry (`orderCorners`/`quadArea`/`isCardQuad`), and the `detectCardQuad()`
-  OpenCV worklet (grayscale→blur→Canny→contours→largest 5:7 quad).
-- Decision: **VisionCamera v4** (matches `react-native-fast-opencv` docs) + `react-native-worklets-core`
-  + `vision-camera-resize-plugin`. A v5 trial install was reverted to keep the committed state
-  buildable. Native detection can only be built/verified on an Android device — full install,
-  app.json plugins, the `rectifyCardCrop` warp, the `ScanScreen` `<Camera>` wiring, and the
-  build/verify steps are in **`docs/scanner-native-handoff.md`**.
-- Same dev-build contract as OCR/ONNX/Share: Expo Go keeps the focus-box RGB-ahash fallback.
+**Stage-1 — native card detection (WIRED, awaiting on-device build verification):**
+- **Deps installed**: `react-native-vision-camera@4.7.3`, `react-native-worklets-core@1.6.3`,
+  `vision-camera-resize-plugin@3.2.0`, `react-native-fast-opencv@0.4.8` (--legacy-peer-deps).
+- `app/app.json`: `react-native-vision-camera` plugin added.
+- `app/babel.config.js`: `react-native-worklets-core/plugin` added.
+- `app/src/lib/cardDetect.ts`:
+  - `rectifyCardCrop` worklet implemented: `Point2fVector` → `getPerspectiveTransform(DECOMP_LU)`
+    → `warpPerspective(INTER_LINEAR)` → `toJSValue(mat, 'png')` → base64 URI.
+  - Fixed existing `detectCardQuad`: `DataTypes.CV_8U` (was `OpenCV.DataTypes?.CV_8U`),
+    `arcLength` return typed as `{ value: number }`.
+- `app/src/screens/ScanScreen.tsx`: **dual-path camera**:
+  - `isCardDetectAvailable() && device && resizePlugin` → `nativeMode` flag.
+  - Frame processor: `resize(480×640 bgr uint8)` → `detectCardQuad` → `onQuadChange` (SVG hint)
+    → 1s throttle via `useSharedValue` → `rectifyCardCrop` → `onStableCard` → `matchTopK(uri, undefined, 3)`.
+  - `nativeMode`: renders `<Camera>` (VisionCamera) + disables expo-camera scan loop.
+  - `!nativeMode`: renders `<CameraView>` + runs original focus-box scan loop (Expo Go unchanged).
+  - Focus box: corners turn green (`#22c55e`) when `cardDetected`; hint text changes.
+- i18n: `scan.hintPointAtCard` / `scan.hintCardDetected` added to en.ts + es.ts.
+- `npm run typecheck` passes clean.
+- **Next step**: `npx expo prebuild --clean && npm run android` on device, verify with a physical card.
+
+### `train_embeddings.py` — GPU + incremental support (2026-06-06)
+- **`--amp`**: mixed precision FP16 via `torch.amp.autocast` + `GradScaler`. ~2× velocidad en GPU NVIDIA Ampere+.
+- **`--resume`**: carga el backbone de `data/embedding_checkpoint.pt` antes de entrenar. El checkpoint se guarda automáticamente tras cada entrenamiento. Con warm start, converge en ~8 épocas vs 25.
+- **`--add-only`**: NO reentrena. Extrae embeddings solo de cartas ausentes en `embeddings.json` y los fusiona. ~2 min en CPU. Flujo recomendado para añadir nuevas expansiones (tras `build_card_database.py`).
+- **GPU (fix)**: si `torch.cuda.is_available()` devuelve False, reinstalar con versión CUDA: `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121`
+- **Flags recomendados para GPU**: `--amp --batch 256 --workers 4`
+- **Flujo para nueva expansión** (sin reentrenar desde cero):
+  1. `python scripts/build_card_database.py` → descarga cartas nuevas
+  2. `python scripts/train_embeddings.py --add-only` → ~2 min
+  3. `npm run android` → rebuild bundle
 
 ### Fine-tuned embedding model — the real accuracy fix (2026-06-05)
 Research into MultiTCG (the app the user flagged), Ximilar, CollX and the open-source MTG
@@ -340,7 +439,163 @@ existing `extractCode`/`CARD_CODE_RE`, and:
   `recognizeText` is **no longer unused** — it's back in the live pipeline.
 - Needs a dev build to exercise OCR; not yet device-verified.
 
+### Performance — collection editing & browsing re-renders (2026-06-06)
+Fixed the lag when editing copies (+/-) and browsing the collection. Root cause:
+every `adjust()` fired the collection listeners → `ownedAggregate.refresh()` →
+each list screen bumped a `tick` that (a) recomputed a filter+sort over **all
+~4571 cards** and (b) re-rendered **every** mounted `CardThumb` (none memoized,
+inline `renderItem`/`extraData`). One tap = full-collection recompute + full grid
+re-render.
+- **`ownedAggregate.ts`**: added `subscribeMembership()` — fires only when the
+  *set* of owned variant keys changes (a card enters/leaves the collection), not
+  on quantity changes. `refresh()` diffs the owned-key set to decide.
+- **`CardThumb.tsx`**: now `React.memo`'d, with an opt-in **live mode**
+  (`liveCode` / `livePerVariant` / `liveMultiArt` / `dimWhenEmpty`). In live mode
+  the thumb subscribes to `ownedAggregate` itself and updates its own count with a
+  `setState` **bail-out** (`prev === next ? prev : next`) — so editing one card
+  re-renders only that card; other mounted thumbs get the notification and no-op.
+  Non-live callers (SetDetail) keep the old `owned`/`qty`/`multiArt`/`dimmed` props.
+- **`BinderScreen.tsx`**: list memos now keyed on a **membership** tick
+  (`subscribeMembership`); a separate `countTick` (from `subscribe`) only refreshes
+  the header totals. `renderItem` is a stable `useCallback`, `extraData` is
+  memoized, and rows render through a memoized `GridCard` (owned tab → live
+  CardThumb; trade tab → `useTradeQty` self-subscription with bail-out).
+- **`BrowseScreen.tsx`**: dropped the global `force` re-render on collection
+  changes (rows self-update via live CardThumb); `renderItem`/`extraData` made
+  stable. Note: the "Owned" sort no longer reorders live mid-edit (re-tap to
+  re-sort) — acceptable trade-off.
+- Net effect: a +/- tap does O(visible-rows) cheap compute+compare and exactly
+  **one** card re-render; the 4571-card list recompute now happens only on
+  add/remove or filter/sort/tab changes.
+- `npm run typecheck` clean. **Awaiting on-device review** before commit.
+
+### Refactor — unified card-grid workflow & SetDetail bottleneck (2026-06-06)
+The three card grids (Browse / Binder / SetDetail) had drifted into divergent
+implementations of the same filter→sort→expand→render workflow. Consolidated
+them and fixed the last full-grid-re-render bottleneck.
+- **`lib/cardQuery.ts` (NEW)** — single source of truth for sorting:
+  `sortCards(cards, sort)` + exported `SortKey` / `SortState`. Reuses
+  `RARITY_ORDER` (theme), `setPrefix` (filters), `getOwnedFor` (ownedAggregate).
+  `BrowseScreen` and `BinderScreen` deleted their hand-rolled sort switches and
+  import it. (Filtering `matches()` + `fuzzyFilter()` stay in `filters.ts`.)
+- **`SetDetailScreen` migrated to the live-`CardThumb` pattern** (was the worst
+  remaining interactive bottleneck — it re-rendered the whole set grid on every
+  `+/-` via a global `subOwned(()=>force())` + inline non-memoized `renderItem`):
+  - New memoized `SetGridCard` + `useLiveSetOwned` hook: each cell subscribes to
+    `ownedAggregate` and bails out (`prev===next`) unless *its* count changed.
+    Honors collapsed semantics (parallels off → sums in-set variants; on →
+    counts the shown variant) and the multi-art indicator, live.
+  - Grid `data` now comes from the **cached** `setEntries(setCode)` (stable
+    across edits) instead of `summary.entries` (rebuilt each tick).
+  - The old single `force` was split into a **header-only `headerTick`**: the
+    ring (`summarizeSet`) + rarity strip (`rarityBuckets`) still update live on
+    every `+/-` (both now memoized on `headerTick`), but the grid no longer
+    depends on it. Stable `renderItem`/`extraData`, `removeClippedSubviews`,
+    `windowSize`/batch tuning to match Browse/Binder.
+- **`BinderScreen` owned/trade derivation** no longer scans all ~4571 cards:
+  owned tab iterates `Object.keys(getOwnedTotals())`; trade tab iterates owned
+  codes ∪ `getOverrides()` keys; "Show all" uses the pre-sorted `CARD_LIST`.
+  Per-edit recompute drops from O(4571) to O(owned).
+- **Dead code removed**: `lib/wishlist.ts` (deprecated single-wishlist,
+  `optcg.wishlist.v1`, imported by nothing) and the `WishlistItem` type in
+  `types.ts`. Live system remains `lib/wishlists.ts` + `WishlistCard`.
+- `npm run typecheck` clean. **Awaiting on-device review** before commit.
+  Verify: SetDetail `+/-` re-renders one tile + ring/rarities still update;
+  Browse/Binder sort order unchanged; Binder meta counts + "Show all" intact.
+
+> **NOTE:** the dated *Scanner* sections below (Stage-1/2/3, `train_embeddings.py`,
+> fine-tuned embedding model, ScanScreen UX overhaul) are **historical** — that
+> whole on-device scanner was removed 2026-06-06 (see "Card Scanner" above).
+
+### Supabase backend — accounts, cloud sync & friends (2026-06-07, typecheck-green, NOT yet provisioned/device-verified)
+Added an **optional** cloud backend (Supabase) on top of the local-first app.
+**The app still works 100% offline with no account**; signing in enables
+cross-device backup/sync + a friends system. Resolves QoL §2. Decisions taken
+with the user: local-first + optional sync; **per-resource privacy toggles**
+(collection / wishlist / decks each `public/friends/private`); **images stay on
+jsDelivr** (NOT migrated to Supabase — immutable, free edge CDN; analysis in the
+plan). Static data (card index, prices, images) is never sent to Supabase.
+
+- **Schema/RLS** — `supabase/migrations/0001_init.sql` (apply via SQL editor or
+  `supabase db push`): `profiles`, `privacy_settings`, `user_settings` (jsonb),
+  `collection_items`, `wishlists(+wishlist_cards)`, `decks(+deck_cards)`,
+  `friendships`. Enums `visibility`/`friend_status`. **Wishlists/decks use the
+  client's string ids (`wl_…`/`deck_…`) as `text` PKs** → sync is a plain
+  natural-key mirror, no uuid remapping. Helper fns `are_friends`, `can_view`,
+  `vis_of` (security definer). RLS on every table: owner-only writes; reads gated
+  by `can_view(owner, vis_of(owner, resource))`. `handle_new_user` trigger
+  auto-creates profile + privacy defaults (username from metadata/email).
+- **Client config** — `config.ts` adds `SUPABASE_URL` / `SUPABASE_ANON_KEY`
+  (both empty by default; **anon key only** — public/safe). `SUPABASE_ENABLED`
+  gates all account UI. ⚠️ The user's Personal Access Token (`sbp_…`) was pasted
+  in chat → must be **rotated**; it is NOT stored anywhere in the repo and is not
+  used by the app.
+- **`lib/supabase.ts`** — lazy client (null when not configured); URL polyfill;
+  AsyncStorage session storage. `isSupabaseEnabled()`/`requireSupabase()`.
+- **`lib/auth.ts`** — store-idiom cache+subscribe over Supabase Auth.
+  email+password `signUp`/`signIn`/`signOut`, `getSession`/`getUser`/`getProfile`,
+  `updateProfile`, `onAuthChange`. OAuth/magic-link = future.
+- **`lib/syncBus.ts`** — tiny pub/sub to decouple stores from sync (avoids import
+  cycles). Stores call `notifyLocalChange(domain)` in `write()`.
+- **Store wiring** — `collection.ts` (key bumped **v1→v2**), `decks.ts`
+  (**v1→v2**), `wishlists.ts` (**v2→v3**) each: added `updatedAt` (ms) stamped on
+  mutations, migration that seals legacy items to `updatedAt:0`, `notifyLocalChange`
+  on write, and a `replaceAllFromSync()` that writes without re-emitting.
+  `settings.ts` added `updatedAt` + `applyFromSync`/`getCachedSettings`.
+- **`lib/sync.ts`** — local-first LWW. On sign-in: `reconcileAll()` (pull + merge
+  by `updatedAt`, **union — no deletes** on first reconcile, write both sides).
+  On local change: debounced (1.5s) `pushDomain()` that **mirrors local→server**
+  (upsert + delete server rows not in local). Collection/settings are true
+  per-item LWW; wishlists/decks are LWW per-entity (cards replaced in bulk).
+  Exposes `syncNow()`, `getSyncStatus()`, `getLastSyncedAt()`, `subscribe`.
+  Imported for side-effects in `App.tsx`.
+- **`lib/friends.ts`** — `searchUsers`, `sendRequest`, `acceptRequest`,
+  `removeEdge`, `refreshEdges`, `getFriends`/`getIncoming`/`getOutgoing`,
+  `getPrivacy`/`setPrivacy`, and friend-data fetchers
+  `getFriendCollection`/`getFriendWishlists`/`getFriendDecks` (RLS-gated → empty
+  when not shared).
+- **Screens** — `AccountScreen` (auth form ↔ profile+sync+privacy toggles+sign
+  out; degrades when backend disabled), `FriendsScreen` (search/requests/list),
+  `FriendProfileScreen` (Collection/Wishlist/Decks tabs; reuses `CachedImage` +
+  local `CARDS` for metadata; "not shared" placeholder). Routes `Account`,
+  `Friends`, `FriendProfile` added to `navigation.ts` + `App.tsx`. Entry point =
+  "Account & sync" row at top of `SettingsScreen`. i18n keys added to en+es.
+- **`npm run typecheck`**: no new errors (only the 6 pre-existing
+  `cardDetect.ts` errors from the native scanner remain).
+- **User provisioning steps (required before this works):**
+  1. Rotate the leaked `sbp_…` token at supabase.com/dashboard/account/tokens.
+  2. Create a Supabase project; run `supabase/migrations/0001_init.sql` in the
+     SQL editor.
+  3. In Auth settings, decide email-confirmation on/off (off = instant sign-in
+     for testing).
+  4. Paste Project URL + anon public key into `app/src/config.ts`.
+  5. `npm run android` (or Expo Go) → Settings → Account & sync → sign up.
+- **Known v1 limitations (see Known Bugs B-09 / QoL):** no realtime multi-device
+  push (reconcile happens at each login); deletes propagate via the active
+  device's mirror push, not tombstones, so a delete on device A while device B is
+  offline can be resurrected if B logs in and pushes first. Acceptable for v1.
+
 ## Known Bugs
+
+### ~~B-08 — Hold-repeat timer leak: rapid +/- added hundreds of copies~~ — RESOLVED (2026-06-06)
+- **File:** `components/CardThumb.tsx` (quickActions `+/-`, `startHold`/`stopHold`).
+- **Symptom:** Tapping "add copies" very fast made the input "buffer" — dozens of
+  phantom inputs kept firing and hundreds of copies were added continuously, even
+  after lifting the finger.
+- **Root cause:** `holdRef` held a single slot for the timeout (`.t`) and interval
+  (`.i`). Under fast taps, `Pressable` fires a new `onPressIn` before the prior
+  press's 350 ms timeout resolves (its `onPressOut` is dropped/reordered). The
+  second `startHold` overwrote `.t`/`.i` **without clearing the old timers**,
+  orphaning them: the first interval kept calling `adjust(+1)` forever with no
+  handle left to clear it. NOT a persistence-cadence issue — `collection.ts`
+  already debounces disk writes 300 ms and the UI updates optimistically.
+- **Fix:** `startHold` now calls `stopHold()` first (idempotent — no orphaned
+  timers on rapid taps); `stopHold` nulls the slots after clearing; added
+  `useEffect(() => stopHold, [])` to kill a running interval if the tile unmounts
+  mid-hold (e.g. scrolling with `removeClippedSubviews`). Each tap = exactly one
+  `adjust(±1)`; press-and-hold still ramps at 80 ms after 350 ms. Typecheck clean.
+  **Verify on device:** tap `+` ~15× fast → count lands on the tap count and
+  stops (no drift after release); hold still ramps and halts on release.
 
 ### ~~B-01 — CDN repo name mismatch~~ — RESOLVED (stale, 2026-06-05)
 - The git remote is `https://github.com/Kromm3D/optcg-tracker.git`, so `config.ts`
@@ -356,14 +611,60 @@ existing `extractCode`/`CARD_CODE_RE`, and:
 - **Still advisory** — no hard cap in `lib/decks.ts` (`setDeckCard` does not block). Intentional:
   users may build oversized decks mid-edit. Revisit only if a hard cap is requested.
 
-### ~~B-03 — `prices.ts` uses mock data~~ — labeled (2026-06-05)
-- **File:** `lib/prices.ts`, `HomeScreen.tsx`
-- HomeScreen vault value now shows a `~` prefix (`~€{value}`) to signal it's an estimate.
-  DetailScreen no longer displays any price (price row was removed), so only the HomeScreen tile
-  needed the label.
-- **Still mock data** — values are not real market prices. Real Cardmarket integration is QoL §1.
+### ~~B-03 — `prices.ts` uses mock data~~ — resuelto (2026-06-06)
+- **Files:** `lib/prices.ts`, `app/src/data/prices.json`, `scripts/build_prices.py`
+- `scripts/build_prices.py`: scrapea Cardmarket (`cardmarket.com/en/OnePiece`) con
+  `cloudscraper` (bypass Cloudflare). Una búsqueda por código base agrupa todas las
+  variantes (normal + parallel). Delay de 1.5 s entre peticiones. Incremental:
+  solo re-fetch cartas ausentes o con precio > 7 días. Genera `data/prices.json` y
+  lo copia automáticamente a `app/src/data/prices.json`.
+  Flags: `--all`, `--stale N`, `--codes`, `--dry-run`.
+- `lib/prices.ts`: carga `prices.json` estáticamente (igual que `index.json`).
+  `getPrice(card, suffix?)` busca por clave exacta (`{code}{suffix}`) → clave base
+  → estimación por rareza. `getLowPrice()`, `hasRealPrice()` también exportados.
+- `app/src/data/prices.json`: placeholder vacío hasta que se ejecute el script.
+- **Fallback manual (consola del navegador)** — para cuando Cloudflare bloquea el
+  scraper automático:
+  - `scripts/scrape_browser_console.js`: se pega en la consola de Chrome DevTools
+    estando en una página de singles de Cardmarket. Navega todas las páginas de la
+    expansión, extrae código + precio "From" del DOM, y al terminar imprime un JSON.
+    Acumula en `window.__CM_PRICES`. Guardar como `data/browser_dump.json` (gitignored).
+  - `scripts/import_browser_prices.py`: fusiona `data/browser_dump.json` con
+    `data/prices.json` (lo crea si no existe) y copia a `app/src/data/prices.json`.
+    Uso: `python scripts/import_browser_prices.py [ruta/dump.json]`.
+- **Flujo de actualización:** `python scripts/build_prices.py` (o el fallback de
+  consola → `import_browser_prices.py`) → commit de `data/prices.json` +
+  `app/src/data/prices.json` → jsDelivr sirve los precios actualizados tras el push
+  (o se usan en el bundle del próximo build).
 
-### B-04 — Deprecated `WishlistItem` has no migration path
+### ScanScreen UX overhaul (2026-06-06)
+- **Ghost eliminado** — `PeronaGhost` + float animation + `speechBubble` quitados de la vista principal (conservado solo en la pantalla de permisos).
+- **Debounce arreglado** — `confirmCandidate` ahora resetea `lastScan.current = 0` antes de llamar a `handleCodeFound`, evitando que el tap en la hoja de variantes quede bloqueado por el debounce de 800ms.
+- **Escaneo continuo** — reemplazado `setInterval(1500)` por bucle recursivo `scanLoop → setTimeout(80) → scanLoop`. La velocidad efectiva la limita `takePictureAsync` + ONNX (~0.5-1s). No hay intervalo fijo visible.
+- **Sistema de modos de escaneo** — selector de 4 chips en el panel inferior:
+  - **Ver** (default): escanea → abre `DetailScreen` + cierra scanner
+  - **Colección**: escanea → `adjust(+1)` + toast
+  - **Deck**: al seleccionar abre picker de decks; luego escanea → `setDeckCard(+1)` + toast
+  - **Wishlist**: al seleccionar abre picker de wishlists; luego escanea → `addCard(+1)` + toast
+  - El chip de Deck/Wishlist muestra el nombre del destino seleccionado.
+- **Toast simplificado** — eliminado el título fijo "Negative Hollow!"; muestra código+nombre + descripción contextual (e.g., "×3 en colección", "→ Mi deck").
+- i18n: añadidas keys `scan.modeView/Collection/Deck/Wishlist`, `scan.pickDeck/Wishlist`, `scan.noDecks/Wishlists` en en.ts + es.ts.
+
+### ~~B-05 — Scanner: `skipProcessing: true` caused wrong crop coords~~ — RESOLVED (2026-06-06)
+- **File:** `src/screens/ScanScreen.tsx`
+- **Symptom:** Scanning a card produced no match / silent failure. The photo was captured with
+  `skipProcessing: true`, which skips EXIF orientation correction on Android. The camera returns
+  landscape pixel dimensions (e.g. 4032×3024) even when the phone is held in portrait. The crop
+  calculation (`cropX/Y = focusBox * scaleX/Y`) then mapped to a completely wrong region of the
+  image — the card was never actually hashed.
+- **Fix:** Removed `skipProcessing: true` and the non-existent `shutterSound: false` option.
+  Changed `quality` from 0 to 0.5 (better source for the 16×16 ahash). The `as any` cast is
+  also removed; the call is now properly typed. Typecheck green.
+- **Note:** The ahash threshold (`AHASH_MAX_DISTANCE = 60`, 7.8% of 768 bits) is calibrated for
+  ideal conditions. If matches are still missed in poor lighting/glare, bump it towards 100-120.
+  Empirical calibration needs device testing.
+
+### B-06 — Deprecated `WishlistItem` has no migration path
 - **File:** `types.ts`, `lib/wishlists.ts`
 - **Symptom:** If a device previously had data under the old single-wishlist format (`WishlistItem`
   keyed by code), the new `wishlists.ts` reads a different AsyncStorage key and silently starts
@@ -376,15 +677,16 @@ existing `extractCode`/`CARD_CODE_RE`, and:
 
 ## QoL / Future Improvements
 
-### 1. Real Cardmarket price integration
-Replace mock `lib/prices.ts` with either (a) a lightweight backend endpoint that scrapes/caches
-Cardmarket prices, or (b) direct use of the Cardmarket API if access is obtained. Until then,
-add a visible "~" prefix to all displayed price values.
+### ~~1. Real Cardmarket price integration~~ — resuelto (2026-06-06, Opción A)
+Ver implementación en B-03 arriba. Mejoras posibles a futuro: Opción B (proxy backend)
+para precios en tiempo real, o migrar a Cardmarket API oficial si se obtiene acceso.
 
-### 2. Cloud / cross-device sync
-All data lives in local AsyncStorage. Consider Expo SecureStore for sensitive data, plus an
-optional backend sync (supabase or similar) so a user's collection, decks, and wishlists follow
-them across devices.
+### ~~2. Cloud / cross-device sync~~ — resuelto (2026-06-07, Supabase)
+Implementado como backend OPCIONAL con Supabase (cuentas + sync local-first +
+amigos). Ver "Supabase backend" en Implemented Features. **Pendiente de
+aprovisionar el proyecto + verificación en dispositivo por el usuario.**
+Mejoras futuras: realtime multi-dispositivo, tombstones para borrados offline,
+OAuth/magic-link, y matching de trades (wishlist de un amigo ↔ mi colección).
 
 ### 3. OPTCGSim deck export
 `lib/optcgsim.ts` can *import* from OPTCGSim format but there's no *export* function. Add
@@ -401,6 +703,64 @@ A dedicated view or HomeScreen tile showing upcoming set release dates sourced f
 ### 6. Price alerts / wishlist notifications
 Push notification (via Expo Notifications) when a wishlist card drops below a target price.
 Requires the real price integration (QoL §1) first.
+
+### 12. Cloud-AI scanner (the rebuild) — SUPERSEDED por Opción C (2026-06-07)
+**Resuelto vía on-device, no cloud.** Se eligió la Opción C (sin coste recurrente,
+offline) y se implementó — ver "Card Scanner v2 — on-device detect+rectify+pHash"
+en Implemented Features. Pendiente solo de build nativo + verificación en
+dispositivo. La opción cloud (A/B) queda como alternativa futura si el pHash on-device
+no alcanza precisión usable. Histórico de la investigación abajo.
+
+Design and build the new scanner: capture a photo (`expo-camera`), optionally
+downscale (`expo-image-manipulator`), upload to a vision backend, receive the
+identified card code (+ confidence / candidate variants), then feed it into the
+existing **code → variants → user picks** flow and the scan-mode actions
+(view / collection / deck / wishlist). The old scanner's scan-mode UX (4 chips,
+variant-confirmation sheet) is a good reference for the front-end even though its
+code was deleted.
+
+**Research (2026-06-07) — angle-robust scanner landscape.** Investigated the
+field to decide the rebuild direction. Key conclusions:
+- **The angle problem is solved in STAGE 1, not the matcher.** Every robust
+  scanner uses a two-stage pipeline: (1) detect the card quad + **4-point
+  perspective rectify** (`getPerspectiveTransform`/`warpPerspective`) to a
+  canonical front-on rectangle, THEN (2) identify. Our old scanner skipped
+  stage 1 and required the user to align the card in the focus-box → hence the
+  "millimetre precision" pain. With rectify in front, any decent matcher works
+  at any angle/distance/imprecise crop. This is the single most important fix.
+- **Closest reference:** Anthony Lowhur's 10,856-card Yu-Gi-Oh recognizer
+  (PyImageSearch) — almost our intended stack: 4-point transform + **metric-
+  learning embeddings** (triplet/Siamese ResNet, NOT classification, NOT stock
+  ImageNet) + **ORB re-ranking** of the top-N + pre-computed embeddings for O(1)
+  lookup. Critical lesson = the **domain gap**: training on clean official art
+  and testing on real photos kills accuracy; needs heavy augmentation
+  (brightness/contrast/shift/blur/glare/perspective) + a real-photo dataset, and
+  *blur pooling* for CNN shift-invariance. This matches exactly the two gaps our
+  old scanner had (no rectify; stock-not-finetuned MobileNet).
+- **Industry norm:** CollX / LUDEX / TCGplayer / TCGScan / Shiny and the
+  One-Piece-specific apps (Logia, OP.TCG PLUS, OneCollector, TCG Stacked) all run
+  recognition **server-side** with in-house deep models (~98% first-scan claims).
+  Confirms the cloud-AI direction is the industry standard.
+- **Variant caveat (keeps the CLAUDE.md flow):** no art-recognition backend
+  reliably distinguishes a parallel `_p1` from its base — the **printed code**
+  does. So **printed-code OCR + visual variant pick** must stay regardless of
+  backend (code → variants → user picks).
+
+**Three candidate backends (no decision yet — user leaning to "no recurring
+cost"):**
+- **A — Third-party API (Ximilar `/v2/tcg_id`, supports One Piece):** fastest to
+  ship, robust out-of-the-box. ✗ business plan, **per-scan cost, online-only**,
+  may not match our exact variants. Ruled out by the no-recurring-cost priority.
+- **B — Self-hosted embedding backend (this §12 plan):** train on our 4571 local
+  images, full variant control, ~no per-scan cost. ✗ we run a server; net cost.
+- **C — On-device, 2nd attempt:** retry the removed local scanner **but with the
+  Stage-1 detect+rectify in front** and a fine-tuned augmented embedding. ✗ heavy
+  native deps (vision-camera + OpenCV), one-time training. **Zero recurring cost
+  + offline = best fit for the user's stated priority.**
+
+**User decision (2026-06-07):** investigation only, not committing to a backend
+yet. Stated priority = **no recurring costs** (→ favours C, then B; rules out A).
+Next session: pick B vs C and design capture→detect/rectify→identify→variant-pick.
 
 ### 7. Bulk scan mode
 A "scan session" flow in `ScanScreen` that queues identified cards and lets the user confirm/

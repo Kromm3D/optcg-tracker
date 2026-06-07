@@ -35,3 +35,23 @@ export const IMAGE_BASE_URL =
 
 /** URL base de la búsqueda de Cardmarket para One Piece TCG. */
 export const CARDMARKET_BASE = 'https://www.cardmarket.com/en/OnePiece/Products/Search';
+
+// ─── Supabase (cuentas + sync en la nube + amigos) ──────────────────────────
+//
+// El backend es OPCIONAL: la app funciona 100% offline sin cuenta. Al iniciar
+// sesión, la colección/decks/wishlists se respaldan y sincronizan entre
+// dispositivos (ver lib/sync.ts), y se habilita el sistema de amigos.
+//
+// Estos dos valores son PÚBLICOS y seguros de incluir en el bundle: la `anon
+// key` es una JWT anónima cuyo acceso está limitado por las políticas RLS del
+// proyecto (ver supabase/migrations/0001_init.sql). NUNCA pongas aquí la
+// `service_role` key ni el Personal Access Token (`sbp_…`) — esos dan acceso
+// total y solo se usan en local/CI para aprovisionar el proyecto.
+//
+// Rellena estos valores desde el dashboard de Supabase:
+//   Project Settings → API → Project URL  y  Project API keys → anon public.
+export const SUPABASE_URL = 'https://hphdhozwuvbhduqrwdxn.supabase.co';
+export const SUPABASE_ANON_KEY = 'sb_publishable_09JAOzY-z5arPdqSspfdgg_UOpKb8BI';
+
+/** true cuando hay credenciales configuradas; gatea toda la UI de cuenta/sync. */
+export const SUPABASE_ENABLED = SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0;

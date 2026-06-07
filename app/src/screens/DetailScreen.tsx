@@ -21,7 +21,7 @@ import { ColorDot } from '../components/ColorDot';
 import { RarityPip } from '../components/RarityPip';
 import { resolveImageUris } from '../lib/images';
 import { adjust, getCount, getCountSync, subscribe as subColl } from '../lib/collection';
-import { buildCardmarketSearchUrl } from '../lib/cardmarket';
+import { buildCardmarketVariantUrl } from '../lib/cardmarket';
 import {
   isInAnyWishlist,
   addCard as addToWishlistCard,
@@ -194,10 +194,10 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
         </View>
       ) : null}
 
-      {/* Cardmarket button */}
+      {/* Cardmarket button — URL específica del arte actualmente visible */}
       <Pressable
         style={s.cmBtn}
-        onPress={() => Linking.openURL(buildCardmarketSearchUrl(code))}
+        onPress={() => Linking.openURL(buildCardmarketVariantUrl(code, main?.suffix ?? ''))}
       >
         <Text style={s.cmText}>Ver precio en Cardmarket</Text>
         <Icon name="external" size={16} color="#fff" />
@@ -275,6 +275,13 @@ function VariantRow({ code, cardSet, variant }: { code: string; cardSet: string;
             style={s.counterBtn}
           >
             <Icon name="plus" size={16} color={colors.text} />
+          </Pressable>
+          <Pressable
+            onPress={() => Linking.openURL(buildCardmarketVariantUrl(code, variant.suffix))}
+            style={[s.counterBtn, { marginLeft: 'auto' }]}
+            accessibilityLabel="Ver en Cardmarket"
+          >
+            <Icon name="external" size={14} color={colors.textMut} />
           </Pressable>
         </View>
       </View>

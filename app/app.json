@@ -34,7 +34,12 @@
           "cameraPermission": "Used to scan One Piece TCG card codes."
         }
       ],
-      "onnxruntime-react-native"
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "HoroHoro.tcg needs the camera to scan your cards."
+        }
+      ]
     ],
     "assetBundlePatterns": [
       "assets/**"

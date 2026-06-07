@@ -65,6 +65,13 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       </View>
 
       <ScrollView contentContainerStyle={s.scroll}>
+        {/* Account & cloud sync */}
+        <Pressable style={s.accountRow} onPress={() => navigation.navigate('Account')}>
+          <Icon name="user" size={18} color={colors.accent} />
+          <Text style={s.accountRowText}>{t('account.openSettings')}</Text>
+          <Icon name="chevR" size={18} color={colors.textDim} />
+        </Pressable>
+
         {/* Language */}
         <Text style={s.sectionLabel}>{t('settings.language')}</Text>
         <View style={s.row}>
@@ -296,4 +303,16 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   btnOutlineText: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.textMut },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  accountRowText: { flex: 1, fontSize: 15, fontFamily: fonts.uiSemi, color: colors.text },
 });

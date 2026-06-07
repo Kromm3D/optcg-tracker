@@ -1,12 +1,16 @@
-// ScanScreen — art-based card recognition via perceptual hash matching.
+// ScanScreen — on-device card recognition (two-stage, no recurring cost).
 //
-// Architecture:
-//   • expo-camera            → live camera feed, rear-facing
-//   • expo-image-manipulator → crop to focus box + resize to 16×16
-//   • lib/phash              → 256-bit average hash + hamming search (pure JS)
-//   • lib/ocr.matchByArtFull → matches cropped photo to hashes.json database
-//   • expo-haptics           → success vibration on match
-//   • Manual text fallback   → type a code if scan fails
+// Stage-1 (detect + rectify):
+//   • Native build → NativeScanCamera (vision-camera + fast-opencv): finds the
+//     card quad live and perspective-warps it to a front-on crop. Robust to angle.
+//   • Expo Go      → expo-camera focus-box: the user frames the card; we crop it.
+// Stage-2 (identify):
+//   • lib/cardMatch.matchTopK → 24-bit RGB average hash + hamming search over
+//     PHASHES (pure JS). Ambiguous same-art reprints → variant confirmation sheet.
+// Plus: expo-haptics success pulse, and a manual code fallback.
+//
+// The native path is loaded lazily (require) only when isCardDetectAvailable() so
+// Expo Go degrades gracefully — same contract as lib/cardDetect / lib/phash.
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -33,9 +37,29 @@ import { CARDS } from '../data/loadIndex';
 import { adjust } from '../lib/collection';
 import { Icon } from '../components/Icon';
 import { CardThumb } from '../components/CardThumb';
-import { matchTopK, recognizeText, isOcrAvailable } from '../lib/ocr';
+import { matchTopK } from '../lib/cardMatch';
+import { isCardDetectAvailable } from '../lib/cardDetect';
 import { useT } from '../lib/i18n';
 import { colors, fonts, radii, spacing } from '../theme';
+
+// Lazily resolved native Stage-1 camera component. Only required in a custom dev
+// build with vision-camera + fast-opencv linked; absent (→ null) in Expo Go.
+let NativeScanCameraComp: React.ComponentType<{
+  isActive: boolean;
+  onStableCard: (uri: string) => void;
+}> | null = null;
+let nativeLoadAttempted = false;
+function getNativeScanCamera() {
+  if (!nativeLoadAttempted) {
+    nativeLoadAttempted = true;
+    try {
+      NativeScanCameraComp = require('./NativeScanCamera').NativeScanCamera;
+    } catch {
+      NativeScanCameraComp = null;
+    }
+  }
+  return NativeScanCameraComp;
+}
 
 // A scan candidate resolved to its card + exact variant for the confirmation sheet.
 type ScanCandidate = { card: Card; variant: Variant; suffix: string; score: number };
@@ -102,6 +126,9 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
   const [candidates, setCandidates] = useState<ScanCandidate[] | null>(null);
   // Pause the live scan loop while the confirmation sheet is open.
   const pausedRef = useRef(false);
+  // True in a custom dev build where Stage-1 (vision-camera + fast-opencv) links.
+  // Resolved once; drives native-vs-focusbox rendering and the scan loop gate.
+  const [nativeMode] = useState(() => isCardDetectAvailable() && getNativeScanCamera() != null);
 
   // Flash overlay opacity
   const flashAnim = useRef(new Animated.Value(0)).current;
@@ -207,27 +234,12 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
     [handleCodeFound]
   );
 
-  // Combine the art match (top-K) with the printed-code OCR.
-  // The printed code uniquely identifies the CARD (variants share it), so when OCR
-  // reads a valid code it's authoritative — even if the art match is weak. The art
-  // scores then just rank that card's variants (suffix). Falls back to art-only
-  // when OCR is unavailable (Expo Go) or finds no code.
+  // Resolve the art top-K matches to candidates and decide. The hash matches a
+  // VARIANT image directly (code+suffix); same-art reprints land close together,
+  // so the confirmation sheet lets the user pick the exact variant when the top
+  // match isn't a clear winner (CLAUDE.md: code → variants → user picks).
   const handleScanResults = useCallback(
-    (results: Array<{ code: string; suffix: string; score: number }>, ocrCode?: string) => {
-      const card = ocrCode ? CARDS[ocrCode.toUpperCase()] : undefined;
-      if (card) {
-        const scoreOf = (suffix: string) =>
-          results.find(
-            (r) => r.code.toUpperCase() === card.code.toUpperCase() && r.suffix === suffix,
-          )?.score ?? 0;
-        const cands: ScanCandidate[] = card.variants
-          .map((v) => ({ card, variant: v, suffix: v.suffix, score: scoreOf(v.suffix) }))
-          .sort((a, b) => b.score - a.score);
-        decideCandidates(cands);
-        return;
-      }
-
-      // Art-only path (no authoritative code).
+    (results: Array<{ code: string; suffix: string; score: number }>) => {
       const resolved = results
         .map((r) => resolveCandidate(r.code, r.suffix, r.score))
         .filter((c): c is ScanCandidate => c != null);
@@ -250,6 +262,17 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
     pausedRef.current = false;
   }, []);
 
+  // Native Stage-1 path: NativeScanCamera hands us an already-rectified crop.
+  // Identify it (no crop rect — the URI is the card) and route to the same flow.
+  const onNativeStableCard = useCallback(
+    async (uri: string) => {
+      if (pausedRef.current) return;
+      const results = await matchTopK(uri, undefined, 3);
+      if (results.length && !pausedRef.current) handleScanResults(results);
+    },
+    [handleScanResults]
+  );
+
   // ── Live scan loop (art match + printed-code OCR) ───────────────────────────
   // 1. Capture a full photo from the camera.
   // 2. Map the on-screen focus box coords → photo pixel coords (crop the card).
@@ -258,18 +281,18 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
   const busyRef = useRef(false);
 
   useEffect(() => {
-    if (!isFocused || !permission?.granted) return;
+    // The native path (NativeScanCamera) drives its own frame loop; only the
+    // expo-camera focus-box fallback needs this polling loop.
+    if (nativeMode || !isFocused || !permission?.granted) return;
 
     let cancelled = false;
     const scanOnce = async () => {
       if (busyRef.current || cancelled || pausedRef.current) return;
       busyRef.current = true;
       try {
-        const photo: any = await cameraRef.current?.takePictureAsync({
-          quality: 0,
-          skipProcessing: true,
-          shutterSound: false,
-        } as any);
+        // No skipProcessing: it skips EXIF orientation on Android and the crop
+        // coords map to the wrong region (B-05). quality 0.5 = better hash source.
+        const photo = await cameraRef.current?.takePictureAsync({ quality: 0.5 });
         if (!photo?.uri || cancelled) return;
 
         // Map focus box screen coords → photo pixel coords.
@@ -289,20 +312,14 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
 
         if (cropW <= 0 || cropH <= 0) return;
 
-        // Run the art match and the printed-code OCR together.
-        const [results, ocrCode] = await Promise.all([
-          matchTopK(photo.uri, { originX: cropX, originY: cropY, width: cropW, height: cropH }, 3),
-          (async (): Promise<string | undefined> => {
-            if (!isOcrAvailable()) return undefined;
-            try {
-              return extractCode(await recognizeText(photo.uri)) ?? undefined;
-            } catch {
-              return undefined;
-            }
-          })(),
-        ]);
-        if (!cancelled && !pausedRef.current && (results.length || ocrCode)) {
-          handleScanResults(results, ocrCode);
+        // Art match (RGB-ahash top-K) over the focus-box crop.
+        const results = await matchTopK(
+          photo.uri,
+          { originX: cropX, originY: cropY, width: cropW, height: cropH },
+          3,
+        );
+        if (!cancelled && !pausedRef.current && results.length) {
+          handleScanResults(results);
         }
       } catch {
         // ignore transient capture/recognition errors
@@ -316,7 +333,7 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [isFocused, permission?.granted, handleScanResults, screenW, screenH]);
+  }, [nativeMode, isFocused, permission?.granted, handleScanResults, screenW, screenH]);
 
   // ── Permission gate ──────────────────────────────────────────────────────
 
@@ -345,32 +362,42 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
 
   return (
     <View style={s.root}>
-      {/* Live camera feed */}
-      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
+      {/* Live camera feed — native detect+rectify, or expo-camera focus-box. */}
+      {nativeMode && NativeScanCameraComp ? (
+        <NativeScanCameraComp
+          isActive={isFocused && !candidates}
+          onStableCard={onNativeStableCard}
+        />
+      ) : (
+        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
+      )}
 
       {/* Close button */}
       <Pressable style={[s.closeBtn, { top: insets.top + 12 }]} onPress={() => navigation.goBack()}>
         <Icon name="close" size={24} color="#fff" />
       </Pressable>
 
-      {/* Dark vignette overlay */}
-      <View style={s.overlay} pointerEvents="none" />
-
-      {/* Focus box — card-shaped, matches the crop region sent to the hasher */}
-      <View style={s.focusBox} pointerEvents="none">
-        {[
-          { top: -2, left: -2, borderTopWidth: 3, borderLeftWidth: 3 },
-          { top: -2, right: -2, borderTopWidth: 3, borderRightWidth: 3 },
-          { bottom: -2, left: -2, borderBottomWidth: 3, borderLeftWidth: 3 },
-          { bottom: -2, right: -2, borderBottomWidth: 3, borderRightWidth: 3 },
-        ].map((style, i) => (
-          <View
-            key={i}
-            style={[s.corner, style as object, { borderColor: colors.accent }]}
-          />
-        ))}
-        <Text style={s.focusHint}>{t('scan.hintArt')}</Text>
-      </View>
+      {/* Focus-box framing — only in the non-native fallback (native shows its own
+          live polygon overlay). */}
+      {!nativeMode && (
+        <>
+          <View style={s.overlay} pointerEvents="none" />
+          <View style={s.focusBox} pointerEvents="none">
+            {[
+              { top: -2, left: -2, borderTopWidth: 3, borderLeftWidth: 3 },
+              { top: -2, right: -2, borderTopWidth: 3, borderRightWidth: 3 },
+              { bottom: -2, left: -2, borderBottomWidth: 3, borderLeftWidth: 3 },
+              { bottom: -2, right: -2, borderBottomWidth: 3, borderRightWidth: 3 },
+            ].map((style, i) => (
+              <View
+                key={i}
+                style={[s.corner, style as object, { borderColor: colors.accent }]}
+              />
+            ))}
+            <Text style={s.focusHint}>{t('scan.hintArt')}</Text>
+          </View>
+        </>
+      )}
 
       {/* Floating ghost decoration */}
       <Animated.View

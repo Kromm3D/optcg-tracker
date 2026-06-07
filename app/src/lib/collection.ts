@@ -6,8 +6,10 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { CollectionItem } from '../types';
+import { notifyLocalChange } from './syncBus';
 
-const STORAGE_KEY = 'optcg.collection.v1';
+const STORAGE_KEY = 'optcg.collection.v2';
+const LEGACY_KEY = 'optcg.collection.v1';
 
 type CollectionMap = Record<string, CollectionItem>;
 
@@ -16,12 +18,28 @@ let pendingRead: Promise<CollectionMap> | null = null;
 const listeners = new Set<() => void>();
 let writeTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Migración v1 → v2: el shape no cambia salvo el campo opcional `updatedAt`
+// (usado por la sync LWW). Los items legacy se sellan con un timestamp antiguo
+// (0) para que cualquier dato del servidor gane en el primer reconcile.
+async function loadRaw(): Promise<CollectionMap> {
+  const raw = await AsyncStorage.getItem(STORAGE_KEY);
+  if (raw) return JSON.parse(raw) as CollectionMap;
+  const legacy = await AsyncStorage.getItem(LEGACY_KEY);
+  if (legacy) {
+    const map = JSON.parse(legacy) as CollectionMap;
+    for (const k of Object.keys(map)) if (map[k].updatedAt == null) map[k].updatedAt = 0;
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+    return map;
+  }
+  return {};
+}
+
 async function read(): Promise<CollectionMap> {
   if (cache) return cache;
   if (pendingRead) return pendingRead;
-  pendingRead = AsyncStorage.getItem(STORAGE_KEY)
-    .then((raw) => {
-      cache = raw ? (JSON.parse(raw) as CollectionMap) : {};
+  pendingRead = loadRaw()
+    .then((map) => {
+      cache = map;
       return cache;
     })
     .catch((e) => {
@@ -39,6 +57,7 @@ function write(map: CollectionMap): void {
   cache = map;
   // Notificar inmediatamente (la UI se actualiza sin esperar al disco).
   listeners.forEach((l) => l());
+  notifyLocalChange('collection');
   // Persistir en background con debounce: N taps rápidos → 1 sola escritura.
   if (writeTimer) clearTimeout(writeTimer);
   writeTimer = setTimeout(() => {
@@ -46,6 +65,20 @@ function write(map: CollectionMap): void {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map)).catch((e) =>
       console.warn('[collection] error escribiendo storage:', e)
     );
+  }, 300);
+}
+
+/** Reemplaza toda la colección (usado por la sync al reconciliar). No re-emite
+ *  al bus para evitar bucles de sincronización. */
+export function replaceAllFromSync(items: CollectionItem[]): void {
+  const map: CollectionMap = {};
+  for (const it of items) map[it.key] = it;
+  cache = map;
+  listeners.forEach((l) => l());
+  if (writeTimer) clearTimeout(writeTimer);
+  writeTimer = setTimeout(() => {
+    writeTimer = null;
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map)).catch(() => {});
   }, 300);
 }
 
@@ -88,7 +121,7 @@ export async function setCount(
   if (count <= 0) {
     delete map[key];
   } else {
-    map[key] = { key, code, suffix, count };
+    map[key] = { key, code, suffix, count, updatedAt: Date.now() };
   }
   write(map);
 }
@@ -106,7 +139,7 @@ export async function adjust(
   if (next <= 0) {
     delete newMap[key];
   } else {
-    newMap[key] = { key, code, suffix, count: next };
+    newMap[key] = { key, code, suffix, count: next, updatedAt: Date.now() };
   }
   write(newMap);
   return next;

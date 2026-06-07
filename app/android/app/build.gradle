@@ -97,16 +97,6 @@ android {
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
-    // Split per-ABI so each device only gets its native libs (~80 MB each vs 351 MB fat debug).
-    // For Google Play use AAB instead; for direct install use the arm64 APK.
-    splits {
-        abi {
-            reset()
-            enable true
-            universalApk false
-            include "arm64-v8a", "armeabi-v7a", "x86_64"
-        }
-    }
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -162,10 +152,23 @@ android {
     }
 }
 
+// Fix: expo-camera usa CameraX 1.6.0 y react-native-vision-camera usa 1.5.0-alpha03.
+// Gradle resuelve a 1.6.0 (versión mayor), pero Camera2CameraInfoImpl fue eliminado en
+// esa versión — vision-camera la necesita en runtime. Forzamos toda la familia CameraX
+// a 1.5.0-alpha03 (que sí la contiene) y que expo-camera también soporta.
+configurations.all {
+    resolutionStrategy {
+        force "androidx.camera:camera-core:1.5.0-alpha03"
+        force "androidx.camera:camera-camera2:1.5.0-alpha03"
+        force "androidx.camera:camera-lifecycle:1.5.0-alpha03"
+        force "androidx.camera:camera-video:1.5.0-alpha03"
+        force "androidx.camera:camera-view:1.5.0-alpha03"
+        force "androidx.camera:camera-extensions:1.5.0-alpha03"
+        force "androidx.camera:camera-mlkit-vision:1.5.0-alpha03"
+    }
+}
+
 dependencies {
-    // onnxruntime-react-native @generated begin onnxruntime-react-native - expo prebuild (DO NOT MODIFY) sync-ec94e2a0d49f04b1bbc51ec3f57c45710b04aad8
-    implementation project(':onnxruntime-react-native')
-    // onnxruntime-react-native @generated end onnxruntime-react-native
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 

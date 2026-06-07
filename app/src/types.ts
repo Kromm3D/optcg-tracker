@@ -81,13 +81,9 @@ export interface CollectionItem {
   code: string;
   suffix: string;
   count: number;
-}
-
-/** @deprecated Legacy single-wishlist entry. Use WishlistCard instead. */
-export interface WishlistItem {
-  code: string;
-  addedAt: number;
-  needed?: number;
+  /** Timestamp (ms) del último cambio. Usado por la sync LWW (last-write-wins).
+   *  `undefined` = dato legacy sin sellar (se trata como el más antiguo). */
+  updatedAt?: number;
 }
 
 /** A single card+variant entry inside a named wishlist. */
@@ -106,4 +102,38 @@ export interface Wishlist {
   /** Keyed by `${code}${suffix}` (same as collection variantKey). */
   cards: Record<string, WishlistCard>;
   createdAt: number;
+  /** Timestamp (ms) of the last change. Used by cloud sync. */
+  updatedAt?: number;
+}
+
+// ─── Cloud sync / friends (Supabase) ────────────────────────────────────────
+
+/** Per-resource visibility for the friends system. Mirrors the SQL enum. */
+export type Visibility = 'public' | 'friends' | 'private';
+
+/** A user's privacy choices, one per shareable resource. */
+export interface PrivacySettings {
+  collection: Visibility;
+  wishlist: Visibility;
+  decks: Visibility;
+}
+
+/** Status of a friendship edge. Mirrors the SQL enum. */
+export type FriendStatus = 'pending' | 'accepted' | 'blocked';
+
+/** Public profile fields surfaced in friend search / friend lists. */
+export interface FriendProfile {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
+/** A friendship edge plus the other party's profile, as shown in the UI. */
+export interface FriendEdge {
+  id: string;
+  status: FriendStatus;
+  /** true if the current user sent the request (vs received it). */
+  outgoing: boolean;
+  profile: FriendProfile;
 }

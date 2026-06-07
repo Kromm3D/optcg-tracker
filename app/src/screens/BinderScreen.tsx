@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import type { BinderScreenProps } from '../navigation';
 import { colors, fonts, radii, spacing } from '../theme';
-import { CARDS } from '../data/loadIndex';
+import { CARDS, CARD_LIST } from '../data/loadIndex';
 import { CardThumb } from '../components/CardThumb';
 import { ColumnsToggle } from '../components/ColumnsToggle';
 import { CachedImage } from '../components/CachedImage';
@@ -25,15 +25,14 @@ import { FilterSheet } from '../components/FilterSheet';
 import { BulkActionBar, type BulkTarget } from '../components/BulkActionBar';
 import { BulkTargetSheet, type BulkSelection } from '../components/BulkTargetSheet';
 import { Icon } from '../components/Icon';
-import { RARITY_ORDER } from '../theme';
 import {
   FilterState,
   emptyFilters,
   activeCount,
   matches,
-  setPrefix,
 } from '../lib/filters';
-import { getOwnedFor, getVariantOwned, getOwnedVariantCount, subscribe as subOwned } from '../lib/ownedAggregate';
+import { sortCards, type SortKey } from '../lib/cardQuery';
+import { getOwnedFor, getOwnedTotals, getVariantOwned, subscribe as subOwned, subscribeMembership as subOwnedMembership } from '../lib/ownedAggregate';
 import { expandCards, normalVariant, type DisplayEntry } from '../lib/cardDisplay';
 import {
   listWishlists,
@@ -42,16 +41,17 @@ import {
   subscribe as subWishlists,
 } from '../lib/wishlists';
 import { resolveImageUris } from '../lib/images';
-import { getTradeQty, setTradeOverride, subscribe as subTrade } from '../lib/trade';
+import { getTradeQty, getOverrides, setTradeOverride, subscribe as subTrade } from '../lib/trade';
 import { adjust } from '../lib/collection';
 import { getSettings, subscribe as subSettings } from '../lib/settings';
 import { useT } from '../lib/i18n';
 import { useCardGrid } from '../lib/useCardGrid';
-import type { Card, Wishlist } from '../types';
+import type { Card, Variant, Wishlist } from '../types';
 
 type Tab = 'owned' | 'wishlist' | 'trade';
-type SortKey = 'code' | 'set' | 'power' | 'rarity';
-type SortState = { key: SortKey; dir: 'asc' | 'desc' };
+// Binder expone un subconjunto de las claves de orden compartidas.
+type BinderSortKey = Extract<SortKey, 'code' | 'set' | 'power' | 'rarity'>;
+type SortState = { key: BinderSortKey; dir: 'asc' | 'desc' };
 
 /** Small cover-art thumbnail for the wishlist row (first card's image, or icon). */
 function WishlistThumb({ wl }: { wl: Wishlist }) {
@@ -73,11 +73,77 @@ function WishlistThumb({ wl }: { wl: Wishlist }) {
   );
 }
 
+/** Trade qty en vivo, suscrito a trade.ts con bail-out (solo re-renderiza la
+ *  celda cuya cantidad cambia). `code === null` desactiva la suscripción. */
+function useTradeQty(code: string | null): number {
+  const [n, setN] = useState(() => (code ? getTradeQty(code) : 0));
+  useEffect(() => {
+    if (!code) return;
+    const update = () => setN((prev) => { const v = getTradeQty(code); return prev === v ? prev : v; });
+    update();
+    return subTrade(update);
+  }, [code]);
+  return n;
+}
+
+type GridCardProps = {
+  card: Card;
+  variant: Variant;
+  itemKey: string;
+  tab: Tab;
+  showAlt: boolean;
+  showAll: boolean;
+  compact: boolean;
+  cardWidth: number;
+  selectMode: boolean;
+  selected: boolean;
+  onPress: (card: Card, variant: Variant, key: string) => void;
+  onLongPress: (card: Card, variant: Variant, key: string) => void;
+  onAdjust: (card: Card, variant: Variant, delta: number) => void;
+};
+
+// Celda del grid, memoizada. La cantidad se deriva en vivo dentro de CardThumb
+// (modo live, tab owned) o vía useTradeQty (tab trade), de modo que editar una
+// copia re-renderiza únicamente esta celda — no toda la lista.
+const GridCard = React.memo(function GridCard({
+  card, variant, itemKey, tab, showAlt, showAll, compact, cardWidth,
+  selectMode, selected, onPress, onLongPress, onAdjust,
+}: GridCardProps) {
+  const tradeQty = useTradeQty(tab === 'trade' ? card.code : null);
+  const common = {
+    card,
+    variant,
+    compact,
+    selected: selectMode && selected,
+    onAdjust: selectMode ? undefined : (delta: number) => onAdjust(card, variant, delta),
+    onLongPress: () => onLongPress(card, variant, itemKey),
+    onPress: () => onPress(card, variant, itemKey),
+    width: cardWidth,
+  };
+  if (tab === 'trade') {
+    return <CardThumb {...common} owned={tradeQty} qty={tradeQty} />;
+  }
+  return (
+    <CardThumb
+      {...common}
+      liveCode={card.code}
+      livePerVariant={showAlt}
+      liveMultiArt={!showAlt}
+      dimWhenEmpty={showAll}
+    />
+  );
+});
+
 export function BinderScreen({ navigation }: BinderScreenProps) {
   const t = useT();
   const [tab, setTab] = useState<Tab>('owned');
+  // `tick` solo cambia cuando cambia la *pertenencia* (qué cartas posees) o
+  // filtros/orden — recomputa la lista. `countTick` cambia con cada +/- para
+  // refrescar solo el contador de la cabecera (las celdas se actualizan solas).
   const [tick, setTick] = useState(0);
   const bump = useCallback(() => setTick((n) => n + 1), []);
+  const [, setCountTick] = useState(0);
+  const bumpCount = useCallback(() => setCountTick((n) => n + 1), []);
 
   // Wishlists (for the wishlist tab list)
   const [wishlists, setWishlists] = useState<Wishlist[]>([]);
@@ -102,13 +168,13 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
   const [bulkTarget, setBulkTarget] = useState<BulkTarget | null>(null);
   const selectedList = Object.values(selected);
 
-  const toggleSel = (key: string, code: string, suffix: string) =>
+  const toggleSel = useCallback((key: string, code: string, suffix: string) =>
     setSelected((prev) => {
       const next = { ...prev };
       if (next[key]) delete next[key];
       else next[key] = { code, suffix };
       return next;
-    });
+    }), []);
   const clearSel = () => { setSelected({}); setSelectMode(false); };
 
   const refreshWishlists = useCallback(() => {
@@ -117,12 +183,14 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
 
   useEffect(() => {
     refreshWishlists();
-    const unsubO = subOwned(bump);
+    // Pertenencia (alta/baja de carta) → recomputa lista. Cantidad → solo cabecera.
+    const unsubMem = subOwnedMembership(bump);
+    const unsubCnt = subOwned(bumpCount);
     const unsubW = subWishlists(() => { refreshWishlists(); bump(); });
     const unsubS = subSettings(() => { setColumnsState(getSettings().columns); bump(); });
-    const unsubT = subTrade(bump);
-    return () => { unsubO(); unsubW(); unsubS(); unsubT(); };
-  }, [refreshWishlists, bump]);
+    const unsubT = subTrade(() => { bump(); bumpCount(); });
+    return () => { unsubMem(); unsubCnt(); unsubW(); unsubS(); unsubT(); };
+  }, [refreshWishlists, bump, bumpCount]);
 
   // Clear multi-select when switching tabs
   const handleTabChange = useCallback((newTab: Tab) => {
@@ -132,7 +200,7 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
   }, []);
 
   // Toggle sort key or flip direction if already active
-  const handleSort = useCallback((key: SortKey) => {
+  const handleSort = useCallback((key: BinderSortKey) => {
     setSort((prev) =>
       prev.key === key
         ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
@@ -140,38 +208,47 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
     );
   }, []);
 
-  // Cards for Collection and Trade tabs
+  // Handlers estables para las celdas (evitan re-render de todo el grid).
+  const handlePressCard = useCallback((card: Card, variant: Variant, key: string) => {
+    if (selectMode) toggleSel(key, card.code, variant?.suffix ?? '');
+    else navigation.navigate('Detail', { code: card.code });
+  }, [selectMode, navigation, toggleSel]);
+
+  const handleLongPressCard = useCallback((card: Card, variant: Variant, key: string) => {
+    if (!selectMode) setSelectMode(true);
+    toggleSel(key, card.code, variant?.suffix ?? '');
+  }, [selectMode, toggleSel]);
+
+  const handleAdjustCard = useCallback((card: Card, variant: Variant, delta: number) => {
+    if (tab === 'trade') setTradeOverride(card.code, Math.max(0, getTradeQty(card.code) + delta));
+    else adjust(card.code, variant?.suffix ?? '', delta);
+  }, [tab]);
+
+  // Cards for Collection and Trade tabs.
+  // En lugar de barrer las ~4571 cartas del índice, partimos del conjunto
+  // pequeño de códigos relevantes (poseídos / en trade) salvo en "Show all".
   const ownedTradeCards = useMemo<Card[]>(() => {
-    const byCode = (a: Card, b: Card) =>
-      a.code.localeCompare(b.code, undefined, { numeric: true });
-
-    const sortFn = (a: Card, b: Card): number => {
-      let diff = 0;
-      if (sort.key === 'set') {
-        diff = setPrefix(a.code).localeCompare(setPrefix(b.code), undefined, { numeric: true });
-        if (diff === 0) diff = byCode(a, b);
-      } else if (sort.key === 'power') {
-        diff = (a.power ?? 0) - (b.power ?? 0);
-      } else if (sort.key === 'rarity') {
-        diff =
-          (RARITY_ORDER[a.variants[0]?.rarity?.toUpperCase() ?? ''] ?? 0) -
-          (RARITY_ORDER[b.variants[0]?.rarity?.toUpperCase() ?? ''] ?? 0);
-      } else {
-        diff = byCode(a, b);
-      }
-      return sort.dir === 'asc' ? diff : -diff;
-    };
-
+    let base: Card[];
     if (tab === 'trade') {
-      return Object.values(CARDS)
-        .filter((c) => getTradeQty(c.code) > 0)
-        .filter((c) => matches(c, filters))
-        .sort(sortFn);
+      // Candidatos = poseídos (overflow de playset) ∪ overrides manuales.
+      const codes = new Set([...Object.keys(getOwnedTotals()), ...Object.keys(getOverrides())]);
+      base = [];
+      for (const code of codes) {
+        const card = CARDS[code];
+        if (card && getTradeQty(code) > 0) base.push(card);
+      }
+    } else if (showAll) {
+      base = CARD_LIST;
+    } else {
+      base = [];
+      for (const code of Object.keys(getOwnedTotals())) {
+        if (getOwnedFor(code) > 0) {
+          const card = CARDS[code];
+          if (card) base.push(card);
+        }
+      }
     }
-    const base = showAll
-      ? Object.values(CARDS)
-      : Object.values(CARDS).filter((c) => getOwnedFor(c.code) > 0);
-    return base.filter((c) => matches(c, filters)).sort(sortFn);
+    return sortCards(base.filter((c) => matches(c, filters)), sort);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, showAll, filters, sort, tick]);
 
@@ -191,6 +268,28 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
     return es;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, ownedTradeCards, showAlt, showAll, tick]);
+
+  // extraData estable: solo cambia al entrar/salir de selección, no al editar
+  // copias → en el flujo normal de +/- la FlatList no re-renderiza las celdas.
+  const extraData = useMemo(() => ({ selectMode, selected }), [selectMode, selected]);
+  const compact = columns >= 3;
+  const renderItem = useCallback(({ item }: { item: DisplayEntry }) => (
+    <GridCard
+      card={item.card}
+      variant={item.variant}
+      itemKey={item.key}
+      tab={tab}
+      showAlt={showAlt}
+      showAll={showAll}
+      compact={compact}
+      cardWidth={cardWidth}
+      selectMode={selectMode}
+      selected={!!selected[item.key]}
+      onPress={handlePressCard}
+      onLongPress={handleLongPressCard}
+      onAdjust={handleAdjustCard}
+    />
+  ), [tab, showAlt, showAll, compact, cardWidth, selectMode, selected, handlePressCard, handleLongPressCard, handleAdjustCard]);
 
   const handleCreateWL = useCallback(async () => {
     if (!newWLName.trim()) return;
@@ -217,7 +316,7 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
           ['set', t('sort.set')],
           ['power', t('sort.power')],
           ['rarity', t('sort.rarity')],
-        ] as [SortKey, string][]
+        ] as [BinderSortKey, string][]
       ).map(([k, label]) => {
         const active = sort.key === k;
         return (
@@ -418,42 +517,14 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
               data={gridData}
               keyExtractor={(e) => e.key}
               numColumns={columns}
-              extraData={{ selectMode, selected }}
+              extraData={extraData}
               columnWrapperStyle={{ gap, paddingHorizontal: hPadding }}
               contentContainerStyle={{ paddingVertical: 8, paddingBottom: selectMode ? 180 : 110, gap: gap + 4 }}
-              renderItem={({ item }) => {
-                const { card, variant } = item;
-                const itemQty = tab === 'trade'
-                  ? getTradeQty(card.code)
-                  : showAlt ? getVariantOwned(card.code, variant.suffix) : getOwnedFor(card.code);
-                return (
-                  <CardThumb
-                    card={card}
-                    variant={variant}
-                    owned={itemQty}
-                    qty={itemQty}
-                    compact={columns >= 3}
-                    multiArt={tab === 'owned' && !showAlt && getOwnedVariantCount(card.code) >= 2}
-                    dimmed={
-                      tab === 'owned' && showAll &&
-                      (showAlt ? getVariantOwned(card.code, variant.suffix) === 0 : getOwnedFor(card.code) === 0)
-                    }
-                    selected={selectMode && !!selected[item.key]}
-                    onAdjust={selectMode ? undefined : (
-                      tab === 'trade'
-                        ? (delta) => setTradeOverride(card.code, Math.max(0, getTradeQty(card.code) + delta))
-                        : (delta) => adjust(card.code, variant?.suffix ?? '', delta)
-                    )}
-                    onLongPress={() => { if (!selectMode) setSelectMode(true); toggleSel(item.key, card.code, variant.suffix); }}
-                    onPress={() =>
-                      selectMode
-                        ? toggleSel(item.key, card.code, variant.suffix)
-                        : navigation.navigate('Detail', { code: card.code })
-                    }
-                    width={cardWidth}
-                  />
-                );
-              }}
+              renderItem={renderItem}
+              initialNumToRender={15}
+              maxToRenderPerBatch={12}
+              windowSize={5}
+              removeClippedSubviews
             />
           )}
         </>

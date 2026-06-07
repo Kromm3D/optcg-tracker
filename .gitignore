@@ -3,6 +3,10 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+venv_optcg/
+
+# Price scraping (local intermediate, not committed)
+data/browser_dump.json
 
 # Node
 app/node_modules/

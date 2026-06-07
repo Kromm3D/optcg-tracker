@@ -2,6 +2,7 @@
 // del grid, pero esta pensado para crecer (tema, sort por defecto, etc.).
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { notifyLocalChange } from './syncBus';
 
 const STORAGE_KEY = 'optcg.settings.v1';
 
@@ -26,6 +27,8 @@ export type Settings = {
   showAlternateArt: boolean;
   /** true si el usuario ha completado la descarga offline de todas las imágenes. */
   imagesDownloaded: boolean;
+  /** Timestamp (ms) del último cambio. Usado por la sync LWW. */
+  updatedAt?: number;
 };
 
 const DEFAULTS: Settings = {
@@ -53,14 +56,26 @@ async function read(): Promise<Settings> {
   return cache;
 }
 
-async function write(next: Settings): Promise<void> {
-  cache = next;
+async function write(next: Settings, emit = true): Promise<void> {
+  const stamped = emit ? { ...next, updatedAt: Date.now() } : next;
+  cache = stamped;
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(stamped));
   } catch (e) {
     console.warn('[settings] error escribiendo storage:', e);
   }
   listeners.forEach((l) => l());
+  if (emit) notifyLocalChange('settings');
+}
+
+/** Aplica settings venidos de la nube (sync). No re-emite al bus. */
+export async function applyFromSync(next: Settings): Promise<void> {
+  await write({ ...DEFAULTS, ...next }, false);
+}
+
+/** Snapshot síncrono actual para la sync (o null si aún no hidratado). */
+export function getCachedSettings(): Settings | null {
+  return cache;
 }
 
 /** Devuelve los settings actuales en cache. Si no hay cache, devuelve los defaults

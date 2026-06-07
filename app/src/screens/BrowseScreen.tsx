@@ -1,6 +1,6 @@
 // Browse: search + filtros multi-criterio en sheet modal + sort + grid.
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import type { BrowseScreenProps } from '../navigation';
 import { CARD_LIST } from '../data/loadIndex';
-import { colors, fonts, RARITY_ORDER } from '../theme';
+import { colors, fonts } from '../theme';
 import { Icon } from '../components/Icon';
 import { CardThumb } from '../components/CardThumb';
 import { ColumnsToggle } from '../components/ColumnsToggle';
@@ -24,7 +24,7 @@ import {
   fuzzyFilter,
   setPrefix,
 } from '../lib/filters';
-import { getOwnedFor, getVariantOwned, getOwnedVariantCount, subscribe as subOwned } from '../lib/ownedAggregate';
+import { sortCards, type SortKey } from '../lib/cardQuery';
 import { getSettings, setShowAlternateArt, subscribe as subSettings } from '../lib/settings';
 import { useCardGrid } from '../lib/useCardGrid';
 import { expandCards } from '../lib/cardDisplay';
@@ -32,7 +32,6 @@ import { BulkActionBar, type BulkTarget } from '../components/BulkActionBar';
 import { BulkTargetSheet, type BulkSelection } from '../components/BulkTargetSheet';
 import type { Card } from '../types';
 
-type SortKey = 'rarity' | 'cost' | 'power' | 'owned' | 'code' | 'set';
 type SortState = { key: SortKey; dir: 'asc' | 'desc' };
 
 export function BrowseScreen({ navigation }: BrowseScreenProps) {
@@ -51,16 +50,17 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
   const [bulkTarget, setBulkTarget] = useState<BulkTarget | null>(null);
   const selectedList = Object.values(selected);
 
-  const toggleSel = (key: string, code: string, suffix: string) =>
+  const toggleSel = useCallback((key: string, code: string, suffix: string) =>
     setSelected((prev) => {
       const next = { ...prev };
       if (next[key]) delete next[key];
       else next[key] = { code, suffix };
       return next;
-    });
+    }), []);
   const clearSel = () => { setSelected({}); setSelectMode(false); };
 
-  useEffect(() => subOwned(() => force((n) => n + 1)), []);
+  // No nos suscribimos a cambios de cantidad: cada CardThumb (modo live) se
+  // actualiza solo, así editar una copia no re-renderiza todo el grid.
   useEffect(() => subSettings(() => { setColumnsState(getSettings().columns); force((n) => n + 1); }), []);
 
   // Debounce: retrasa el filtrado 180 ms para no procesar en cada pulsación.
@@ -79,42 +79,45 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
     );
 
   const list = useMemo<Card[]>(() => {
-    let result = CARD_LIST.filter((c) => matches(c, filters));
-    result = fuzzyFilter(result, debouncedQ);
-
-    const dir = sort.dir === 'asc' ? 1 : -1;
-
-    if (sort.key === 'rarity') {
-      result = [...result].sort(
-        (a, b) =>
-          dir * (
-            (RARITY_ORDER[a.variants[0]?.rarity?.toUpperCase() ?? ''] ?? 0) -
-            (RARITY_ORDER[b.variants[0]?.rarity?.toUpperCase() ?? ''] ?? 0)
-          )
-      );
-    } else if (sort.key === 'cost') {
-      result = [...result].sort((a, b) => dir * ((a.cost ?? 99) - (b.cost ?? 99)));
-    } else if (sort.key === 'power') {
-      result = [...result].sort((a, b) => dir * ((a.power ?? 0) - (b.power ?? 0)));
-    } else if (sort.key === 'owned') {
-      result = [...result].sort((a, b) => dir * (getOwnedFor(a.code) - getOwnedFor(b.code)));
-    } else if (sort.key === 'set') {
-      result = [...result].sort((a, b) => {
-        const sp = dir * setPrefix(a.code).localeCompare(setPrefix(b.code), undefined, { numeric: true });
-        return sp !== 0 ? sp : dir * a.code.localeCompare(b.code, undefined, { numeric: true });
-      });
-    } else {
-      result = [...result].sort((a, b) =>
-        dir * a.code.localeCompare(b.code, undefined, { numeric: true })
-      );
-    }
-    return result;
+    const result = fuzzyFilter(CARD_LIST.filter((c) => matches(c, filters)), debouncedQ);
+    return sortCards(result, sort);
   }, [debouncedQ, filters, sort]);
 
   // Expand into display tiles (one per variant when Show Alternate Art is on).
   const entries = useMemo(() => expandCards(list), [list, showAlt]);
 
   const fcount = activeCount(filters);
+
+  // Celda memoizada vía CardThumb (modo live): editar copias re-renderiza solo
+  // la carta tocada. extraData/renderItem estables salvo cambios de selección.
+  const extraData = useMemo(() => ({ selectMode, selected }), [selectMode, selected]);
+  const renderItem = useCallback(({ item }: { item: ReturnType<typeof expandCards>[number] }) => {
+    const src = item.variant?.set_source;
+    const cardSet = setPrefix(item.card.code);
+    return (
+      <CardThumb
+        card={item.card}
+        // En showAlt pasamos la variante concreta; en modo normal dejamos que
+        // CardThumb elija la más rara poseída.
+        variant={showAlt ? item.variant : undefined}
+        liveCode={item.card.code}
+        livePerVariant={showAlt}
+        liveMultiArt={!showAlt}
+        dimWhenEmpty
+        sourceSet={showAlt && src && src !== cardSet ? src : undefined}
+        selected={selectMode && !!selected[item.key]}
+        compact={columns >= 3}
+        quickActions={!selectMode}
+        showFooter
+        onPress={() =>
+          selectMode
+            ? toggleSel(item.key, item.card.code, item.variant.suffix)
+            : navigation.navigate('Detail', { code: item.card.code, suffix: item.variant?.suffix })
+        }
+        width={cardWidth}
+      />
+    );
+  }, [showAlt, columns, cardWidth, selectMode, selected, navigation, toggleSel]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -207,41 +210,14 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
         data={entries}
         keyExtractor={(item) => item.key}
         numColumns={columns}
-        extraData={{ selectMode, selected }}
+        extraData={extraData}
         columnWrapperStyle={{ gap, paddingHorizontal: hPadding }}
         contentContainerStyle={{ paddingVertical: 8, paddingBottom: selectMode ? 180 : 110, gap: gap + 4 }}
         initialNumToRender={20}
         maxToRenderPerBatch={20}
         windowSize={5}
         removeClippedSubviews
-        renderItem={({ item }) => {
-          const src = item.variant.set_source;
-          const cardSet = setPrefix(item.card.code);
-          const totalOwned = getOwnedFor(item.card.code);
-          const varOwned = getVariantOwned(item.card.code, item.variant.suffix);
-          return (
-            <CardThumb
-              card={item.card}
-              // En modo showAlt pasamos la variante concreta; en modo normal
-              // no forzamos ninguna para que CardThumb muestre la más rara poseída.
-              variant={showAlt ? item.variant : undefined}
-              owned={showAlt ? varOwned : totalOwned}
-              dimmed={showAlt ? varOwned === 0 : totalOwned === 0}
-              multiArt={!showAlt && getOwnedVariantCount(item.card.code) >= 2}
-              sourceSet={showAlt && src && src !== cardSet ? src : undefined}
-              selected={selectMode && !!selected[item.key]}
-              compact={columns >= 3}
-              quickActions={!selectMode}
-              showFooter
-              onPress={() =>
-                selectMode
-                  ? toggleSel(item.key, item.card.code, item.variant.suffix)
-                  : navigation.navigate('Detail', { code: item.card.code, suffix: item.variant?.suffix })
-              }
-              width={cardWidth}
-            />
-          );
-        }}
+        renderItem={renderItem}
       />
 
       {selectMode && (

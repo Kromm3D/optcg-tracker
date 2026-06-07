@@ -17,8 +17,34 @@
 
 import { NativeModules } from 'react-native';
 
-// @ts-ignore — optional native dep; resolved only in the custom dev build.
-import { OpenCV, ObjectType, ColorConversionCodes, RetrievalModes, ContourApproximationModes } from 'react-native-fast-opencv';
+// Lazy require — fast-opencv calls global.__loadOpenCV() at module init time,
+// which throws in Expo Go (native module not linked). Capturing the exports here
+// keeps the module loadable everywhere; in Expo Go all values stay null and
+// isCardDetectAvailable() returns false so none of these are ever called.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let OpenCV: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let ObjectType: any = {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let ColorConversionCodes: any = {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let RetrievalModes: any = {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let ContourApproximationModes: any = {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let DataTypes: any = {};
+try {
+  // @ts-ignore — optional native dep; resolved only in the custom dev build.
+  const cv = require('react-native-fast-opencv');
+  OpenCV = cv.OpenCV;
+  ObjectType = cv.ObjectType;
+  ColorConversionCodes = cv.ColorConversionCodes;
+  RetrievalModes = cv.RetrievalModes;
+  ContourApproximationModes = cv.ContourApproximationModes;
+  DataTypes = cv.DataTypes;
+} catch {
+  // Native module absent (Expo Go / web) — functions guarded by isCardDetectAvailable().
+}
 
 // ── Availability guard (mirrors isOcrAvailable / isOnnxAvailable) ────────────
 /** True when the fast-opencv native module is linked (custom dev build only). */
@@ -38,6 +64,7 @@ const ASPECT_TOL = 0.18;
 
 /** Order 4 points as [top-left, top-right, bottom-right, bottom-left]. */
 export function orderCorners(pts: Point[]): Quad {
+  'worklet';
   const bySum = [...pts].sort((a, b) => a.x + a.y - (b.x + b.y));
   const byDiff = [...pts].sort((a, b) => a.y - a.x - (b.y - b.x));
   const tl = bySum[0];
@@ -48,11 +75,13 @@ export function orderCorners(pts: Point[]): Quad {
 }
 
 function dist(a: Point, b: Point): number {
+  'worklet';
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 /** Shoelace area of a quad. */
 export function quadArea(q: Quad): number {
+  'worklet';
   let area = 0;
   for (let i = 0; i < 4; i++) {
     const a = q[i];
@@ -67,6 +96,7 @@ export function quadArea(q: Quad): number {
  * `frameArea` is the area of the (resized) frame the contour came from.
  */
 export function isCardQuad(q: Quad, frameArea: number): boolean {
+  'worklet';
   const area = quadArea(q);
   if (area < frameArea * 0.08) return false; // too small / spurious
   const w = (dist(q[0], q[1]) + dist(q[3], q[2])) / 2; // avg top/bottom edge
@@ -120,7 +150,11 @@ export function detectCardQuad(resized: {
   const count: number = list?.array?.length ?? 0;
   for (let i = 0; i < count; i++) {
     const contour = OpenCV.copyObjectFromVector(contours, i);
-    const peri = OpenCV.invoke('arcLength', contour, true);
+    // arcLength returns { value: number }, not a plain number.
+    const periResult = OpenCV.invoke('arcLength', contour, true) as { value: number };
+    const peri = periResult?.value ?? 0;
+    // Skip degenerate contours — epsilon must be > 0 for approxPolyDP.
+    if (!(peri > 0)) continue;
     const approx = OpenCV.createObject(ObjectType.PointVector);
     OpenCV.invoke('approxPolyDP', contour, approx, 0.02 * peri, true);
 
@@ -154,3 +188,43 @@ export type RectifyFn = (
   resized: { data: Uint8Array; width: number; height: number },
   quad: Quad,
 ) => string | null;
+
+/**
+ * Warp the detected quad (in `resized` coords, ordered TL,TR,BR,BL) to an upright
+ * RECTIFIED_W×RECTIFIED_H crop and return it as a base64 PNG data-URI that
+ * computeAhash() in lib/phash can consume directly. Runs on the vision-camera
+ * worklet runtime alongside detectCardQuad.
+ *
+ * ⚠ The getPerspectiveTransform / warpPerspective / toJSValue(..,'png')
+ * signatures have drifted across fast-opencv releases — verify against the
+ * installed version on the first on-device build. See docs/scanner-native-handoff.md.
+ */
+export const rectifyCardCrop: RectifyFn = (resized, quad) => {
+  'worklet';
+  const src = OpenCV.frameBufferToMat(resized.height, resized.width, 3, resized.data);
+
+  // Source corners (TL,TR,BR,BL) → destination upright rectangle.
+  const srcPts = OpenCV.createObject(
+    ObjectType.PointVector,
+    OpenCV.createObject(ObjectType.Point, quad[0].x, quad[0].y),
+    OpenCV.createObject(ObjectType.Point, quad[1].x, quad[1].y),
+    OpenCV.createObject(ObjectType.Point, quad[2].x, quad[2].y),
+    OpenCV.createObject(ObjectType.Point, quad[3].x, quad[3].y),
+  );
+  const dstPts = OpenCV.createObject(
+    ObjectType.PointVector,
+    OpenCV.createObject(ObjectType.Point, 0, 0),
+    OpenCV.createObject(ObjectType.Point, RECTIFIED_W, 0),
+    OpenCV.createObject(ObjectType.Point, RECTIFIED_W, RECTIFIED_H),
+    OpenCV.createObject(ObjectType.Point, 0, RECTIFIED_H),
+  );
+
+  const M = OpenCV.invoke('getPerspectiveTransform', srcPts, dstPts);
+  const out = OpenCV.createObject(ObjectType.Mat, RECTIFIED_H, RECTIFIED_W, DataTypes.CV_8UC3);
+  const size = OpenCV.createObject(ObjectType.Size, RECTIFIED_W, RECTIFIED_H);
+  OpenCV.invoke('warpPerspective', src, out, M, size);
+
+  const encoded = OpenCV.toJSValue(out, 'png');
+  OpenCV.clearBuffers(); // critical: free Mats every frame
+  return encoded?.base64 ? `data:image/png;base64,${encoded.base64}` : null;
+};

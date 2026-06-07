@@ -5,19 +5,34 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Wishlist, WishlistCard } from '../types';
+import { notifyLocalChange } from './syncBus';
 
-const STORAGE_KEY = 'optcg.wishlists.v2';
+const STORAGE_KEY = 'optcg.wishlists.v3';
+const LEGACY_KEY = 'optcg.wishlists.v2';
 
 type WishlistMap = Record<string, Wishlist>;
 
 let cache: WishlistMap | null = null;
 const listeners = new Set<() => void>();
 
+// Migración v2 → v3: añade `updatedAt` (sellado a 0 = legacy) para la sync.
+async function loadRaw(): Promise<WishlistMap> {
+  const raw = await AsyncStorage.getItem(STORAGE_KEY);
+  if (raw) return JSON.parse(raw) as WishlistMap;
+  const legacy = await AsyncStorage.getItem(LEGACY_KEY);
+  if (legacy) {
+    const map = JSON.parse(legacy) as WishlistMap;
+    for (const k of Object.keys(map)) if (map[k].updatedAt == null) map[k].updatedAt = 0;
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+    return map;
+  }
+  return {};
+}
+
 async function read(): Promise<WishlistMap> {
   if (cache) return cache;
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    cache = raw ? (JSON.parse(raw) as WishlistMap) : {};
+    cache = await loadRaw();
   } catch (e) {
     console.warn('[wishlists] read error:', e);
     cache = {};
@@ -25,7 +40,12 @@ async function read(): Promise<WishlistMap> {
   return cache;
 }
 
-async function write(map: WishlistMap): Promise<void> {
+/** Marca de tiempo del último cambio de una wishlist (mutador interno). */
+function touch(wl: Wishlist): Wishlist {
+  return { ...wl, updatedAt: Date.now() };
+}
+
+async function write(map: WishlistMap, emit = true): Promise<void> {
   cache = map;
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
@@ -33,6 +53,14 @@ async function write(map: WishlistMap): Promise<void> {
     console.warn('[wishlists] write error:', e);
   }
   listeners.forEach((l) => l());
+  if (emit) notifyLocalChange('wishlists');
+}
+
+/** Reemplaza todas las wishlists (usado por la sync). No re-emite al bus. */
+export async function replaceAllFromSync(wishlists: Wishlist[]): Promise<void> {
+  const map: WishlistMap = {};
+  for (const wl of wishlists) map[wl.id] = wl;
+  await write(map, false);
 }
 
 /** Key used for entries inside a wishlist's `cards` map. */
@@ -54,11 +82,13 @@ export async function getWishlist(id: string): Promise<Wishlist | null> {
 
 export async function createWishlist(name: string): Promise<Wishlist> {
   const map = { ...(await read()) };
+  const now = Date.now();
   const wl: Wishlist = {
-    id: `wl_${Date.now()}`,
+    id: `wl_${now}`,
     name: name.trim() || 'Wishlist',
     cards: {},
-    createdAt: Date.now(),
+    createdAt: now,
+    updatedAt: now,
   };
   map[wl.id] = wl;
   await write(map);
@@ -68,7 +98,7 @@ export async function createWishlist(name: string): Promise<Wishlist> {
 export async function renameWishlist(id: string, name: string): Promise<void> {
   const map = { ...(await read()) };
   if (!map[id]) return;
-  map[id] = { ...map[id], name: name.trim() };
+  map[id] = touch({ ...map[id], name: name.trim() });
   await write(map);
 }
 
@@ -82,7 +112,7 @@ export async function deleteWishlist(id: string): Promise<void> {
 export async function wipeWishlist(id: string): Promise<void> {
   const map = { ...(await read()) };
   if (!map[id]) return;
-  map[id] = { ...map[id], cards: {} };
+  map[id] = touch({ ...map[id], cards: {} });
   await write(map);
 }
 
@@ -99,7 +129,7 @@ export async function addCard(
   if (!map[wishlistId]) return;
   const key = wishCardKey(code, suffix);
   const existing = map[wishlistId].cards[key];
-  map[wishlistId] = {
+  map[wishlistId] = touch({
     ...map[wishlistId],
     cards: {
       ...map[wishlistId].cards,
@@ -110,7 +140,7 @@ export async function addCard(
         addedAt: existing?.addedAt ?? Date.now(),
       },
     },
-  };
+  });
   await write(map);
 }
 
@@ -119,7 +149,7 @@ export async function removeCard(wishlistId: string, code: string, suffix: strin
   if (!map[wishlistId]) return;
   const cards = { ...map[wishlistId].cards };
   delete cards[wishCardKey(code, suffix)];
-  map[wishlistId] = { ...map[wishlistId], cards };
+  map[wishlistId] = touch({ ...map[wishlistId], cards });
   await write(map);
 }
 
@@ -138,15 +168,15 @@ export async function adjustNeeded(
   if (next <= 0) {
     const cards = { ...map[wishlistId].cards };
     delete cards[key];
-    map[wishlistId] = { ...map[wishlistId], cards };
+    map[wishlistId] = touch({ ...map[wishlistId], cards });
   } else {
-    map[wishlistId] = {
+    map[wishlistId] = touch({
       ...map[wishlistId],
       cards: {
         ...map[wishlistId].cards,
         [key]: { ...(map[wishlistId].cards[key] ?? { code, suffix, addedAt: Date.now() }), needed: next },
       },
-    };
+    });
   }
   await write(map);
 }

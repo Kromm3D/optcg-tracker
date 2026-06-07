@@ -29,6 +29,10 @@ import { DeckDetailScreen } from './src/screens/DeckDetailScreen';
 import { ScanScreen }            from './src/screens/ScanScreen';
 import { SettingsScreen }        from './src/screens/SettingsScreen';
 import { WishlistDetailScreen }  from './src/screens/WishlistDetailScreen';
+import { AccountScreen }         from './src/screens/AccountScreen';
+import { FriendsScreen }         from './src/screens/FriendsScreen';
+import { FriendProfileScreen }   from './src/screens/FriendProfileScreen';
+import './src/lib/sync'; // side-effect: arranca el listener de login/logout para la sync
 import { Icon }             from './src/components/Icon';
 import { colors, fonts }    from './src/theme';
 import { useT }             from './src/lib/i18n';
@@ -187,6 +191,9 @@ export default function App() {
           <Stack.Screen name="Scan"           component={ScanScreen}           options={{ headerShown: false, presentation: 'modal' }} />
           <Stack.Screen name="Settings"       component={SettingsScreen}       options={{ headerShown: false }} />
           <Stack.Screen name="WishlistDetail" component={WishlistDetailScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Account"        component={AccountScreen}        options={{ headerShown: false }} />
+          <Stack.Screen name="Friends"        component={FriendsScreen}        options={{ headerShown: false }} />
+          <Stack.Screen name="FriendProfile"  component={FriendProfileScreen}  options={{ headerShown: false }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

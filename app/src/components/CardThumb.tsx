@@ -10,7 +10,42 @@ import { Icon } from './Icon';
 import { colors, fonts } from '../theme';
 import { resolveImageUris } from '../lib/images';
 import { adjust, getCount, getCountSync, subscribe as subColl } from '../lib/collection';
+import {
+  getOwnedFor,
+  getVariantOwned,
+  getOwnedVariantCount,
+  subscribe as subOwned,
+} from '../lib/ownedAggregate';
 import type { Card, Variant } from '../types';
+
+// Hook: cantidad poseída en vivo, suscrito a ownedAggregate. Solo provoca
+// re-render cuando *su* contador cambia (bail-out con Object.is), así editar
+// una carta no re-renderiza las demás miniaturas montadas.
+function useLiveOwned(code: string | undefined, suffix: string | undefined): number {
+  const [n, setN] = useState(() =>
+    code == null ? 0 : suffix != null ? getVariantOwned(code, suffix) : getOwnedFor(code),
+  );
+  useEffect(() => {
+    if (code == null) return;
+    const compute = () => (suffix != null ? getVariantOwned(code, suffix) : getOwnedFor(code));
+    const update = () => setN((prev) => { const v = compute(); return prev === v ? prev : v; });
+    update();
+    return subOwned(update);
+  }, [code, suffix]);
+  return n;
+}
+
+// Hook: nº de variantes distintas poseídas (para el indicador "varias artes").
+function useLiveVariantCount(code: string | undefined): number {
+  const [n, setN] = useState(() => (code == null ? 0 : getOwnedVariantCount(code)));
+  useEffect(() => {
+    if (code == null) return;
+    const update = () => setN((prev) => { const v = getOwnedVariantCount(code); return prev === v ? prev : v; });
+    update();
+    return subOwned(update);
+  }, [code]);
+  return n;
+}
 
 // Rareza → rango numérico (mayor = más rara). SEC en la cima.
 const RARITY_RANK: Record<string, number> = {
@@ -50,11 +85,21 @@ type Props = {
   qty?: number;
   /** Muestra el footer (nombre + código) incluso en modo quickActions. */
   showFooter?: boolean;
+  /** Modo "en vivo": deriva la cantidad poseída de ownedAggregate suscribiéndose
+   *  internamente. Evita que el padre re-renderice toda la lista al editar una
+   *  copia. Sustituye a `owned`/`qty`/`multiArt`/`dimmed` cuando está presente. */
+  liveCode?: string;
+  /** Con liveCode: cuenta la variante concreta (true) o el total del código (false). */
+  livePerVariant?: boolean;
+  /** Con liveCode: muestra el indicador de varias artes cuando posees ≥2 variantes. */
+  liveMultiArt?: boolean;
+  /** Con liveCode: aplica el overlay gris cuando la cantidad en vivo es 0. */
+  dimWhenEmpty?: boolean;
   onPress?: () => void;
   onLongPress?: () => void;
 };
 
-export function CardThumb({
+function CardThumbBase({
   card,
   owned = 0,
   compact = false,
@@ -68,14 +113,28 @@ export function CardThumb({
   onAdjust,
   qty = 0,
   showFooter = false,
+  liveCode,
+  livePerVariant = false,
+  liveMultiArt = false,
+  dimWhenEmpty = false,
   onPress,
   onLongPress,
 }: Props) {
+  // Cantidad en vivo (cuando liveCode está presente). En modo per-variante usamos
+  // el suffix de la variante explícita (siempre provista en ese modo).
+  const liveOwned = useLiveOwned(liveCode, livePerVariant ? (variant?.suffix ?? '') : undefined);
+  const liveVarCount = useLiveVariantCount(liveCode != null && liveMultiArt ? liveCode : undefined);
+
+  const live = liveCode != null;
+  const effectiveOwned = live ? liveOwned : owned;
+  const effectiveMultiArt = live ? liveMultiArt && liveVarCount >= 2 : multiArt;
+  const effectiveDimmed = live ? dimWhenEmpty && effectiveOwned === 0 : dimmed;
+  const displayQty = live ? effectiveOwned : qty;
   // Variante mostrada encima: la más rara que se posea; en quickActions siempre
   // se usa variants[0] (o el override explícito) para no cambiar el control +/-.
   const v = (() => {
     if (variant) return variant;
-    if (!quickActions && owned > 0) {
+    if (!quickActions && effectiveOwned > 0) {
       const ownedVars = card.variants
         .filter(vv => getCountSync(card.code, vv.suffix) > 0)
         .sort((a, b) => rarityRank(b.rarity) - rarityRank(a.rarity));
@@ -86,25 +145,36 @@ export function CardThumb({
   const { uri: primaryUrl, fallback: fallbackUrl } = v ? resolveImageUris(v) : { uri: '', fallback: undefined };
 
   // Capas fantasma: min(owned, MAX_STACK) - 1, nunca en quickActions ni compacto
-  const ghostCount = quickActions ? 0 : Math.max(0, Math.min(owned, MAX_STACK) - 1);
+  const ghostCount = quickActions ? 0 : Math.max(0, Math.min(effectiveOwned, MAX_STACK) - 1);
 
   // Hold-repeat: mantener pulsado → incrementar/decrementar continuamente.
   const holdRef = useRef<{ t?: ReturnType<typeof setTimeout>; i?: ReturnType<typeof setInterval> }>({});
+  const stopHold = () => {
+    clearTimeout(holdRef.current.t);
+    clearInterval(holdRef.current.i);
+    holdRef.current.t = undefined;
+    holdRef.current.i = undefined;
+  };
   const startHold = (action: () => void) => {
+    // Idempotente: limpia cualquier timer pendiente antes de programar uno nuevo.
+    // Sin esto, pulsar muy rápido encadena onPressIn sin su onPressOut, dejando
+    // setTimeout/​setInterval huérfanos que disparan adjust() para siempre
+    // (cientos de copias añadidas solas). Ver bug "buffering" al añadir rápido.
+    stopHold();
     action();
     holdRef.current.t = setTimeout(() => {
       holdRef.current.i = setInterval(action, 80);
     }, 350);
   };
-  const stopHold = () => {
-    clearTimeout(holdRef.current.t);
-    clearInterval(holdRef.current.i);
-  };
+  // Limpia timers si la miniatura se desmonta a mitad de un hold (p.ej. al
+  // hacer scroll con removeClippedSubviews) — evita un interval huérfano.
+  useEffect(() => stopHold, []);
 
-  // Para los +/- locales necesitamos el count de la primera variante
+  // Para los +/- locales (modo quickActions sin liveCode) necesitamos el count
+  // de la variante mostrada. En modo live, el badge usa effectiveOwned.
   const [vCount, setVCount] = useState(0);
   useEffect(() => {
-    if (!quickActions || !v) return;
+    if (live || !quickActions || !v) return;
     let alive = true;
     getCount(card.code, v.suffix).then((n) => alive && setVCount(n));
     const unsub = subColl(() => {
@@ -157,13 +227,13 @@ export function CardThumb({
           )}
 
           {/* Dim overlay for missing cards. */}
-          {dimmed && <View style={styles.dimOverlay} />}
+          {effectiveDimmed && <View style={styles.dimOverlay} />}
 
           {/* Selection ring (multi-select mode). */}
           {selected && <View style={styles.selOverlay} />}
 
           {/* Multi-art indicator: owned across several art versions. */}
-          {multiArt && (
+          {effectiveMultiArt && (
             <View style={styles.multiArt}>
               <Icon name="layers" size={12} color="#fff" stroke={2} />
             </View>
@@ -200,16 +270,16 @@ export function CardThumb({
       </View>
 
       {/* Count bubble — bleeds out of top-right corner of the image. */}
-      {!quickActions && owned > 0 && (
+      {!quickActions && effectiveOwned > 0 && (
         <View style={styles.countBubble}>
-          <Text style={styles.countBubbleText}>×{owned}</Text>
+          <Text style={styles.countBubbleText}>×{effectiveOwned}</Text>
         </View>
       )}
 
-      {/* quickActions counter bubble */}
-      {quickActions && vCount > 0 && (
+      {/* quickActions counter bubble: en modo live usa effectiveOwned, si no vCount */}
+      {quickActions && (live ? effectiveOwned : vCount) > 0 && (
         <View style={styles.countBubble}>
-          <Text style={styles.countBubbleText}>×{vCount}</Text>
+          <Text style={styles.countBubbleText}>×{live ? effectiveOwned : vCount}</Text>
         </View>
       )}
 
@@ -232,7 +302,7 @@ export function CardThumb({
           >
             <Text style={styles.inlineSign}>−</Text>
           </Pressable>
-          <Text style={styles.inlineQty}>{qty}</Text>
+          <Text style={styles.inlineQty}>{displayQty}</Text>
           <Pressable
             style={styles.inlineBtn}
             onPress={(e: any) => { (e as any).stopPropagation?.(); onAdjust(+1); }}
@@ -244,6 +314,11 @@ export function CardThumb({
     </Pressable>
   );
 }
+
+// Memoizada: en un grid, editar una carta solo re-renderiza esa miniatura.
+// Las props son refs estables (card/variant del índice) + callbacks estables
+// desde renderItem, así el resto de celdas no se re-renderizan.
+export const CardThumb = React.memo(CardThumbBase);
 
 const styles = StyleSheet.create({
   wrap: { width: '100%', overflow: 'visible' },

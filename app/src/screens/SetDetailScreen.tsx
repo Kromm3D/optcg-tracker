@@ -2,7 +2,7 @@
 // contadores por rareza) y grid con +/- inline. Estilo inspirado en la
 // referencia comercial.
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -19,21 +19,96 @@ import { CardThumb } from '../components/CardThumb';
 import { ColumnsToggle } from '../components/ColumnsToggle';
 import { SetBadge } from '../components/SetBadge';
 import { ProgressRing } from '../components/ProgressRing';
-import { summarizeSet, rarityBuckets } from '../lib/setsStats';
+import { summarizeSet, rarityBuckets, setEntries } from '../lib/setsStats';
 import { setNameFor, setDateFor } from '../lib/setMeta';
 import { getVariantOwned, subscribe as subOwned } from '../lib/ownedAggregate';
 import { getSettings, setShowAlternateArt, subscribe as subSettings } from '../lib/settings';
 import { useCardGrid } from '../lib/useCardGrid';
-import { expandSetEntries } from '../lib/cardDisplay';
+import { expandSetEntries, type DisplayEntry } from '../lib/cardDisplay';
 import { BulkActionBar, type BulkTarget } from '../components/BulkActionBar';
 import { BulkTargetSheet, type BulkSelection } from '../components/BulkTargetSheet';
 import { SetWishlistSheet } from '../components/SetWishlistSheet';
 import { useT } from '../lib/i18n';
+import type { Card, Variant } from '../types';
+
+// Cantidad poseída en vivo dentro de un set, suscrita a ownedAggregate con
+// bail-out (prev === next): editar una carta re-renderiza solo su celda.
+// - Parallels ON  → cuenta la variante mostrada.
+// - Parallels OFF → suma todas las variantes impresas en este set (mismo
+//   criterio que la vista colapsada) y marca "varias artes" si posees ≥2.
+function useLiveSetOwned(
+  code: string,
+  inSet: Variant[],
+  showAlt: boolean,
+  shownSuffix: string,
+): { owned: number; multiArt: boolean } {
+  const computeOwned = useCallback(
+    () =>
+      showAlt
+        ? getVariantOwned(code, shownSuffix)
+        : inSet.reduce((n, v) => n + getVariantOwned(code, v.suffix), 0),
+    [code, inSet, showAlt, shownSuffix],
+  );
+  const computeMulti = useCallback(
+    () => !showAlt && inSet.filter((v) => getVariantOwned(code, v.suffix) > 0).length >= 2,
+    [code, inSet, showAlt],
+  );
+
+  const [owned, setOwned] = useState(computeOwned);
+  const [multiArt, setMultiArt] = useState(computeMulti);
+  useEffect(() => {
+    const update = () => {
+      setOwned((prev) => { const v = computeOwned(); return prev === v ? prev : v; });
+      setMultiArt((prev) => { const v = computeMulti(); return prev === v ? prev : v; });
+    };
+    update();
+    return subOwned(update);
+  }, [computeOwned, computeMulti]);
+  return { owned, multiArt };
+}
+
+type SetGridCardProps = {
+  card: Card;
+  variant: Variant;
+  itemKey: string;
+  inSet: Variant[];
+  showAlt: boolean;
+  compact: boolean;
+  cardWidth: number;
+  selectMode: boolean;
+  selected: boolean;
+  onPress: (card: Card, variant: Variant, key: string) => void;
+};
+
+// Celda memoizada del grid del set. La cantidad poseída se deriva en vivo, así
+// un +/- sobre una carta re-renderiza únicamente su miniatura.
+const SetGridCard = React.memo(function SetGridCard({
+  card, variant, itemKey, inSet, showAlt, compact, cardWidth, selectMode, selected, onPress,
+}: SetGridCardProps) {
+  const { owned, multiArt } = useLiveSetOwned(card.code, inSet, showAlt, variant?.suffix ?? '');
+  return (
+    <CardThumb
+      card={card}
+      variant={variant}
+      owned={owned}
+      dimmed={owned === 0}
+      multiArt={multiArt}
+      selected={selectMode && selected}
+      compact={compact}
+      quickActions={!selectMode}
+      onPress={() => onPress(card, variant, itemKey)}
+      width={cardWidth}
+    />
+  );
+});
 
 export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
   const { setCode } = route.params;
   const t = useT();
-  const [, force] = useState(0);
+  // headerTick solo refresca la cabecera (anillo % + tira de rarezas). El grid
+  // NO depende de él: las celdas se actualizan solas vía useLiveSetOwned, así un
+  // +/- no re-renderiza toda la cuadrícula.
+  const [headerTick, setHeaderTick] = useState(0);
   const [columns, setColumnsState] = useState(getSettings().columns);
   const { cardWidth, gap, hPadding } = useCardGrid(columns);
   const insets = useSafeAreaInsets();
@@ -45,24 +120,52 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
   const [showSetWL, setShowSetWL] = useState(false);
   const selectedList = Object.values(selected);
 
-  const toggleSel = (key: string, code: string, suffix: string) =>
+  const toggleSel = useCallback((key: string, code: string, suffix: string) =>
     setSelected((prev) => {
       const next = { ...prev };
       if (next[key]) delete next[key];
       else next[key] = { code, suffix };
       return next;
-    });
+    }), []);
   const clearSel = () => { setSelected({}); setSelectMode(false); };
 
-  useEffect(() => subOwned(() => force((n) => n + 1)), []);
-  useEffect(() => subSettings(() => { setColumnsState(getSettings().columns); force((n) => n + 1); }), []);
+  useEffect(() => {
+    const unsubO = subOwned(() => setHeaderTick((n) => n + 1));
+    const unsubS = subSettings(() => { setColumnsState(getSettings().columns); setHeaderTick((n) => n + 1); });
+    return () => { unsubO(); unsubS(); };
+  }, []);
 
-  const summary = summarizeSet(setCode);
-  const rarities = useMemo(() => rarityBuckets(setCode), [setCode]);
+  // Cabecera: recomputa con cada +/- (headerTick), pero es O(nº cartas del set).
+  const summary = useMemo(() => summarizeSet(setCode), [setCode, headerTick]);
+  const rarities = useMemo(() => rarityBuckets(setCode), [setCode, headerTick]);
   const date = setDateFor(setCode);
 
   const showAlt = getSettings().showAlternateArt;
-  const entries = useMemo(() => expandSetEntries(summary.entries), [setCode, showAlt]);
+  // Grid: derivado de setEntries (array cacheado y estable) → no se recalcula al
+  // editar copias, solo al cambiar de set o alternar parallels.
+  const entries = useMemo(() => expandSetEntries(setEntries(setCode)), [setCode, showAlt]);
+
+  const compact = columns >= 4;
+  const handlePressCard = useCallback((card: Card, variant: Variant, key: string) => {
+    if (selectMode) toggleSel(key, card.code, variant?.suffix ?? '');
+    else navigation.navigate('Detail', { code: card.code, suffix: variant?.suffix });
+  }, [selectMode, toggleSel, navigation]);
+
+  const extraData = useMemo(() => ({ selectMode, selected }), [selectMode, selected]);
+  const renderItem = useCallback(({ item }: { item: DisplayEntry }) => (
+    <SetGridCard
+      card={item.card}
+      variant={item.variant}
+      itemKey={item.key}
+      inSet={item.setVariants ?? item.card.variants}
+      showAlt={showAlt}
+      compact={compact}
+      cardWidth={cardWidth}
+      selectMode={selectMode}
+      selected={!!selected[item.key]}
+      onPress={handlePressCard}
+    />
+  ), [showAlt, compact, cardWidth, selectMode, selected, handlePressCard]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -132,35 +235,14 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
         data={entries}
         keyExtractor={(e) => e.key}
         numColumns={columns}
-        extraData={{ selectMode, selected }}
+        extraData={extraData}
         columnWrapperStyle={{ gap, paddingHorizontal: hPadding }}
         contentContainerStyle={{ paddingTop: 4, paddingBottom: selectMode ? 180 : 30, gap: gap + 6 }}
-        renderItem={({ item }) => {
-          // Collapsed (parallels off) counts every in-set variant; expanded
-          // counts just the shown variant.
-          const inSet = item.setVariants ?? item.card.variants;
-          const ownedCount = showAlt
-            ? getVariantOwned(item.card.code, item.variant.suffix)
-            : inSet.reduce((n, v) => n + getVariantOwned(item.card.code, v.suffix), 0);
-          return (
-            <CardThumb
-              card={item.card}
-              variant={item.variant}
-              owned={ownedCount}
-              dimmed={ownedCount === 0}
-              multiArt={!showAlt && inSet.filter((v) => getVariantOwned(item.card.code, v.suffix) > 0).length >= 2}
-              selected={selectMode && !!selected[item.key]}
-              compact={columns >= 4}
-              quickActions={!selectMode}
-              onPress={() =>
-                selectMode
-                  ? toggleSel(item.key, item.card.code, item.variant.suffix)
-                  : navigation.navigate('Detail', { code: item.card.code, suffix: item.variant?.suffix })
-              }
-              width={cardWidth}
-            />
-          );
-        }}
+        initialNumToRender={15}
+        maxToRenderPerBatch={12}
+        windowSize={5}
+        removeClippedSubviews
+        renderItem={renderItem}
       />
 
       {selectMode && (

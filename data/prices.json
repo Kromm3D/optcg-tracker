@@ -1,0 +1,548 @@
+{
+  "generated": "2026-06-06T00:00:00Z",
+  "source": "cardmarket.com/en/OnePiece (browser scrape)",
+  "currency": "EUR",
+  "fetched": 90,
+  "prices": {
+    "EB03-001": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nefeltari-Vivi-EB03-001-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-001_p1": {
+      "low": 5,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nefeltari-Vivi-EB03-001-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-002": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Ain-EB03-002-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-003": {
+      "low": 0.1,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Uta-EB03-003-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-003_p1": {
+      "low": 5.95,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Uta-EB03-003-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-003_p2": {
+      "low": 179.99,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Uta-EB03-003-V3",
+      "updated": "2026-06-06"
+    },
+    "EB03-004": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Carina-EB03-004-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-005": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Sugar-EB03-005-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-006": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nami-EB03-006-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-007": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Baccarat-EB03-007-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-008": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Hibari-EB03-008-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-008_p1": {
+      "low": 7,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Hibari-EB03-008-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-009": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Makino-EB03-009-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-010": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Monet-EB03-010-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-011": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/But-If-We-Ever-See-Each-Other-Again-Will-You-Call-Me-Your-Shipmate-EB03-011-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-012": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Otama-EB03-012-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-013": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Carrot-EB03-013-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-013_p1": {
+      "low": 4.99,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Carrot-EB03-013-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-014": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Kuina-EB03-014-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-015": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Camie-EB03-015-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-016": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Kouzuki-Hiyori-EB03-016-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-017": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Jewelry-Bonney-EB03-017-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-018": {
+      "low": 0.15,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Tashigi-EB03-018-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-018_p1": {
+      "low": 4.5,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Tashigi-EB03-018-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-018_p2": {
+      "low": 68,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Tashigi-EB03-018-V3",
+      "updated": "2026-06-06"
+    },
+    "EB03-019": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Wanda-EB03-019-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-020": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/There-You-Are-Sore-Loser-EB03-020-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-021": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Alvida-EB03-021-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-022": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Isuka-EB03-022-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-023": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Kaya-EB03-023-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-024": {
+      "low": 2.5,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nefeltari-Vivi-EB03-024-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-024_p1": {
+      "low": 17.5,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nefeltari-Vivi-EB03-024-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-024_p2": {
+      "low": 349.94,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nefeltari-Vivi-EB03-024-V3",
+      "updated": "2026-06-06"
+    },
+    "EB03-025": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Hina-EB03-025-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-025_p1": {
+      "low": 2.5,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Hina-EB03-025-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-026": {
+      "low": 0.15,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Boa-Hancock-EB03-026-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-026_p1": {
+      "low": 15,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Boa-Hancock-EB03-026-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-026_p2": {
+      "low": 460,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Boa-Hancock-EB03-026-V3",
+      "updated": "2026-06-06"
+    },
+    "EB03-027": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Marguerite-EB03-027-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-028": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Yu-EB03-028-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-029": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Insolent-Fool-Stand-Down-EB03-029-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-030": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Viola-EB03-030-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-031": {
+      "low": 0.89,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Vinsmoke-Reiju-EB03-031-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-031_p1": {
+      "low": 7,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Vinsmoke-Reiju-EB03-031-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-031_p2": {
+      "low": 100,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Vinsmoke-Reiju-EB03-031-V3",
+      "updated": "2026-06-06"
+    },
+    "EB03-032": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Charlotte-Flampe-EB03-032-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-033": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Charlotte-Brulee-EB03-033-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-034": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Charlotte-Linlin-EB03-034-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-034_p1": {
+      "low": 8,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Charlotte-Linlin-EB03-034-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-035": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Charlotte-Pudding-EB03-035-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-036": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Baby-5-EB03-036-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-037": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Lim-EB03-037-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-038": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Thanks-for-the-Treat-EB03-038-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-039": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Ulti-EB03-039-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-040": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Kalifa-EB03-040-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-041": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Kujyaku-EB03-041-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-041_p1": {
+      "low": 7,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Kujyaku-EB03-041-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-042": {
+      "low": 0.5,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Koala-EB03-042-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-042_p1": {
+      "low": 5,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Koala-EB03-042-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-042_p2": {
+      "low": 90,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Koala-EB03-042-V3",
+      "updated": "2026-06-06"
+    },
+    "EB03-043": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Stussy-EB03-043-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-044": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Black-Maria-EB03-044-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-045": {
+      "low": 0.34,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Perona-EB03-045-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-045_p1": {
+      "low": 9,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Perona-EB03-045-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-045_p2": {
+      "low": 184.99,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Perona-EB03-045-V3",
+      "updated": "2026-06-06"
+    },
+    "EB03-046": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Miss-DoublefingerZala-EB03-046-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-047": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/MissValentineMikita-EB03-047-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-048": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Rebecca-EB03-048-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-049": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/I-Knew-You-People-Were-Behind-This-EB03-049-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-050": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Conis-EB03-050-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-051": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Charlotte-Smoothie-EB03-051-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-052": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Shirahoshi-EB03-052-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-053": {
+      "low": 15.99,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nami-EB03-053-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-053_p1": {
+      "low": 34.5,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nami-EB03-053-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-053_p2": {
+      "low": 680,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nami-EB03-053-V3",
+      "updated": "2026-06-06"
+    },
+    "EB03-054": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nico-Robin-EB03-054-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-055": {
+      "low": 9.5,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nico-Robin-EB03-055-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-055_p1": {
+      "low": 25,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nico-Robin-EB03-055-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-055_p2": {
+      "low": 344.99,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nico-Robin-EB03-055-V3",
+      "updated": "2026-06-06"
+    },
+    "EB03-056": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Belo-Betty-EB03-056-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-057": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Yamato-EB03-057-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-057_p1": {
+      "low": 9.99,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Yamato-EB03-057-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-058": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Lilith-EB03-058-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-059": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/S-Snake-EB03-059-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-060": {
+      "low": 0.02,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Will-You-Be-My-Servant-EB03-060-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-061": {
+      "low": 4,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Uta-EB03-061-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-061_p1": {
+      "low": 10,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Uta-EB03-061-V2",
+      "updated": "2026-06-06"
+    },
+    "EB03-061_p2": {
+      "low": 600,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Uta-EB03-061-V3",
+      "updated": "2026-06-06"
+    },
+    "EB03-062": {
+      "low": 12,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Trafalgar-Law-EB03-062-V1",
+      "updated": "2026-06-06"
+    },
+    "EB03-062_p1": {
+      "low": 17,
+      "trend": null,
+      "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Trafalgar-Law-EB03-062-V2",
+      "updated": "2026-06-06"
+    }
+  }
+}

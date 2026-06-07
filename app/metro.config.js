@@ -1,12 +1,11 @@
 ﻿const { getDefaultConfig } = require('expo/metro-config');
-const path = require('path');
 
 const config = getDefaultConfig(__dirname);
 
-// Allow Metro to serve the card database from the repo root (../data)
-config.watchFolders = [path.resolve(__dirname, '..')];
-
-// Treat .onnx as a binary asset so Metro doesn't try to parse it as JS
-config.resolver.assetExts = [...config.resolver.assetExts, 'onnx'];
+// NOTE: el índice de cartas vive dentro de app/src/data/ y se importa como
+// `./index.json` desde loadIndex.ts — ya no hace falta extender watchFolders a
+// la raíz del repo. Hacerlo provocaba que Metro rastreara carpetas pesadas de
+// la raíz (p.ej. venv_optcg/, el virtualenv de Python) y reventara en
+// createFileMap-fork.js.
 
 module.exports = config;

@@ -1,18 +1,22 @@
 // Carga el índice de cartas desde el fichero JSON generado por
-// scripts/build_card_database.py en la raíz del repo.
-//
-// Metro permite resolver este import gracias a `watchFolders` en
-// metro.config.js, que extiende la raíz un nivel por encima de app/.
+// scripts/build_card_database.py y copiado a app/src/data/index.json.
+// El fichero vive dentro de app/, así que Metro lo resuelve sin necesidad
+// de extender watchFolders a la raíz del repo.
 
 import type { Card, IndexPayload } from '../types';
 
 // @ts-ignore — avoids tsc inferring the huge literal type of the JSON.
 import rawJson from './index.json';
-// @ts-ignore
+// @ts-ignore — same: skip inferring the huge literal type of the hash map.
 import rawHashes from './hashes.json';
 
 const raw = rawJson as IndexPayload;
-const hashData = rawHashes as { hash_algo: string; hash_size: number; hash_count: number; hashes: Record<string, string> };
+const hashData = rawHashes as {
+  hash_algo: string;
+  hash_size: number;
+  hash_count: number;
+  hashes: Record<string, string>;
+};
 
 /** Orden canónico de variantes: base > _p1 > _p2 > … > _r1 > _r2 > … > resto. */
 function variantSortKey(suffix: string): [number, number] {
@@ -50,5 +54,5 @@ export const INDEX_META = {
 /** release_order por código de set (0 = más reciente). */
 export const SET_META: Record<string, { release_order: number }> = raw.set_meta ?? {};
 
-/** Pre-computed perceptual hashes: variantKey -> 16-char hex string. */
+/** Hashes perceptuales pre-calculados: variantKey ("OP01-001"/"OP01-001_p1") → hex (192). */
 export const PHASHES: Record<string, string> = hashData.hashes;

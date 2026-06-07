@@ -14,6 +14,9 @@ export type RootStackParamList = {
   Scan: undefined;
   Settings: undefined;
   WishlistDetail: { wishlistId: string };
+  Account: undefined;
+  Friends: undefined;
+  FriendProfile: { userId: string; username: string };
 };
 
 export type TabParamList = {
@@ -49,3 +52,6 @@ export type DeckDetailScreenProps = NativeStackScreenProps<RootStackParamList, '
 export type ScanScreenProps = NativeStackScreenProps<RootStackParamList, 'Scan'>;
 export type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 export type WishlistDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'WishlistDetail'>;
+export type AccountScreenProps = NativeStackScreenProps<RootStackParamList, 'Account'>;
+export type FriendsScreenProps = NativeStackScreenProps<RootStackParamList, 'Friends'>;
+export type FriendProfileScreenProps = NativeStackScreenProps<RootStackParamList, 'FriendProfile'>;
