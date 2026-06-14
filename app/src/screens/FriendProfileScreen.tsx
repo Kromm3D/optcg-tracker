@@ -15,9 +15,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { FriendProfileScreenProps } from '../navigation';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
 import { CachedImage } from '../components/CachedImage';
+import { SegmentedControl } from '../components/SegmentedControl';
 import { useT } from '../lib/i18n';
 import { CARDS } from '../data/loadIndex';
 import { resolveImageUris } from '../lib/images';
@@ -52,21 +53,24 @@ export function FriendProfileScreen({ route, navigation }: FriendProfileScreenPr
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={HIT_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.done')}
+          style={({ pressed }) => [s.backBtn, pressed && pressedStyle]}
+        >
           <Icon name="chevL" size={22} color={colors.text} />
         </Pressable>
         <Text style={s.headerTitle}>{username}</Text>
       </View>
 
       <View style={s.tabs}>
-        {TABS.map(({ key, labelKey }) => {
-          const on = tab === key;
-          return (
-            <Pressable key={key} style={[s.tab, on && s.tabOn]} onPress={() => setTab(key)}>
-              <Text style={[s.tabText, on && s.tabTextOn]}>{t(labelKey)}</Text>
-            </Pressable>
-          );
-        })}
+        <SegmentedControl<Tab>
+          segments={TABS.map(({ key, labelKey }) => ({ key, label: t(labelKey) }))}
+          value={tab}
+          onChange={setTab}
+        />
       </View>
 
       <ScrollView contentContainerStyle={s.scroll}>
@@ -181,19 +185,7 @@ const s = StyleSheet.create({
   },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 26, fontFamily: fonts.display, color: colors.text, letterSpacing: -0.4 },
-  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: spacing.lg, paddingBottom: 8 },
-  tab: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: radii.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  tabOn: { backgroundColor: colors.accentDim, borderColor: colors.accent },
-  tabText: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.textMut },
-  tabTextOn: { color: colors.accent },
+  tabs: { paddingHorizontal: spacing.lg, paddingBottom: 8 },
   scroll: { padding: spacing.lg, paddingBottom: 60 },
   summary: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.textMut, marginBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -224,7 +216,7 @@ const s = StyleSheet.create({
   },
   listTitle: { fontSize: 15, fontFamily: fonts.uiSemi, color: colors.text },
   deckThumb: { width: 34, height: 48, borderRadius: radii.sm },
-  desc: { fontSize: 12, fontFamily: fonts.ui, color: colors.textDim },
+  desc: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut },
   empty: { alignItems: 'center', gap: 6, paddingVertical: 50 },
   emptyTitle: { fontSize: 17, fontFamily: fonts.display, color: colors.text },
 });

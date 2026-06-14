@@ -16,12 +16,13 @@
 import { computeAhash, findTopKMatches, HASH_BITS, type CropRect } from './phash';
 import { PHASHES } from '../data/loadIndex';
 
-// 768-bit RGB hash (3 × 16×16). Allow ~7.8 % of bits to differ.
-// Good conditions (rectified crop, decent light): expect 0–30 bits off.
-// Poor conditions (glare, sleeve, slight residual skew): 30–60 bits off.
-// Exported so it can be recalibrated after on-device testing (B-05 noted 100–120
-// may be needed in the wild).
-export const AHASH_MAX_DISTANCE = 60;
+// 768-bit RGB hash (3 × 16×16) over the cropped ARTWORK (all 768 bits informative).
+// Off-device discrimination: median nearest-neighbour distance between different
+// cards is ~262 bits; only ~1 % of pairs are closer than 100 bits. Setting the
+// threshold at 150 (≈ 19.5 %) gives camera-quality scans wide berth to match while
+// staying well below the discrimination floor. Never device-tested — recalibrate if
+// false positives appear (lower it) or good scans miss (raise toward 200).
+export const AHASH_MAX_DISTANCE = 150;
 
 /** Min normalised score for a candidate to count (mirror of the distance floor). */
 const AHASH_MIN_SCORE = 1 - AHASH_MAX_DISTANCE / HASH_BITS;

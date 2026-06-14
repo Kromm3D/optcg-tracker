@@ -644,15 +644,74 @@ def download_all(index, workers=8):
 # ---------------------------------------------------------------------------
 HASH_SIZE = 16  # 16×16 = 256 bits → mucho más discriminante que 8×8
 
+# Recorte de la ILUSTRACIÓN (fracciones de la carta: [x, y, w, h]). Hasheamos solo
+# la parte superior del arte — por encima de la marca "SAMPLE" y del cuadro de
+# efecto (texto dependiente del idioma). Al ser fraccional, es independiente de la
+# resolución y se aplica igual a la imagen de referencia y al recorte rectificado
+# del escáner. DEBE coincidir con ART_CROP en app/src/lib/phash.ts.
+ART_CROP = (0.05, 0.05, 0.90, 0.38)
+
+# Sin máscara de filas: la banda "SAMPLE" cae por debajo de ART_CROP, así que los
+# 768 bits son informativos. Se conserva la maquinaria de enmascarado (conjunto
+# vacío) por si un recorte futuro volviera a incluir la marca de agua. DEBE
+# coincidir con MASK_ROWS en app/src/lib/phash.ts.
+MASK_ROWS = range(0, 0)  # vacío
+_MASKED_INDEX = frozenset(r * HASH_SIZE + c for r in MASK_ROWS for c in range(HASH_SIZE))
+
+# Filtro de remuestreo equivalente al de imagehash.average_hash (LANCZOS).
+_LANCZOS = getattr(getattr(PILImage, "Resampling", PILImage), "LANCZOS")
+
+
+def _crop_art(channel):
+    """Recorta el canal a la región ART_CROP (fracciones de su tamaño)."""
+    w, h = channel.size
+    x, y, cw, ch = ART_CROP
+    box = (round(x * w), round(y * h), round((x + cw) * w), round((y + ch) * h))
+    return channel.crop(box)
+
+
+def _channel_average_hash_masked(channel):
+    """average_hash de un canal 'L' recortado a la ilustración (ART_CROP).
+
+    Replica imagehash.average_hash(hash_size=16) — resize LANCZOS, umbral por la
+    media, empaquetado row-major de 4 bits por nibble (MSB primero) — pero primero
+    recorta a ART_CROP, normaliza min-max a [0,255] (invariante a brillo) y calcula
+    la media sólo sobre las celdas NO enmascaradas, forzando a 0 los bits
+    enmascarados (conjunto vacío con el recorte actual).
+    Coincide bit a bit con channelHash() en app/src/lib/phash.ts."""
+    small = _crop_art(channel).convert("L").resize((HASH_SIZE, HASH_SIZE), _LANCZOS)
+    pixels = list(small.tobytes())  # row-major, 256 valores (1 byte/píxel en 'L')
+
+    # Normalización min-max por canal: hace el hash invariante a brillo/contraste.
+    # DEBE coincidir con normalizeChannel() en app/src/lib/phash.ts.
+    mn, mx = min(pixels), max(pixels)
+    if mx > mn:
+        pixels = [round((p - mn) * 255 / (mx - mn)) for p in pixels]
+
+    kept = [p for i, p in enumerate(pixels) if i not in _MASKED_INDEX]
+    mean = sum(kept) / len(kept)
+
+    bits = [
+        0 if i in _MASKED_INDEX else (1 if p > mean else 0)
+        for i, p in enumerate(pixels)
+    ]
+    out = []
+    for i in range(0, len(bits), 4):
+        nibble = (bits[i] << 3) | (bits[i + 1] << 2) | (bits[i + 2] << 1) | bits[i + 3]
+        out.append(format(nibble, "x"))
+    return "".join(out)
+
+
 def rgb_average_hash(img):
     """24-bit average hash: un average_hash por plano R, G, B concatenado (R‖G‖B).
 
     Discrimina cartas con el mismo layout pero distinto color — el punto débil del
-    ahash en escala de grises. Debe coincidir bit a bit con computeAhash() en
-    app/src/lib/phash.ts (mismo orden de canales y empaquetado de imagehash)."""
+    ahash en escala de grises. La banda central (sello SAMPLE) va enmascarada.
+    Debe coincidir bit a bit con computeAhash() en app/src/lib/phash.ts (mismo
+    orden de canales, empaquetado y máscara)."""
     rgb = img.convert("RGB")
     return "".join(
-        str(imagehash.average_hash(channel, hash_size=HASH_SIZE))
+        _channel_average_hash_masked(channel)
         for channel in rgb.split()  # (R, G, B) como imágenes 'L'
     )
 
@@ -664,7 +723,7 @@ def build_hashes(index):
         print("    Saltando generación de hashes.")
         return
 
-    print(f"[FASE 3] Generando hashes perceptuales (rgb_average_hash, 3×{HASH_SIZE}×{HASH_SIZE})")
+    print(f"[FASE 3] Generando hashes perceptuales (rgb_average_hash_artcrop_norm {ART_CROP}, 3×{HASH_SIZE}×{HASH_SIZE})")
     hashes = {}
     skipped = 0
     for code, entry in index.items():
@@ -686,8 +745,10 @@ def build_hashes(index):
                 print(f"    [!] {code}{v['suffix']}: {e}")
 
     payload = {
-        "hash_algo": "rgb_average_hash",
+        "hash_algo": "rgb_average_hash_artcrop_norm",
         "hash_size": HASH_SIZE,
+        "art_crop": list(ART_CROP),
+        "masked_rows": list(MASK_ROWS),
         "hash_count": len(hashes),
         "hashes": hashes,
     }

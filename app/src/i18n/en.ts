@@ -67,6 +67,8 @@ export const en = {
   'wl.variantBody': 'Select the version and quantity you need.',
   'wl.normal': 'Normal',
   'wl.confirm': 'Confirm',
+  'wl.default': 'Default',
+  'wl.cardsCount': '{n} cards',
 
   // Wishlist detail
   'wl.entries': 'entries',
@@ -133,6 +135,14 @@ export const en = {
   'scan.pickVariant': 'Which version?',
   'scan.pickVariantHint': 'A few cards share this art — tap the one you scanned.',
   'scan.cancel': 'Cancel',
+  'scan.statusAim': 'Aim',
+  'scan.statusReady': 'Ready',
+  'scan.modeTap': 'TAP',
+  'scan.modeAuto': 'AUTO',
+  'scan.added': 'Added',
+  'scan.undo': 'Undo',
+  'scan.manualCode': 'Code',
+  'scan.noMatch': 'Card not recognized',
 
   // Sets
   'sets.title': 'Sets',
@@ -185,12 +195,44 @@ export const en = {
   'setwl.none': 'Nothing missing — you own them all!',
   'setwl.added': 'Added {n} entries to the wishlist.',
 
+  // Browse
+  'browse.searchPlaceholder': 'yellow luffy, red OP01-001…',
+  'browse.cardsCount': '{n} cards',
+  'browse.parallels': 'Parallels',
+
+  // Card detail
+  'detail.cost': 'Cost',
+  'detail.power': 'Power',
+  'detail.counter': 'Counter',
+  'detail.effect': 'Effect',
+  'detail.variants': 'Variants',
+  'detail.priceCardmarket': 'View price on Cardmarket',
+  'detail.notFound': 'Card not found',
+
+  // Set detail
+  'set.cardsCount': '{n} cards',
+  'set.ownedOfTotal': '{owned} / {total} cards',
+  'set.parallels': 'Parallels',
+
   // Filters
   'filter.title': 'Filters',
   'filter.variant': 'Variant / Parallel',
   'filter.clear': 'Clear',
+  'filter.clearAll': 'Clear all',
   'filter.apply': 'Apply',
   'filter.sort': 'Sort',
+  'filter.searchIn': 'Search in {section}…',
+  'filter.noMatches': 'No matches.',
+  'filter.color': 'Color',
+  'filter.cardType': 'Card type',
+  'filter.cost': 'Cost',
+  'filter.power': 'Power',
+  'filter.counter': 'Counter',
+  'filter.counterNone': 'None',
+  'filter.attribute': 'Attribute',
+  'filter.rarity': 'Rarity',
+  'filter.set': 'Set',
+  'filter.family': 'Family / Trait',
   'sort.code': 'Code',
   'sort.set': 'Set',
   'sort.rarity': 'Rarity',
@@ -214,6 +256,11 @@ export const en = {
   'common.save': 'Save',
   'common.retry': 'Retry',
   'common.loading': 'Loading…',
+  'common.delete': 'Delete',
+
+  // Decks (delete)
+  'decks.deleteTitle': 'Delete deck',
+  'decks.deleteConfirm': 'Delete "{name}"? This cannot be undone.',
 
   // Account / cloud sync
   'account.title': 'Account',

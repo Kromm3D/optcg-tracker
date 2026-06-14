@@ -14,8 +14,9 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, pressedSurface } from '../theme';
 import { Icon } from './Icon';
+import { Counter } from './Counter';
 import { useT } from '../lib/i18n';
 import type { BulkTarget } from './BulkActionBar';
 import { adjust } from '../lib/collection';
@@ -139,15 +140,7 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
           {/* Quantity stepper */}
           <View style={s.qtyRow}>
             <Text style={s.qtyLabel}>{t('bulk.quantity')}</Text>
-            <View style={s.stepper}>
-              <Pressable style={s.stepBtn} onPress={() => setQty((q) => Math.max(1, q - 1))}>
-                <Text style={s.stepSign}>−</Text>
-              </Pressable>
-              <Text style={s.stepVal}>{qty}</Text>
-              <Pressable style={s.stepBtn} onPress={() => setQty((q) => q + 1)}>
-                <Text style={s.stepSign}>+</Text>
-              </Pressable>
-            </View>
+            <Counter value={qty} onAdjust={(d) => setQty((q) => Math.max(1, q + d))} min={1} label={t('bulk.quantity')} />
           </View>
 
           {/* Choose individually toggle */}
@@ -176,15 +169,13 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
                       <Text style={s.indivName} numberOfLines={1}>{card?.name ?? sel.code}</Text>
                       <Text style={s.indivCode}>{sel.code}{sel.suffix || ''}</Text>
                     </View>
-                    <View style={s.stepper}>
-                      <Pressable style={s.stepBtn} onPress={() => setIndivQty(key, -1)}>
-                        <Text style={s.stepSign}>−</Text>
-                      </Pressable>
-                      <Text style={s.stepVal}>{itemQty}</Text>
-                      <Pressable style={s.stepBtn} onPress={() => setIndivQty(key, +1)}>
-                        <Text style={s.stepSign}>+</Text>
-                      </Pressable>
-                    </View>
+                    <Counter
+                      value={itemQty}
+                      onAdjust={(d) => setIndivQty(key, d)}
+                      min={1}
+                      size="sm"
+                      label={sel.code}
+                    />
                   </View>
                 );
               })}
@@ -201,8 +192,11 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
                 decks.map((d) => (
                   <Pressable
                     key={d.id}
-                    style={[s.item, pickedId === d.id && s.itemOn]}
+                    style={({ pressed }) => [s.item, pickedId === d.id && s.itemOn, pressed && pressedSurface]}
                     onPress={() => setPickedId(d.id)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: pickedId === d.id }}
+                    accessibilityLabel={d.name}
                   >
                     <Icon name="layers" size={18} color={colors.accent} />
                     <Text style={s.itemName}>{d.name}</Text>
@@ -212,8 +206,11 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
                 wishlists.map((w) => (
                   <Pressable
                     key={w.id}
-                    style={[s.item, pickedId === w.id && s.itemOn]}
+                    style={({ pressed }) => [s.item, pickedId === w.id && s.itemOn, pressed && pressedSurface]}
                     onPress={() => setPickedId(w.id)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: pickedId === w.id }}
+                    accessibilityLabel={w.name}
                   >
                     <Icon name="heart" size={18} color={colors.accent} />
                     <Text style={s.itemName}>{w.name}</Text>
@@ -233,15 +230,22 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
                     onSubmitEditing={handleCreateWL}
                   />
                   <Pressable
-                    style={[s.smallBtn, !newName.trim() && { opacity: 0.4 }]}
+                    style={({ pressed }) => [s.smallBtn, !newName.trim() && { opacity: 0.4 }, pressed && pressedStyle]}
                     onPress={handleCreateWL}
                     disabled={!newName.trim()}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('wl.create')}
                   >
                     <Text style={s.smallBtnText}>{t('wl.create')}</Text>
                   </Pressable>
                 </View>
               ) : (
-                <Pressable style={s.newRow} onPress={() => setCreating(true)}>
+                <Pressable
+                  style={({ pressed }) => [s.newRow, pressed && pressedStyle]}
+                  onPress={() => setCreating(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('wl.newWishlist')}
+                >
                   <Icon name="plus" size={16} color={colors.accent} />
                   <Text style={s.newRowText}>{t('wl.newWishlist')}</Text>
                 </Pressable>
@@ -250,9 +254,11 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
           )}
 
           <Pressable
-            style={[s.confirmBtn, !canConfirm && { opacity: 0.4 }]}
+            style={({ pressed }) => [s.confirmBtn, !canConfirm && { opacity: 0.4 }, pressed && pressedStyle]}
             onPress={apply}
             disabled={!canConfirm}
+            accessibilityRole="button"
+            accessibilityLabel={t('bulk.confirmAdd', { target: targetLabel })}
           >
             <Text style={s.confirmText}>{t('bulk.confirmAdd', { target: targetLabel })}</Text>
           </Pressable>

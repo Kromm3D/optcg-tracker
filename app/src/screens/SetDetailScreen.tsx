@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SetDetailScreenProps } from '../navigation';
-import { colors, fonts } from '../theme';
+import { colors, fonts, pressedStyle, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
 import { CardThumb } from '../components/CardThumb';
 import { ColumnsToggle } from '../components/ColumnsToggle';
@@ -171,7 +171,12 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {/* Header */}
       <View style={[s.header, { paddingTop: insets.top + 10 }]}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.done')}
+          style={({ pressed }) => [s.backBtn, pressed && pressedStyle]}
+        >
           <Icon name="chevL" size={20} color={colors.text} />
         </Pressable>
         <SetBadge setCode={setCode} size={52} />
@@ -202,26 +207,35 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
 
       {/* Controles del grid */}
       <View style={s.gridControls}>
-        <Text style={s.gridMeta}>{summary.cards.length} cartas</Text>
+        <Text style={s.gridMeta}>{t('set.cardsCount', { n: summary.cards.length })}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Pressable
-            style={[s.ctrlChip, showAlt && s.ctrlChipOn]}
+            style={({ pressed }) => [s.ctrlChip, showAlt && s.ctrlChipOn, pressed && pressedStyle]}
             onPress={() => setShowAlternateArt(!showAlt)}
+            accessibilityRole="button"
+            accessibilityLabel={t('set.parallels')}
+            accessibilityState={{ selected: showAlt }}
           >
             <Text style={[s.ctrlChipText, showAlt && s.ctrlChipTextOn]}>
-              Parallels
+              {t('set.parallels')}
             </Text>
           </Pressable>
           <Pressable
-            style={[s.ctrlBtn, showSetWL && s.ctrlBtnOn]}
+            style={({ pressed }) => [s.ctrlBtn, showSetWL && s.ctrlBtnOn, pressed && pressedStyle]}
             onPress={() => setShowSetWL(true)}
+            hitSlop={HIT_SLOP}
+            accessibilityRole="button"
             accessibilityLabel={t('setwl.addMissing')}
           >
             <Icon name="heart" size={16} color={colors.accent} />
           </Pressable>
           <Pressable
-            style={[s.ctrlBtn, selectMode && s.ctrlBtnOn]}
+            style={({ pressed }) => [s.ctrlBtn, selectMode && s.ctrlBtnOn, pressed && pressedStyle]}
             onPress={() => { if (selectMode) clearSel(); else setSelectMode(true); }}
+            hitSlop={HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel={t('bulk.select')}
+            accessibilityState={{ selected: selectMode }}
           >
             <Icon name={selectMode ? 'close' : 'check'} size={16} color={selectMode ? colors.accent : colors.textMut} />
           </Pressable>
@@ -297,7 +311,7 @@ const s = StyleSheet.create({
   rarityRow: { alignItems: 'center', gap: 18, paddingHorizontal: 4 },
   rarityCol: { alignItems: 'center', minWidth: 36 },
   rarityVal: { fontSize: 15, fontFamily: fonts.display, color: colors.text },
-  rarityLab: { fontSize: 11, fontFamily: fonts.uiSemi, color: colors.textDim, marginTop: 3 },
+  rarityLab: { fontSize: 11, fontFamily: fonts.uiSemi, color: colors.textMut, marginTop: 3 },
   gridControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -305,7 +319,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
-  gridMeta: { color: colors.textDim, fontFamily: fonts.ui, fontSize: 13 },
+  gridMeta: { color: colors.textMut, fontFamily: fonts.ui, fontSize: 13 },
   ctrlBtn: {
     width: 30, height: 30, borderRadius: 15,
     backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border,

@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, pressedSurface } from '../theme';
 import { Icon } from './Icon';
 import { useT } from '../lib/i18n';
 import {
@@ -67,15 +67,21 @@ export function WishlistPickerModal({ visible, onClose, onSelect }: Props) {
 
           <ScrollView style={s.list} contentContainerStyle={{ gap: 8 }}>
             {wishlists.map((wl) => (
-              <Pressable key={wl.id} style={s.item} onPress={() => onSelect(wl)}>
+              <Pressable
+                key={wl.id}
+                style={({ pressed }) => [s.item, pressed && pressedSurface]}
+                onPress={() => onSelect(wl)}
+                accessibilityRole="button"
+                accessibilityLabel={wl.name}
+              >
                 <Icon name="binder" size={18} color={colors.accent} />
                 <View style={{ flex: 1 }}>
                   <Text style={s.itemName}>{wl.name}</Text>
                   <Text style={s.itemMeta}>
-                    {Object.keys(wl.cards).length} cards
+                    {t('wl.cardsCount', { n: Object.keys(wl.cards).length })}
                   </Text>
                 </View>
-                <Icon name="chevR" size={16} color={colors.textDim} />
+                <Icon name="chevR" size={16} color={colors.textMut} />
               </Pressable>
             ))}
 
@@ -97,20 +103,32 @@ export function WishlistPickerModal({ visible, onClose, onSelect }: Props) {
                 onSubmitEditing={handleCreate}
               />
               <View style={s.createBtns}>
-                <Pressable style={s.cancelBtn} onPress={() => setCreating(false)}>
+                <Pressable
+                  style={({ pressed }) => [s.cancelBtn, pressed && pressedStyle]}
+                  onPress={() => setCreating(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.cancel')}
+                >
                   <Text style={s.cancelText}>{t('common.cancel')}</Text>
                 </Pressable>
                 <Pressable
-                  style={[s.confirmBtn, !newName.trim() && { opacity: 0.4 }]}
+                  style={({ pressed }) => [s.confirmBtn, !newName.trim() && { opacity: 0.4 }, pressed && pressedStyle]}
                   onPress={handleCreate}
                   disabled={!newName.trim()}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('wl.create')}
                 >
                   <Text style={s.confirmText}>{t('wl.create')}</Text>
                 </Pressable>
               </View>
             </View>
           ) : (
-            <Pressable style={s.newBtn} onPress={() => setCreating(true)}>
+            <Pressable
+              style={({ pressed }) => [s.newBtn, pressed && pressedStyle]}
+              onPress={() => setCreating(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t('wl.newWishlist')}
+            >
               <Icon name="plus" size={18} color="#fff" />
               <Text style={s.newBtnText}>{t('wl.newWishlist')}</Text>
             </Pressable>

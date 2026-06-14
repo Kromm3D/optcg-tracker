@@ -17,7 +17,7 @@ import { Icon } from './Icon';
 import { resolveImageUris } from '../lib/images';
 import { captureAndShare } from '../lib/shareImage';
 import { useT } from '../lib/i18n';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
 import type { Card } from '../types';
 
 export type ShareSheetProps = {
@@ -39,7 +39,13 @@ export function ShareSheet({ visible, onClose, title, cards, qtyFor }: ShareShee
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <View style={[s.header, { paddingTop: insets.top + 12 }]}>
           <Text style={s.headerTitle}>{title}</Text>
-          <Pressable onPress={onClose}>
+          <Pressable
+            onPress={onClose}
+            hitSlop={HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.done')}
+            style={({ pressed }) => pressed && pressedStyle}
+          >
             <Icon name="close" size={22} color={colors.text} />
           </Pressable>
         </View>
@@ -48,7 +54,7 @@ export function ShareSheet({ visible, onClose, title, cards, qtyFor }: ShareShee
           {/* Capture target */}
           <View ref={captureRef} collapsable={false} style={s.capture}>
             <Text style={s.captureTitle}>{title}</Text>
-            <Text style={s.captureSub}>{cards.length} cards</Text>
+            <Text style={s.captureSub}>{t('wl.cardsCount', { n: cards.length })}</Text>
             <View style={s.grid}>
               {cards.map((c) => {
                 const v = c.variants[0];
@@ -76,8 +82,10 @@ export function ShareSheet({ visible, onClose, title, cards, qtyFor }: ShareShee
         </ScrollView>
 
         <Pressable
-          style={[s.shareBtn, { paddingBottom: insets.bottom + 14 }]}
+          style={({ pressed }) => [s.shareBtn, { paddingBottom: insets.bottom + 14 }, pressed && pressedStyle]}
           onPress={() => captureAndShare(captureRef)}
+          accessibilityRole="button"
+          accessibilityLabel={t('binder.shareImage')}
         >
           <Icon name="external" size={18} color="#fff" />
           <Text style={s.shareBtnText}>{t('binder.shareImage')}</Text>

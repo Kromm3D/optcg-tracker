@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CachedImage } from './CachedImage';
-import { colors, fonts, radii, spacing } from '../theme';
-import { Icon } from './Icon';
+import { colors, fonts, radii, spacing, pressedStyle } from '../theme';
+import { Counter } from './Counter';
 import { useT } from '../lib/i18n';
 import { resolveImageUris } from '../lib/images';
 import {
@@ -112,28 +112,31 @@ export function VariantPickerSheet({ visible, onClose, card, wishlistId }: Props
                       <View style={s.chip}><Text style={s.chipTxt}>{v.rarity}</Text></View>
                       {isDefault && (
                         <View style={[s.chip, s.chipDefault]}>
-                          <Text style={[s.chipTxt, { color: colors.accent }]}>Default</Text>
+                          <Text style={[s.chipTxt, { color: colors.accent }]}>{t('wl.default')}</Text>
                         </View>
                       )}
                     </View>
                   </View>
 
                   {/* Stepper */}
-                  <View style={s.stepper}>
-                    <Pressable style={s.stepBtn} onPress={() => handleChange(v.suffix, -1)}>
-                      <Text style={s.stepSign}>−</Text>
-                    </Pressable>
-                    <Text style={[s.stepVal, count > 0 && s.stepValActive]}>{count}</Text>
-                    <Pressable style={s.stepBtn} onPress={() => handleChange(v.suffix, +1)}>
-                      <Text style={s.stepSign}>+</Text>
-                    </Pressable>
-                  </View>
+                  <Counter
+                    value={count}
+                    onAdjust={(d) => handleChange(v.suffix, d)}
+                    min={0}
+                    size="sm"
+                    label={`${card.code} ${v.label}`}
+                  />
                 </View>
               );
             })}
           </ScrollView>
 
-          <Pressable style={s.confirmBtn} onPress={handleConfirm}>
+          <Pressable
+            style={({ pressed }) => [s.confirmBtn, pressed && pressedStyle]}
+            onPress={handleConfirm}
+            accessibilityRole="button"
+            accessibilityLabel={t('wl.confirm')}
+          >
             <Text style={s.confirmText}>{t('wl.confirm')}</Text>
           </Pressable>
         </Pressable>

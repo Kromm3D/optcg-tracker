@@ -5,8 +5,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SettingsScreenProps } from '../navigation';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
+import { Counter } from '../components/Counter';
 import { useT } from '../lib/i18n';
 import {
   getSettings,
@@ -58,7 +59,13 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={HIT_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.done')}
+          style={({ pressed }) => [s.backBtn, pressed && pressedStyle]}
+        >
           <Icon name="chevL" size={22} color={colors.text} />
         </Pressable>
         <Text style={s.headerTitle}>{t('settings.title')}</Text>
@@ -66,10 +73,15 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 
       <ScrollView contentContainerStyle={s.scroll}>
         {/* Account & cloud sync */}
-        <Pressable style={s.accountRow} onPress={() => navigation.navigate('Account')}>
+        <Pressable
+          style={({ pressed }) => [s.accountRow, pressed && pressedStyle]}
+          onPress={() => navigation.navigate('Account')}
+          accessibilityRole="button"
+          accessibilityLabel={t('account.openSettings')}
+        >
           <Icon name="user" size={18} color={colors.accent} />
           <Text style={s.accountRowText}>{t('account.openSettings')}</Text>
-          <Icon name="chevR" size={18} color={colors.textDim} />
+          <Icon name="chevR" size={18} color={colors.textMut} />
         </Pressable>
 
         {/* Language */}
@@ -80,8 +92,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             return (
               <Pressable
                 key={lang}
-                style={[s.chip, on && s.chipOn]}
+                style={({ pressed }) => [s.chip, on && s.chipOn, pressed && pressedStyle]}
                 onPress={() => setLanguage(lang)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={lang === 'en' ? t('settings.english') : t('settings.spanish')}
               >
                 <Text style={[s.chipText, on && s.chipTextOn]}>
                   {lang === 'en' ? t('settings.english') : t('settings.spanish')}
@@ -97,6 +112,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         <Pressable
           style={[s.toggle, settings.countParallels && s.toggleOn]}
           onPress={() => setCountParallels(!settings.countParallels)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: settings.countParallels }}
+          accessibilityLabel={t('settings.countParallels')}
         >
           <View style={[s.knob, settings.countParallels && s.knobOn]} />
         </Pressable>
@@ -105,19 +123,13 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         <Text style={s.sectionLabel}>{t('settings.playsetSize')}</Text>
         <Text style={s.desc}>{t('settings.playsetSizeDesc')}</Text>
         <View style={s.stepper}>
-          <Pressable
-            style={s.stepBtn}
-            onPress={() => setPlaysetSize(settings.playsetSize - 1)}
-          >
-            <Text style={s.stepSign}>−</Text>
-          </Pressable>
-          <Text style={s.stepVal}>{settings.playsetSize}</Text>
-          <Pressable
-            style={s.stepBtn}
-            onPress={() => setPlaysetSize(settings.playsetSize + 1)}
-          >
-            <Text style={s.stepSign}>+</Text>
-          </Pressable>
+          <Counter
+            value={settings.playsetSize}
+            onAdjust={(d) => setPlaysetSize(settings.playsetSize + d)}
+            min={1}
+            max={4}
+            label={t('settings.playsetSize')}
+          />
         </View>
 
         {/* Show alternate art */}
@@ -126,6 +138,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         <Pressable
           style={[s.toggle, settings.showAlternateArt && s.toggleOn]}
           onPress={() => setShowAlternateArt(!settings.showAlternateArt)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: settings.showAlternateArt }}
+          accessibilityLabel={t('settings.showAltArt')}
         >
           <View style={[s.knob, settings.showAlternateArt && s.knobOn]} />
         </Pressable>
@@ -138,8 +153,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             return (
               <Pressable
                 key={v}
-                style={[s.chip, on && s.chipOn]}
+                style={({ pressed }) => [s.chip, on && s.chipOn, pressed && pressedStyle]}
                 onPress={() => setWishlistDefaultVariant(v)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={v === 'normal' ? t('settings.wishlistNormal') : t('settings.wishlistParallel')}
               >
                 <Text style={[s.chipText, on && s.chipTextOn]}>
                   {v === 'normal' ? t('settings.wishlistNormal') : t('settings.wishlistParallel')}
@@ -157,8 +175,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             return (
               <Pressable
                 key={n}
-                style={[s.chip, on && s.chipOn]}
+                style={({ pressed }) => [s.chip, on && s.chipOn, pressed && pressedStyle]}
                 onPress={() => setColumns(n)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={`${n}`}
               >
                 <Text style={[s.chipText, on && s.chipTextOn]}>{n}</Text>
               </Pressable>
@@ -189,7 +210,12 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
                 .replace('{done}', String(dlProgress.done))
                 .replace('{total}', String(dlProgress.total))}
             </Text>
-            <Pressable style={s.btnOutline} onPress={cancelDownload}>
+            <Pressable
+              style={({ pressed }) => [s.btnOutline, pressed && pressedStyle]}
+              onPress={cancelDownload}
+              accessibilityRole="button"
+              accessibilityLabel={t('offline.cancel')}
+            >
               <Text style={s.btnOutlineText}>{t('offline.cancel')}</Text>
             </Pressable>
           </View>
@@ -199,12 +225,22 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               <Icon name="check" size={16} color={colors.accent} />
               <Text style={s.offlineDoneText}>{t('offline.doneDesc')}</Text>
             </View>
-            <Pressable style={s.btnOutline} onPress={startDownload}>
+            <Pressable
+              style={({ pressed }) => [s.btnOutline, pressed && pressedStyle]}
+              onPress={startDownload}
+              accessibilityRole="button"
+              accessibilityLabel={t('offline.redownload')}
+            >
               <Text style={s.btnOutlineText}>{t('offline.redownload')}</Text>
             </Pressable>
           </View>
         ) : (
-          <Pressable style={s.btnPrimary} onPress={startDownload}>
+          <Pressable
+            style={({ pressed }) => [s.btnPrimary, pressed && pressedStyle]}
+            onPress={startDownload}
+            accessibilityRole="button"
+            accessibilityLabel={t('offline.download')}
+          >
             <Text style={s.btnPrimaryText}>{t('offline.download')}</Text>
           </Pressable>
         )}
@@ -232,7 +268,7 @@ const s = StyleSheet.create({
     letterSpacing: 0.6,
     marginTop: 14,
   },
-  desc: { fontSize: 12, fontFamily: fonts.ui, color: colors.textDim, marginTop: -4 },
+  desc: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut, marginTop: -4 },
   row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   chip: {
     paddingHorizontal: 16,

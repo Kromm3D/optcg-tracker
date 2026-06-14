@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { FriendsScreenProps } from '../navigation';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, pressedSurface, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
 import { useT } from '../lib/i18n';
 import {
@@ -66,7 +66,13 @@ export function FriendsScreen({ navigation }: FriendsScreenProps) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={HIT_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.done')}
+          style={({ pressed }) => [s.backBtn, pressed && pressedStyle]}
+        >
           <Icon name="chevL" size={22} color={colors.text} />
         </Pressable>
         <Text style={s.headerTitle}>{t('friends.title')}</Text>
@@ -75,7 +81,7 @@ export function FriendsScreen({ navigation }: FriendsScreenProps) {
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         {/* Search */}
         <View style={s.searchBox}>
-          <Icon name="search" size={18} color={colors.textDim} />
+          <Icon name="search" size={18} color={colors.textMut} />
           <TextInput
             style={s.searchInput}
             value={query}
@@ -99,7 +105,12 @@ export function FriendsScreen({ navigation }: FriendsScreenProps) {
                   {knownIds.has(p.id) ? (
                     <Text style={s.mutedTag}>{t('friends.requested')}</Text>
                   ) : (
-                    <Pressable style={s.btnSmall} onPress={() => void sendRequest(p.id)}>
+                    <Pressable
+                      style={({ pressed }) => [s.btnSmall, pressed && pressedStyle]}
+                      onPress={() => void sendRequest(p.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('friends.add')}
+                    >
                       <Text style={s.btnSmallText}>{t('friends.add')}</Text>
                     </Pressable>
                   )}
@@ -118,10 +129,20 @@ export function FriendsScreen({ navigation }: FriendsScreenProps) {
                 <View key={e.id} style={s.rowCard}>
                   <Avatar name={e.profile.username} />
                   <Text style={s.name}>{e.profile.username}</Text>
-                  <Pressable style={s.btnSmall} onPress={() => void acceptRequest(e.id)}>
+                  <Pressable
+                    style={({ pressed }) => [s.btnSmall, pressed && pressedStyle]}
+                    onPress={() => void acceptRequest(e.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('friends.accept')}
+                  >
                     <Text style={s.btnSmallText}>{t('friends.accept')}</Text>
                   </Pressable>
-                  <Pressable style={s.btnGhost} onPress={() => void removeEdge(e.id)}>
+                  <Pressable
+                    style={({ pressed }) => [s.btnGhost, pressed && pressedStyle]}
+                    onPress={() => void removeEdge(e.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('friends.decline')}
+                  >
                     <Text style={s.btnGhostText}>{t('friends.decline')}</Text>
                   </Pressable>
                 </View>
@@ -138,7 +159,12 @@ export function FriendsScreen({ navigation }: FriendsScreenProps) {
                 <Avatar name={e.profile.username} />
                 <Text style={s.name}>{e.profile.username}</Text>
                 <Text style={s.mutedTag}>{t('friends.requested')}</Text>
-                <Pressable style={s.btnGhost} onPress={() => void removeEdge(e.id)}>
+                <Pressable
+                  style={({ pressed }) => [s.btnGhost, pressed && pressedStyle]}
+                  onPress={() => void removeEdge(e.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('friends.cancel')}
+                >
                   <Text style={s.btnGhostText}>{t('friends.cancel')}</Text>
                 </Pressable>
               </View>
@@ -158,14 +184,16 @@ export function FriendsScreen({ navigation }: FriendsScreenProps) {
             {friends.map((e: FriendEdge) => (
               <Pressable
                 key={e.id}
-                style={s.rowCard}
+                style={({ pressed }) => [s.rowCard, pressed && pressedSurface]}
                 onPress={() =>
                   navigation.navigate('FriendProfile', { userId: e.profile.id, username: e.profile.username })
                 }
+                accessibilityRole="button"
+                accessibilityLabel={e.profile.username}
               >
                 <Avatar name={e.profile.username} />
                 <Text style={s.name}>{e.profile.username}</Text>
-                <Icon name="chevR" size={18} color={colors.textDim} />
+                <Icon name="chevR" size={18} color={colors.textMut} />
               </Pressable>
             ))}
           </View>
@@ -214,7 +242,7 @@ const s = StyleSheet.create({
     letterSpacing: 0.6,
     marginTop: 16,
   },
-  desc: { fontSize: 12, fontFamily: fonts.ui, color: colors.textDim },
+  desc: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut },
   rowCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -236,7 +264,7 @@ const s = StyleSheet.create({
   },
   avatarText: { fontSize: 16, fontFamily: fonts.display, color: colors.accent },
   name: { flex: 1, fontSize: 15, fontFamily: fonts.uiSemi, color: colors.text },
-  mutedTag: { fontSize: 12, fontFamily: fonts.uiSemi, color: colors.textDim },
+  mutedTag: { fontSize: 12, fontFamily: fonts.uiSemi, color: colors.textMut },
   btnSmall: {
     paddingHorizontal: 14,
     paddingVertical: 7,

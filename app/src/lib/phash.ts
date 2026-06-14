@@ -1,8 +1,15 @@
-// Pure-JS average hash (ahash) computation + hamming-distance search.
-// Matches Python's imagehash.average_hash(img, hash_size=8).
+// Pure-JS 24-bit RGB average hash (ahash) computation + hamming-distance search.
+// Matches Python's rgb_average_hash in scripts/build_card_database.py.
 //
-// Pipeline: resize to 8×8 via expo-image-manipulator → base64 PNG →
-// decode pixels in JS → grayscale → mean threshold → 64-bit hash.
+// Pipeline: crop to the card ARTWORK (ART_CROP) → resize to 16×16 via
+// expo-image-manipulator → base64 PNG → decode pixels in JS → per-channel mean
+// threshold → 3×256-bit hash (R‖G‖B = 192 hex / 768 bits).
+//
+// We hash only the upper illustration, not the whole card: the bottom of an OPTCG
+// card is the language-dependent effect-text box + name plate (noise that hurts
+// discrimination), and the central "SAMPLE" watermark on official images falls
+// below ART_CROP, so it no longer needs masking. ART_CROP MUST stay in sync with
+// ART_CROP in scripts/build_card_database.py.
 
 import * as ImageManipulator from 'expo-image-manipulator';
 
@@ -225,15 +232,42 @@ function extractChannel(pixels: Uint8Array, channels: number, ch: number): numbe
   return out;
 }
 
+// Per-channel min-max normalization: stretch values to [0, 255] so the hash is
+// brightness/contrast-invariant. MUST match _channel_average_hash_masked() in
+// scripts/build_card_database.py (applied after resize, before mean threshold).
+function normalizeChannel(values: number[]): number[] {
+  let min = 255, max = 0;
+  for (const v of values) {
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  if (max === min) return values; // flat channel → all bits 0
+  const range = max - min;
+  return values.map((v) => Math.round(((v - min) * 255) / range));
+}
+
 // Average-hash one channel: mean threshold → hex string (same nibble packing as
 // imagehash.average_hash, so it matches the Python side bit-for-bit).
+// Cells inside the masked SAMPLE band (see MASKED_INDEX) are excluded from the
+// mean and forced to bit 0, so they contribute 0 to every hamming distance —
+// the same masking is applied in scripts/build_card_database.py.
 function channelHash(values: number[]): string {
-  const mean = values.reduce((s, v) => s + v, 0) / values.length;
+  values = normalizeChannel(values);
+  let sum = 0;
+  let count = 0;
+  for (let i = 0; i < values.length; i++) {
+    if (MASKED_INDEX.has(i)) continue;
+    sum += values[i];
+    count++;
+  }
+  const mean = sum / count;
+
   let hash = '';
   for (let i = 0; i < values.length; i += 4) {
     let nibble = 0;
     for (let b = 0; b < 4 && i + b < values.length; b++) {
-      if (values[i + b] > mean) nibble |= (1 << (3 - b));
+      const idx = i + b;
+      if (!MASKED_INDEX.has(idx) && values[idx] > mean) nibble |= (1 << (3 - b));
     }
     hash += nibble.toString(16);
   }
@@ -244,22 +278,76 @@ function channelHash(values: number[]): string {
 
 const HASH_SIZE = 16; // must match the value used when generating hashes.json
 
+// Pixel dimensions that NativeScanCamera's rectifyCardCrop always produces.
+// Used by computeAhash when no pixel `crop` is supplied (native path) so we can
+// compute the art-crop rect without an extra manipulateAsync round-trip to read
+// image dimensions. Must match RECTIFIED_W / RECTIFIED_H in lib/cardDetect.ts.
+const RECTIFIED_W = 350;
+const RECTIFIED_H = 490;
+
+// Artwork crop (fractions of the card W/H: [x, y, w, h]). We hash only the upper
+// illustration — above the "SAMPLE" watermark and the language-dependent effect
+// text. Resolution-independent, so it applies equally to the native rectified crop
+// and the focus-box photo region. MUST stay in sync with ART_CROP in
+// scripts/build_card_database.py.
+const ART_CROP: readonly [number, number, number, number] = [0.05, 0.05, 0.9, 0.38];
+
+// No row mask: the SAMPLE band falls below ART_CROP, so every one of the 768 bits
+// is informative. Kept as an (empty) set so the masking machinery in channelHash
+// stays intact should a future crop ever re-include the watermark band. MUST stay
+// in sync with MASK_ROWS in scripts/build_card_database.py.
+const MASK_ROWS: number[] = [];
+const MASKED_INDEX: Set<number> = new Set(
+  MASK_ROWS.flatMap((r) => Array.from({ length: HASH_SIZE }, (_, c) => r * HASH_SIZE + c)),
+);
+
 export interface CropRect { originX: number; originY: number; width: number; height: number; }
 
 /**
  * Compute a 24-bit colour-aware average hash from an image URI: three
  * per-channel 256-bit (16×16) average hashes concatenated as R‖G‖B → 192 hex.
- * Pass `crop` to hash only a sub-region (in the image's pixel coordinates).
+ * The image is first cropped to the card ARTWORK (ART_CROP, applied on top of the
+ * optional pixel `crop`) so only the illustration is hashed.
+ * Pass `crop` to first restrict to a sub-region (in the image's pixel coords) —
+ * used by the focus-box fallback; omit it when the URI is already a rectified card.
  * Matches Python: build_card_database.build_hashes (rgb_average_hash, size=16).
  */
 export async function computeAhash(imageUri: string, crop?: CropRect): Promise<string> {
-  const ops: ImageManipulator.Action[] = [];
-  if (crop) ops.push({ crop });
-  ops.push({ resize: { width: HASH_SIZE, height: HASH_SIZE } });
+  const [fx, fy, fw, fh] = ART_CROP;
+
+  let workingUri = imageUri;
+  let workingW: number;
+  let workingH: number;
+
+  if (crop) {
+    // Expo Go focus-box path: first crop the photo to the card region, then we know
+    // the pixel dimensions of the working image.
+    const base = await ImageManipulator.manipulateAsync(
+      imageUri,
+      [{ crop }],
+      { format: ImageManipulator.SaveFormat.PNG },
+    );
+    workingUri = base.uri;
+    workingW   = base.width;
+    workingH   = base.height;
+  } else {
+    // Native path: the URI is already a RECTIFIED_W × RECTIFIED_H PNG from
+    // rectifyCardCrop. Use the known constants to avoid an extra round-trip.
+    workingW = RECTIFIED_W;
+    workingH = RECTIFIED_H;
+  }
+
+  // Crop to the artwork region, then downscale to HASH_SIZE.
+  const artCrop: CropRect = {
+    originX: Math.round(fx * workingW),
+    originY: Math.round(fy * workingH),
+    width:   Math.round(fw * workingW),
+    height:  Math.round(fh * workingH),
+  };
 
   const result = await ImageManipulator.manipulateAsync(
-    imageUri,
-    ops,
+    workingUri,
+    [{ crop: artCrop }, { resize: { width: HASH_SIZE, height: HASH_SIZE } }],
     { format: ImageManipulator.SaveFormat.PNG, base64: true },
   );
 
@@ -334,5 +422,10 @@ export function findTopKMatches(
   return all.slice(0, k);
 }
 
-/** Hash length in bits for the current RGB average-hash format (3 × 16 × 16). */
+/**
+ * Number of *informative* bits in the RGB average-hash for score normalisation.
+ * The format is 3 × 16 × 16 = 768 bits. With the artwork crop the SAMPLE band is
+ * excluded by ART_CROP rather than masked, so MASK_ROWS is empty and all 768 bits
+ * carry signal. Effective bits = 768.
+ */
 export const HASH_BITS = 768;

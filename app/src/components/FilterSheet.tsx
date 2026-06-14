@@ -11,9 +11,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { colors, fonts, OPTCG_COLORS, colorOf } from '../theme';
+import { colors, fonts, OPTCG_COLORS, colorOf, pressedStyle, HIT_SLOP } from '../theme';
 import { Icon } from './Icon';
 import { ColorDot } from './ColorDot';
+import { useT, t as translate } from '../lib/i18n';
 import {
   FilterState,
   FilterOptions,
@@ -41,6 +42,7 @@ function getOpts(): FilterOptions {
 const SEARCH_THRESHOLD = 12;
 
 export function FilterSheet({ visible, filters, onChange, onClose }: Props) {
+  const t = useT();
   const opts = useMemo(getOpts, []);
   const count = activeCount(filters);
 
@@ -76,22 +78,33 @@ export function FilterSheet({ visible, filters, onChange, onClose }: Props) {
       transparent
       onRequestClose={onClose}
     >
-      <Pressable style={s.backdrop} onPress={onClose} />
+      <Pressable style={s.backdrop} onPress={onClose} accessibilityLabel={t('common.cancel')} />
       <View style={s.sheet}>
         <View style={s.handle} />
         <View style={s.header}>
-          <Text style={s.title}>Filters {count > 0 ? `(${count})` : ''}</Text>
-          <Pressable onPress={() => onChange(emptyFilters())} style={s.clearBtn}>
-            <Text style={s.clearText}>Clear all</Text>
+          <Text style={s.title}>{t('filter.title')} {count > 0 ? `(${count})` : ''}</Text>
+          <Pressable
+            onPress={() => onChange(emptyFilters())}
+            hitSlop={HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel={t('filter.clearAll')}
+            style={({ pressed }) => [s.clearBtn, pressed && pressedStyle]}
+          >
+            <Text style={s.clearText}>{t('filter.clearAll')}</Text>
           </Pressable>
-          <Pressable onPress={onClose} style={s.closeBtn}>
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.done')}
+            style={({ pressed }) => [s.closeBtn, pressed && pressedStyle]}
+          >
             <Icon name="close" size={20} color={colors.text} />
           </Pressable>
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 18, paddingBottom: 40 }}>
           <ChipSection
-            title="Color"
+            title={t('filter.color')}
             options={Object.keys(OPTCG_COLORS)}
             selected={filters.colors}
             onToggle={toggleColors}
@@ -100,21 +113,21 @@ export function FilterSheet({ visible, filters, onChange, onClose }: Props) {
           />
 
           <ChipSection
-            title="Card type"
+            title={t('filter.cardType')}
             options={opts.types}
             selected={filters.types}
             onToggle={toggleTypes}
           />
 
           <ChipSection
-            title="Cost"
+            title={t('filter.cost')}
             options={opts.costs.map(String)}
             selected={filters.costs}
             onToggle={toggleCosts}
           />
 
           <ChipSection
-            title="Power"
+            title={t('filter.power')}
             options={opts.powers.map(String)}
             renderLabel={(v) => (v === '0' ? '0' : `${Number(v) / 1000}k`)}
             selected={filters.powers}
@@ -122,22 +135,22 @@ export function FilterSheet({ visible, filters, onChange, onClose }: Props) {
           />
 
           <ChipSection
-            title="Counter"
+            title={t('filter.counter')}
             options={opts.counters.map(String)}
-            renderLabel={(v) => (v === '0' ? 'None' : v)}
+            renderLabel={(v) => (v === '0' ? translate('filter.counterNone') : v)}
             selected={filters.counters}
             onToggle={toggleCounters}
           />
 
           <ChipSection
-            title="Attribute"
+            title={t('filter.attribute')}
             options={opts.attributes}
             selected={filters.attributes}
             onToggle={toggleAttributes}
           />
 
           <ChipSection
-            title="Rarity"
+            title={t('filter.rarity')}
             options={opts.rarities}
             selected={filters.rarities}
             onToggle={toggleRarities}
@@ -145,7 +158,7 @@ export function FilterSheet({ visible, filters, onChange, onClose }: Props) {
 
           {opts.variants.length > 0 && (
             <ChipSection
-              title="Variant / Parallel"
+              title={t('filter.variant')}
               options={opts.variants}
               selected={filters.variants}
               onToggle={toggleVariants}
@@ -153,7 +166,7 @@ export function FilterSheet({ visible, filters, onChange, onClose }: Props) {
           )}
 
           <ChipSection
-            title="Set"
+            title={t('filter.set')}
             options={opts.sets}
             selected={filters.sets}
             onToggle={toggleSets}
@@ -165,7 +178,7 @@ export function FilterSheet({ visible, filters, onChange, onClose }: Props) {
 
           {opts.families.length > 0 && (
             <ChipSection
-              title="Family / Trait"
+              title={t('filter.family')}
               options={opts.families}
               selected={filters.families}
               onToggle={toggleFamilies}
@@ -175,8 +188,13 @@ export function FilterSheet({ visible, filters, onChange, onClose }: Props) {
         </ScrollView>
 
         <View style={s.footer}>
-          <Pressable onPress={onClose} style={s.applyBtn}>
-            <Text style={s.applyText}>Apply</Text>
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel={t('filter.apply')}
+            style={({ pressed }) => [s.applyBtn, pressed && pressedStyle]}
+          >
+            <Text style={s.applyText}>{t('filter.apply')}</Text>
           </Pressable>
         </View>
       </View>
@@ -244,13 +262,19 @@ const ChipSection = React.memo(function ChipSection({
           <TextInput
             value={q}
             onChangeText={setQ}
-            placeholder={`Buscar en ${title.toLowerCase()}...`}
+            placeholder={translate('filter.searchIn', { section: title.toLowerCase() })}
             placeholderTextColor={colors.textDim}
             style={s.searchInput}
           />
           {q ? (
-            <Pressable onPress={() => setQ('')}>
-              <Icon name="close" size={14} color={colors.textDim} />
+            <Pressable
+              onPress={() => setQ('')}
+              hitSlop={HIT_SLOP}
+              accessibilityRole="button"
+              accessibilityLabel={translate('common.cancel')}
+              style={({ pressed }) => pressed && pressedStyle}
+            >
+              <Icon name="close" size={14} color={colors.textMut} />
             </Pressable>
           ) : null}
         </View>
@@ -279,7 +303,7 @@ const ChipSection = React.memo(function ChipSection({
       </View>
 
       {q && visible.length === 0 ? (
-        <Text style={s.empty}>No matches.</Text>
+        <Text style={s.empty}>{translate('filter.noMatches')}</Text>
       ) : null}
     </View>
   );
@@ -302,7 +326,10 @@ const Chip = React.memo(function Chip({
   return (
     <Pressable
       onPress={onPress}
-      style={[
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
+      style={({ pressed }) => [
         s.chip,
         {
           borderColor: active ? tint : colors.border,
@@ -310,6 +337,7 @@ const Chip = React.memo(function Chip({
             ? (color ? color + '22' : colors.accentDim)
             : colors.surface,
         },
+        pressed && pressedStyle,
       ]}
     >
       {leading ? <View style={{ marginRight: 6 }}>{leading}</View> : null}
@@ -408,8 +436,9 @@ const s = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 11,
-    paddingVertical: 6,
+    minHeight: 36,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 99,
     borderWidth: 1,
   },

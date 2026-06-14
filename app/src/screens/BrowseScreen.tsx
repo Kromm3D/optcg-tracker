@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 import type { BrowseScreenProps } from '../navigation';
 import { CARD_LIST } from '../data/loadIndex';
-import { colors, fonts } from '../theme';
+import { colors, fonts, pressedStyle, HIT_SLOP } from '../theme';
+import { useT } from '../lib/i18n';
+import type { TKey } from '../i18n/en';
 import { Icon } from '../components/Icon';
 import { CardThumb } from '../components/CardThumb';
 import { ColumnsToggle } from '../components/ColumnsToggle';
@@ -35,6 +37,7 @@ import type { Card } from '../types';
 type SortState = { key: SortKey; dir: 'asc' | 'desc' };
 
 export function BrowseScreen({ navigation }: BrowseScreenProps) {
+  const t = useT();
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
   const [filters, setFilters] = useState<FilterState>(emptyFilters());
@@ -123,25 +126,33 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={s.searchWrap}>
         <View style={s.search}>
-          <Icon name="search" size={19} color={colors.textDim} />
+          <Icon name="search" size={19} color={colors.textMut} />
           <TextInput
             value={q}
             onChangeText={setQ}
-            placeholder="yellow luffy op15, red OP01-001..."
+            placeholder={t('browse.searchPlaceholder')}
             placeholderTextColor={colors.textDim}
             autoCapitalize="none"
             autoCorrect={false}
             style={s.searchInput}
           />
           {q ? (
-            <Pressable onPress={() => setQ('')}>
-              <Icon name="close" size={18} color={colors.textDim} />
+            <Pressable
+              onPress={() => setQ('')}
+              hitSlop={HIT_SLOP}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.cancel')}
+              style={({ pressed }) => pressed && pressedStyle}
+            >
+              <Icon name="close" size={18} color={colors.textMut} />
             </Pressable>
           ) : null}
         </View>
         <Pressable
           onPress={() => setShowFilters(true)}
-          style={[s.filterBtn, fcount > 0 && s.filterBtnOn]}
+          accessibilityRole="button"
+          accessibilityLabel={t('filter.title')}
+          style={({ pressed }) => [s.filterBtn, fcount > 0 && s.filterBtnOn, pressed && pressedStyle]}
         >
           <Icon
             name="filter"
@@ -154,42 +165,51 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
         </Pressable>
         <Pressable
           onPress={() => { if (selectMode) clearSel(); else setSelectMode(true); }}
-          style={[s.filterBtn, selectMode && s.filterBtnOn]}
+          accessibilityRole="button"
+          accessibilityLabel={t('bulk.select')}
+          accessibilityState={{ selected: selectMode }}
+          style={({ pressed }) => [s.filterBtn, selectMode && s.filterBtnOn, pressed && pressedStyle]}
         >
           <Icon name={selectMode ? 'close' : 'check'} size={18} color={selectMode ? colors.accent : colors.text} />
         </Pressable>
       </View>
 
       <View style={s.sortRow}>
-        <Text style={s.sortCount}>{list.length} cards</Text>
+        <Text style={s.sortCount}>{t('browse.cardsCount', { n: list.length })}</Text>
         <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
           <Pressable
-            style={[s.sortBtn, showAlt && s.sortBtnOn]}
+            style={({ pressed }) => [s.sortBtn, showAlt && s.sortBtnOn, pressed && pressedStyle]}
             onPress={() => setShowAlternateArt(!showAlt)}
+            accessibilityRole="button"
+            accessibilityLabel={t('browse.parallels')}
+            accessibilityState={{ selected: showAlt }}
           >
-            <Text style={[s.sortLabel, { color: showAlt ? colors.accent : colors.textDim }]}>
-              Parallels
+            <Text style={[s.sortLabel, { color: showAlt ? colors.accent : colors.textMut }]}>
+              {t('browse.parallels')}
             </Text>
           </Pressable>
           {(
             [
-              ['code', 'Code'],
-              ['set', 'Set'],
-              ['rarity', 'Rar'],
-              ['cost', 'Cost'],
-              ['power', 'Pow'],
-              ['owned', 'Own'],
-            ] as [SortKey, string][]
-          ).map(([k, label]) => {
+              ['code', 'sort.code'],
+              ['set', 'sort.set'],
+              ['rarity', 'sort.rarity'],
+              ['cost', 'sort.cost'],
+              ['power', 'sort.power'],
+              ['owned', 'sort.owned'],
+            ] as [SortKey, TKey][]
+          ).map(([k, labelKey]) => {
             const active = sort.key === k;
             return (
               <Pressable
                 key={k}
                 onPress={() => handleSort(k)}
-                style={[s.sortBtn, active ? s.sortBtnOn : null]}
+                accessibilityRole="button"
+                accessibilityLabel={t(labelKey)}
+                accessibilityState={{ selected: active }}
+                style={({ pressed }) => [s.sortBtn, active ? s.sortBtnOn : null, pressed && pressedStyle]}
               >
-                <Text style={[s.sortLabel, { color: active ? colors.accent : colors.textDim }]}>
-                  {label}
+                <Text style={[s.sortLabel, { color: active ? colors.accent : colors.textMut }]}>
+                  {t(labelKey)}
                 </Text>
                 {active && (
                   <Icon
@@ -297,8 +317,8 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
-  sortCount: { fontSize: 13, color: colors.textDim, fontFamily: fonts.ui },
-  sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 9 },
+  sortCount: { fontSize: 13, color: colors.textMut, fontFamily: fonts.ui },
+  sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 9, paddingVertical: 9, borderRadius: 9 },
   sortBtnOn: { backgroundColor: colors.accentDim },
   sortLabel: { fontSize: 12, fontFamily: fonts.uiSemi },
   grid: { paddingHorizontal: 18, paddingBottom: 110 },

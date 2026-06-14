@@ -3,18 +3,18 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   FlatList,
-  Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import type { BinderScreenProps } from '../navigation';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, pressedSurface, HIT_SLOP } from '../theme';
+import { AppModal } from '../components/AppModal';
+import { Button } from '../components/Button';
+import { SegmentedControl } from '../components/SegmentedControl';
 import { CARDS, CARD_LIST } from '../data/loadIndex';
 import { CardThumb } from '../components/CardThumb';
 import { ColumnsToggle } from '../components/ColumnsToggle';
@@ -134,9 +134,14 @@ const GridCard = React.memo(function GridCard({
   );
 });
 
-export function BinderScreen({ navigation }: BinderScreenProps) {
+export function BinderScreen({ navigation, route }: BinderScreenProps) {
   const t = useT();
-  const [tab, setTab] = useState<Tab>('owned');
+  const [tab, setTab] = useState<Tab>(route.params?.tab ?? 'owned');
+
+  // Honor a `tab` param pushed after mount (e.g. Home "Wishlist" tile).
+  useEffect(() => {
+    if (route.params?.tab) setTab(route.params.tab);
+  }, [route.params?.tab]);
   // `tick` solo cambia cuando cambia la *pertenencia* (qué cartas posees) o
   // filtros/orden — recomputa la lista. `countTick` cambia con cada +/- para
   // refrescar solo el contador de la cabecera (las celdas se actualizan solas).
@@ -149,6 +154,7 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
   const [wishlists, setWishlists] = useState<Wishlist[]>([]);
   const [showCreateWL, setShowCreateWL] = useState(false);
   const [newWLName, setNewWLName] = useState('');
+  const [wlToDelete, setWlToDelete] = useState<Wishlist | null>(null);
 
   const [columns, setColumnsState] = useState(getSettings().columns);
   const { cardWidth, gap, hPadding } = useCardGrid(columns);
@@ -299,12 +305,10 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
     (navigation as any).navigate('WishlistDetail', { wishlistId: wl.id });
   }, [newWLName, navigation]);
 
-  const handleDeleteWL = useCallback((wl: Wishlist) => {
-    Alert.alert(t('wl.delete'), t('wl.deleteConfirm', { name: wl.name }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('wl.delete'), style: 'destructive', onPress: () => deleteWishlist(wl.id) },
-    ]);
-  }, [t]);
+  const confirmDeleteWL = useCallback(() => {
+    if (wlToDelete) deleteWishlist(wlToDelete.id);
+    setWlToDelete(null);
+  }, [wlToDelete]);
 
   // ── Render helpers ────────────────────────────────────────────────────────
 
@@ -323,9 +327,12 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
           <Pressable
             key={k}
             onPress={() => handleSort(k)}
-            style={[s.sortBtn, active && s.sortBtnOn]}
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            accessibilityState={{ selected: active }}
+            style={({ pressed }) => [s.sortBtn, active && s.sortBtnOn, pressed && pressedStyle]}
           >
-            <Text style={[s.sortLabel, { color: active ? colors.accent : colors.textDim }]}>
+            <Text style={[s.sortLabel, { color: active ? colors.accent : colors.textMut }]}>
               {label}
             </Text>
             {active && (
@@ -344,22 +351,16 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {/* Top tab bar */}
-      <View style={s.tabBar}>
-        {(['owned', 'wishlist', 'trade'] as Tab[]).map((tabKey) => (
-          <Pressable
-            key={tabKey}
-            style={[s.tab, tab === tabKey && s.tabOn]}
-            onPress={() => handleTabChange(tabKey)}
-          >
-            <Text style={[s.tabLabel, tab === tabKey && s.tabLabelOn]}>
-              {tabKey === 'owned'
-                ? t('binder.collection')
-                : tabKey === 'wishlist'
-                ? t('binder.wishlist')
-                : t('binder.trade')}
-            </Text>
-          </Pressable>
-        ))}
+      <View style={s.tabBarWrap}>
+        <SegmentedControl<Tab>
+          segments={[
+            { key: 'owned', label: t('binder.collection') },
+            { key: 'wishlist', label: t('binder.wishlist') },
+            { key: 'trade', label: t('binder.trade') },
+          ]}
+          value={tab}
+          onChange={handleTabChange}
+        />
       </View>
 
       {/* ── Wishlist tab: Decks-style list ───────────────────────────────────── */}
@@ -370,7 +371,12 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
               <Icon name="heart" size={48} color={colors.textDim} />
               <Text style={s.emptyTitle}>{t('binder.emptyWishlist')}</Text>
               <Text style={s.emptyBody}>{t('binder.emptyWishlistBody')}</Text>
-              <Pressable style={s.createBtn} onPress={() => setShowCreateWL(true)}>
+              <Pressable
+                style={({ pressed }) => [s.createBtn, pressed && pressedStyle]}
+                onPress={() => setShowCreateWL(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('wl.newWishlist')}
+              >
                 <Icon name="plus" size={18} color="#fff" />
                 <Text style={s.createBtnText}>{t('wl.newWishlist')}</Text>
               </Pressable>
@@ -381,7 +387,12 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
               keyExtractor={(w) => w.id}
               contentContainerStyle={s.list}
               ListHeaderComponent={
-                <Pressable style={s.newRow} onPress={() => setShowCreateWL(true)}>
+                <Pressable
+                  style={({ pressed }) => [s.newRow, pressed && pressedStyle]}
+                  onPress={() => setShowCreateWL(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('wl.newWishlist')}
+                >
                   <Icon name="plus" size={18} color={colors.accent} />
                   <Text style={s.newRowText}>{t('wl.newWishlist')}</Text>
                 </Pressable>
@@ -395,9 +406,11 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
                 const cardCount = Object.keys(item.cards).length;
                 return (
                   <Pressable
-                    style={s.wlRow}
+                    style={({ pressed }) => [s.wlRow, pressed && pressedSurface]}
                     onPress={() => (navigation as any).navigate('WishlistDetail', { wishlistId: item.id })}
-                    onLongPress={() => handleDeleteWL(item)}
+                    onLongPress={() => setWlToDelete(item)}
+                    accessibilityRole="button"
+                    accessibilityLabel={item.name}
                   >
                     <WishlistThumb wl={item} />
                     <View style={{ flex: 1 }}>
@@ -406,7 +419,15 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
                         {cardCount} {t('wl.entries')} · {totalOwned}/{totalNeeded} {t('wl.copiesNeeded')}
                       </Text>
                     </View>
-                    <Icon name="chevR" size={18} color={colors.textDim} />
+                    <Pressable
+                      onPress={() => setWlToDelete(item)}
+                      hitSlop={HIT_SLOP}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('wl.delete')}
+                      style={({ pressed }) => [s.rowMenuBtn, pressed && pressedStyle]}
+                    >
+                      <Icon name="dots" size={20} color={colors.textMut} />
+                    </Pressable>
                   </Pressable>
                 );
               }}
@@ -415,40 +436,31 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
           )}
 
           {/* Create wishlist modal */}
-          <Modal
-            visible={showCreateWL}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setShowCreateWL(false)}
-          >
-            <Pressable style={s.modalBg} onPress={() => setShowCreateWL(false)}>
-              <Pressable style={s.modalCard} onPress={() => {}}>
-                <Text style={s.modalTitle}>{t('wl.createWishlist')}</Text>
-                <TextInput
-                  style={s.modalInput}
-                  value={newWLName}
-                  onChangeText={setNewWLName}
-                  placeholder={t('wl.namePlaceholder')}
-                  placeholderTextColor={colors.textDim}
-                  autoFocus
-                  returnKeyType="done"
-                  onSubmitEditing={handleCreateWL}
-                />
-                <View style={s.modalRow}>
-                  <Pressable style={s.modalCancel} onPress={() => setShowCreateWL(false)}>
-                    <Text style={s.modalCancelText}>{t('common.cancel')}</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[s.modalConfirm, !newWLName.trim() && { opacity: 0.4 }]}
-                    onPress={handleCreateWL}
-                    disabled={!newWLName.trim()}
-                  >
-                    <Text style={s.modalConfirmText}>{t('wl.create')}</Text>
-                  </Pressable>
-                </View>
-              </Pressable>
-            </Pressable>
-          </Modal>
+          <AppModal visible={showCreateWL} onClose={() => setShowCreateWL(false)} title={t('wl.createWishlist')}>
+            <TextInput
+              style={s.modalInput}
+              value={newWLName}
+              onChangeText={setNewWLName}
+              placeholder={t('wl.namePlaceholder')}
+              placeholderTextColor={colors.textDim}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleCreateWL}
+            />
+            <View style={s.modalRow}>
+              <Button title={t('common.cancel')} variant="secondary" onPress={() => setShowCreateWL(false)} style={s.modalBtn} />
+              <Button title={t('wl.create')} onPress={handleCreateWL} disabled={!newWLName.trim()} style={s.modalBtn} />
+            </View>
+          </AppModal>
+
+          {/* Delete wishlist confirmation (themed) */}
+          <AppModal visible={wlToDelete !== null} onClose={() => setWlToDelete(null)} title={t('wl.delete')}>
+            <Text style={s.confirmBody}>{t('wl.deleteConfirm', { name: wlToDelete?.name ?? '' })}</Text>
+            <View style={s.modalRow}>
+              <Button title={t('common.cancel')} variant="secondary" onPress={() => setWlToDelete(null)} style={s.modalBtn} />
+              <Button title={t('common.delete')} variant="danger" onPress={confirmDeleteWL} style={s.modalBtn} />
+            </View>
+          </AppModal>
         </>
       )}
 
@@ -466,8 +478,11 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               {tab === 'owned' && (
                 <Pressable
-                  style={[s.showAllBtn, showAll && s.showAllBtnOn]}
+                  style={({ pressed }) => [s.showAllBtn, showAll && s.showAllBtnOn, pressed && pressedStyle]}
                   onPress={() => setShowAll((v) => !v)}
+                  accessibilityRole="button"
+                  accessibilityLabel={showAll ? t('binder.ownedOnly') : t('binder.showAll')}
+                  accessibilityState={{ selected: showAll }}
                 >
                   <Text style={[s.showAllText, showAll && s.showAllTextOn]}>
                     {showAll ? t('binder.ownedOnly') : t('binder.showAll')}
@@ -475,25 +490,43 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
                 </Pressable>
               )}
               {tab === 'trade' && ownedTradeCards.length > 0 && (
-                <Pressable style={s.iconBtn} onPress={() => setShowShare(true)}>
+                <Pressable
+                  style={({ pressed }) => [s.iconBtn, pressed && pressedStyle]}
+                  onPress={() => setShowShare(true)}
+                  hitSlop={HIT_SLOP}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('binder.shareImage')}
+                >
                   <Icon name="external" size={15} color={colors.textMut} />
                 </Pressable>
               )}
               <Pressable
-                style={[s.iconBtn, activeCount(filters) > 0 && s.iconBtnOn]}
+                style={({ pressed }) => [s.iconBtn, activeCount(filters) > 0 && s.iconBtnOn, pressed && pressedStyle]}
                 onPress={() => setShowFilters(true)}
+                hitSlop={HIT_SLOP}
+                accessibilityRole="button"
+                accessibilityLabel={t('filter.title')}
               >
                 <Icon name="filter" size={15} color={activeCount(filters) > 0 ? colors.accent : colors.textMut} />
               </Pressable>
               <Pressable
-                style={[s.iconBtn, selectMode && s.iconBtnOn]}
+                style={({ pressed }) => [s.iconBtn, selectMode && s.iconBtnOn, pressed && pressedStyle]}
                 onPress={() => { if (selectMode) clearSel(); else setSelectMode(true); }}
+                hitSlop={HIT_SLOP}
+                accessibilityRole="button"
+                accessibilityLabel={t('bulk.select')}
+                accessibilityState={{ selected: selectMode }}
               >
                 <Icon name={selectMode ? 'close' : 'check'} size={15} color={selectMode ? colors.accent : colors.textMut} />
               </Pressable>
               <ColumnsToggle />
               {tab === 'owned' && (
-                <Pressable style={s.addBtn} onPress={() => setShowAdd(true)}>
+                <Pressable
+                  style={({ pressed }) => [s.addBtn, pressed && pressedStyle]}
+                  onPress={() => setShowAdd(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('wl.addCards')}
+                >
                   <Icon name="plus" size={18} color="#fff" />
                 </Pressable>
               )}
@@ -575,20 +608,8 @@ export function BinderScreen({ navigation }: BinderScreenProps) {
 }
 
 const s = StyleSheet.create({
-  tabBar: {
-    flexDirection: 'row',
-    marginHorizontal: 18,
-    marginTop: 4,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: 4,
-  },
-  tab: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 9 },
-  tabOn: { backgroundColor: colors.accentDim },
-  tabLabel: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.textMut },
-  tabLabelOn: { color: colors.accent },
+  tabBarWrap: { marginHorizontal: 18, marginTop: 4 },
+  rowMenuBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
 
   // Wishlist list (deck-style)
   list: { padding: spacing.lg, paddingBottom: 110, gap: spacing.sm },
@@ -639,7 +660,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
   },
-  meta: { fontSize: 12, color: colors.textDim, fontFamily: fonts.ui, flex: 1, marginRight: 8 },
+  meta: { fontSize: 12, color: colors.textMut, fontFamily: fonts.ui, flex: 1, marginRight: 8 },
   addBtn: {
     width: 30, height: 30, borderRadius: 15,
     backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
@@ -658,7 +679,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 3,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 9,
     borderRadius: 9,
   },
   sortBtnOn: { backgroundColor: colors.accentDim },
@@ -674,8 +695,10 @@ const s = StyleSheet.create({
     backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border,
   },
   showAllBtnOn: { backgroundColor: colors.accentDim, borderColor: colors.accent },
-  showAllText: { fontSize: 11, fontFamily: fonts.uiSemi, color: colors.textDim },
+  showAllText: { fontSize: 11, fontFamily: fonts.uiSemi, color: colors.textMut },
   showAllTextOn: { color: colors.accent },
+  modalBtn: { flex: 1 },
+  confirmBody: { fontSize: 14, fontFamily: fonts.ui, color: colors.textMut, lineHeight: 21 },
 
   // Create WL modal
   modalBg: { flex: 1, backgroundColor: 'rgba(14,12,26,0.85)', alignItems: 'center', justifyContent: 'center', padding: 24 },

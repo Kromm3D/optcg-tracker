@@ -4,7 +4,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radii } from '../theme';
+import { colors, fonts, radii, pressedStyle, HIT_SLOP } from '../theme';
 import { Icon } from './Icon';
 import { useT } from '../lib/i18n';
 
@@ -34,13 +34,25 @@ export function BulkActionBar({ count, onClear, onPick, bottomGap = 0 }: Props) 
       <View style={s.bar}>
         <View style={s.head}>
           <Text style={s.count}>{t('bulk.selected', { n: count })}</Text>
-          <Pressable onPress={onClear} hitSlop={8}>
+          <Pressable
+            onPress={onClear}
+            hitSlop={HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel={t('bulk.clear')}
+            style={({ pressed }) => pressed && pressedStyle}
+          >
             <Text style={s.clear}>{t('bulk.clear')}</Text>
           </Pressable>
         </View>
         <View style={s.actions}>
           {TARGETS.map((tg) => (
-            <Pressable key={tg.key} style={s.action} onPress={() => onPick(tg.key)}>
+            <Pressable
+              key={tg.key}
+              style={({ pressed }) => [s.action, pressed && pressedStyle]}
+              onPress={() => onPick(tg.key)}
+              accessibilityRole="button"
+              accessibilityLabel={t(tg.labelKey)}
+            >
               <Icon name={tg.icon} size={18} color={colors.accent} />
               <Text style={s.actionLabel}>{t(tg.labelKey)}</Text>
             </Pressable>

@@ -3,9 +3,9 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Modal,
+  ActivityIndicator,
+  FlatList,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,10 +14,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DeckDetailScreenProps } from '../navigation';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle } from '../theme';
 import { Icon } from '../components/Icon';
 import { DeckCardPile } from '../components/DeckCardPile';
 import { AddCardsModal } from '../components/AddCardsModal';
+import { AppModal } from '../components/AppModal';
+import { Button } from '../components/Button';
+import { Counter } from '../components/Counter';
+import { useToast } from '../components/Toast';
 import { CARDS } from '../data/loadIndex';
 import { getOwnedFor, subscribe as subOwned } from '../lib/ownedAggregate';
 import { addCard } from '../lib/wishlists';
@@ -40,6 +44,7 @@ const CARD_GAP = 10;
 
 export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
   const t = useT();
+  const toast = useToast();
   const { deckId } = route.params;
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -51,7 +56,6 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
   const [search, setSearch] = useState('');
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState('');
-  const [toast, setToast] = useState<string | null>(null);
   // Wishlist picker for "Add missing"
   const [showWLPicker, setShowWLPicker] = useState(false);
   const [pendingMissingCards, setPendingMissingCards] = useState<Array<{ code: string; needed: number }>>([]);
@@ -93,9 +97,8 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
   }, [deckId, newName]);
 
   const showToast = useCallback((msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  }, []);
+    toast({ message: msg });
+  }, [toast]);
 
   // Step 1: collect missing cards, then open wishlist picker
   const handleAddMissing = useCallback(() => {
@@ -129,7 +132,7 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
   if (!deck) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: colors.textMut }}>Loading…</Text>
+        <ActivityIndicator color={colors.accent} size="large" />
       </View>
     );
   }
@@ -141,10 +144,20 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {/* Header */}
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.done')}
+          style={({ pressed }) => [s.backBtn, pressed && pressedStyle]}
+        >
           <Icon name="chevL" size={22} color={colors.text} />
         </Pressable>
-        <Pressable onPress={() => { setNewName(deck.name); setRenaming(true); }} style={{ flex: 1 }}>
+        <Pressable
+          onPress={() => { setNewName(deck.name); setRenaming(true); }}
+          style={({ pressed }) => [{ flex: 1 }, pressed && pressedStyle]}
+          accessibilityRole="button"
+          accessibilityLabel={t('deck.rename')}
+        >
           <Text style={s.headerTitle} numberOfLines={1}>{deck.name}</Text>
           <Text style={s.headerSub}>
             {deck.cards.length} {t('decks.slots')} ·{' '}
@@ -154,19 +167,23 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
             {overLimit ? <Text style={s.overLimitTag}>  ⚠ {t('deck.overLimit')}</Text> : null}
           </Text>
         </Pressable>
-        <Pressable style={s.wishBtn} onPress={handleAddMissing} accessibilityLabel={t('deck.addMissing')}>
+        <Pressable
+          style={({ pressed }) => [s.wishBtn, pressed && pressedStyle]}
+          onPress={handleAddMissing}
+          accessibilityRole="button"
+          accessibilityLabel={t('deck.addMissing')}
+        >
           <Icon name="heart" size={20} color={colors.accent} />
         </Pressable>
-        <Pressable style={s.addBtn} onPress={() => setShowAdd(true)}>
+        <Pressable
+          style={({ pressed }) => [s.addBtn, pressed && pressedStyle]}
+          onPress={() => setShowAdd(true)}
+          accessibilityRole="button"
+          accessibilityLabel={t('wl.addCards')}
+        >
           <Icon name="plus" size={20} color="#fff" />
         </Pressable>
       </View>
-
-      {toast && (
-        <View style={s.toast}>
-          <Text style={s.toastText}>{toast}</Text>
-        </View>
-      )}
 
       {/* Card pile grid */}
       {deck.cards.length === 0 ? (
@@ -176,41 +193,37 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
           <Text style={s.emptySub}>{t('deck.emptyBody')}</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={s.grid}>
-          {deckItems.map(({ dc, card }) => {
+        <FlatList
+          data={deckItems}
+          keyExtractor={(item) => item.dc.code}
+          numColumns={COLUMNS}
+          columnWrapperStyle={{ gap: CARD_GAP }}
+          contentContainerStyle={s.grid}
+          initialNumToRender={18}
+          maxToRenderPerBatch={18}
+          windowSize={5}
+          removeClippedSubviews
+          renderItem={({ item: { dc, card } }) => {
             const owned = getOwnedFor(card.code);
             const missing = owned < dc.qty;
             return (
-              <View key={dc.code} style={[s.pileWrap, { width: cardW }]}>
-                <DeckCardPile
-                  card={card}
-                  qty={dc.qty}
-                  owned={owned}
-                  width={cardW}
-                />
-                {/* Controls */}
+              <View style={[s.pileWrap, { width: cardW }]}>
+                <DeckCardPile card={card} qty={dc.qty} owned={owned} width={cardW} />
                 <View style={s.pileControls}>
-                  <Pressable
-                    style={s.qtyBtn}
-                    onPress={() => handleQtyChange(dc.code, -1)}
-                  >
-                    <Text style={s.qtySign}>−</Text>
-                  </Pressable>
-                  <Text style={[s.qtyVal, missing && s.qtyMissing]}>
-                    {dc.qty}
-                  </Text>
-                  <Pressable
-                    style={s.qtyBtn}
-                    onPress={() => handleQtyChange(dc.code, +1)}
-                  >
-                    <Text style={s.qtySign}>+</Text>
-                  </Pressable>
+                  <Counter
+                    value={dc.qty}
+                    onAdjust={(d) => handleQtyChange(dc.code, d)}
+                    min={0}
+                    max={4}
+                    size="sm"
+                    label={card.code}
+                  />
                 </View>
-                <Text style={s.pileCode} numberOfLines={1}>{card.code}</Text>
+                <Text style={[s.pileCode, missing && s.qtyMissing]} numberOfLines={1}>{card.code}</Text>
               </View>
             );
-          })}
-        </ScrollView>
+          }}
+        />
       )}
 
       {/* Add cards modal (shared) — deck qty capped at 4 by handleQtyChange */}
@@ -231,30 +244,21 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
       />
 
       {/* Rename modal */}
-      <Modal visible={renaming} transparent animationType="fade" onRequestClose={() => setRenaming(false)}>
-        <Pressable style={s.modalBg} onPress={() => setRenaming(false)}>
-          <Pressable style={s.modalCard} onPress={() => {}}>
-            <Text style={s.modalTitle}>Rename Deck</Text>
-            <TextInput
-              style={s.modalInput}
-              value={newName}
-              onChangeText={setNewName}
-              placeholderTextColor={colors.textDim}
-              autoFocus
-              returnKeyType="done"
-              onSubmitEditing={handleRename}
-            />
-            <View style={s.modalRow}>
-              <Pressable style={s.modalCancel} onPress={() => setRenaming(false)}>
-                <Text style={s.modalCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={s.modalConfirm} onPress={handleRename}>
-                <Text style={s.modalConfirmText}>Rename</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <AppModal visible={renaming} onClose={() => setRenaming(false)} title={t('deck.rename')}>
+        <TextInput
+          style={s.modalInput}
+          value={newName}
+          onChangeText={setNewName}
+          placeholderTextColor={colors.textDim}
+          autoFocus
+          returnKeyType="done"
+          onSubmitEditing={handleRename}
+        />
+        <View style={s.modalRow}>
+          <Button title={t('common.cancel')} variant="secondary" onPress={() => setRenaming(false)} style={s.modalBtn} />
+          <Button title={t('deck.renameAction')} onPress={handleRename} disabled={!newName.trim()} style={s.modalBtn} />
+        </View>
+      </AppModal>
     </View>
   );
 }
@@ -315,14 +319,12 @@ const s = StyleSheet.create({
   toastText: { fontSize: 13, fontFamily: fonts.uiMed, color: colors.text },
 
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     padding: spacing.lg,
     gap: CARD_GAP,
     paddingBottom: 110,
   },
 
-  pileWrap: { alignItems: 'center', gap: 6 },
+  pileWrap: { alignItems: 'center', gap: 6, marginBottom: CARD_GAP },
 
   pileControls: {
     flexDirection: 'row',
@@ -362,7 +364,7 @@ const s = StyleSheet.create({
     gap: 12,
     padding: 32,
   },
-  emptyTitle: { fontSize: 20, fontFamily: fonts.uiBold, color: colors.text },
+  emptyTitle: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
   emptySub: { fontSize: 14, fontFamily: fonts.ui, color: colors.textMut, textAlign: 'center' },
 
   // Add modal
@@ -446,6 +448,7 @@ const s = StyleSheet.create({
     color: colors.text,
   },
   modalRow: { flexDirection: 'row', gap: 12 },
+  modalBtn: { flex: 1 },
   modalCancel: {
     flex: 1,
     height: 48,

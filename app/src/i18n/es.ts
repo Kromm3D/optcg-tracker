@@ -68,6 +68,8 @@ export const es: Record<TKey, string> = {
   'wl.variantBody': 'Selecciona la versión y cantidad que necesitas.',
   'wl.normal': 'Normal',
   'wl.confirm': 'Confirmar',
+  'wl.default': 'Por defecto',
+  'wl.cardsCount': '{n} cartas',
 
   // Wishlist detail
   'wl.entries': 'entradas',
@@ -134,6 +136,14 @@ export const es: Record<TKey, string> = {
   'scan.pickVariant': '¿Qué versión?',
   'scan.pickVariantHint': 'Varias cartas comparten esta ilustración — toca la que escaneaste.',
   'scan.cancel': 'Cancelar',
+  'scan.statusAim': 'Apunta',
+  'scan.statusReady': 'Listo',
+  'scan.modeTap': 'TAP',
+  'scan.modeAuto': 'AUTO',
+  'scan.added': 'Añadido',
+  'scan.undo': 'Deshacer',
+  'scan.manualCode': 'Código',
+  'scan.noMatch': 'Carta no reconocida',
 
   // Sets
   'sets.title': 'Sets',
@@ -186,12 +196,44 @@ export const es: Record<TKey, string> = {
   'setwl.none': 'No falta nada — ¡las tienes todas!',
   'setwl.added': 'Añadidas {n} entradas a la wishlist.',
 
+  // Browse
+  'browse.searchPlaceholder': 'yellow luffy, red OP01-001…',
+  'browse.cardsCount': '{n} cartas',
+  'browse.parallels': 'Parallels',
+
+  // Card detail
+  'detail.cost': 'Coste',
+  'detail.power': 'Poder',
+  'detail.counter': 'Counter',
+  'detail.effect': 'Efecto',
+  'detail.variants': 'Variantes',
+  'detail.priceCardmarket': 'Ver precio en Cardmarket',
+  'detail.notFound': 'Carta no encontrada',
+
+  // Set detail
+  'set.cardsCount': '{n} cartas',
+  'set.ownedOfTotal': '{owned} / {total} cartas',
+  'set.parallels': 'Parallels',
+
   // Filters
   'filter.title': 'Filtros',
   'filter.variant': 'Variante / Parallel',
   'filter.clear': 'Limpiar',
+  'filter.clearAll': 'Limpiar todo',
   'filter.apply': 'Aplicar',
   'filter.sort': 'Ordenar',
+  'filter.searchIn': 'Buscar en {section}…',
+  'filter.noMatches': 'Sin coincidencias.',
+  'filter.color': 'Color',
+  'filter.cardType': 'Tipo de carta',
+  'filter.cost': 'Coste',
+  'filter.power': 'Poder',
+  'filter.counter': 'Counter',
+  'filter.counterNone': 'Ninguno',
+  'filter.attribute': 'Atributo',
+  'filter.rarity': 'Rareza',
+  'filter.set': 'Set',
+  'filter.family': 'Familia / Trait',
   'sort.code': 'Código',
   'sort.set': 'Set',
   'sort.rarity': 'Rareza',
@@ -215,6 +257,11 @@ export const es: Record<TKey, string> = {
   'common.save': 'Guardar',
   'common.retry': 'Reintentar',
   'common.loading': 'Cargando…',
+  'common.delete': 'Eliminar',
+
+  // Decks (delete)
+  'decks.deleteTitle': 'Eliminar mazo',
+  'decks.deleteConfirm': '¿Eliminar "{name}"? Esto no se puede deshacer.',
 
   // Account / cloud sync
   'account.title': 'Cuenta',

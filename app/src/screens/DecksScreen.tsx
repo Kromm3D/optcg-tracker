@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -12,8 +11,10 @@ import {
   View,
 } from 'react-native';
 import type { DecksScreenProps } from '../navigation';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, pressedSurface, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
+import { AppModal } from '../components/AppModal';
+import { Button } from '../components/Button';
 import { CachedImage } from '../components/CachedImage';
 import { CARDS } from '../data/loadIndex';
 import { resolveImageUris } from '../lib/images';
@@ -68,6 +69,7 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
   const [newName, setNewName] = useState('');
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
+  const [deckToDelete, setDeckToDelete] = useState<Deck | null>(null);
 
   const refresh = useCallback(() => {
     listDecks().then(setDecks);
@@ -86,12 +88,10 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
     navigation.navigate('DeckDetail', { deckId: deck.id });
   }, [newName, navigation]);
 
-  const handleDelete = useCallback((deck: Deck) => {
-    Alert.alert('Delete deck', `Delete "${deck.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteDeck(deck.id) },
-    ]);
-  }, []);
+  const confirmDelete = useCallback(() => {
+    if (deckToDelete) deleteDeck(deckToDelete.id);
+    setDeckToDelete(null);
+  }, [deckToDelete]);
 
   const handleImport = useCallback(async () => {
     const entries = parseOptcgSim(importText);
@@ -114,11 +114,21 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
           <Icon name="binder" size={48} color={colors.textDim} />
           <Text style={s.emptyTitle}>{t('decks.emptyTitle')}</Text>
           <Text style={s.emptySub}>{t('decks.emptyBody')}</Text>
-          <Pressable style={s.createBtn} onPress={() => setShowModal(true)}>
+          <Pressable
+            style={({ pressed }) => [s.createBtn, pressed && pressedStyle]}
+            onPress={() => setShowModal(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t('decks.newDeck')}
+          >
             <Icon name="plus" size={18} color="#fff" />
             <Text style={s.createBtnText}>{t('decks.newDeck')}</Text>
           </Pressable>
-          <Pressable style={s.importBtn} onPress={() => setShowImport(true)}>
+          <Pressable
+            style={({ pressed }) => [s.importBtn, pressed && pressedStyle]}
+            onPress={() => setShowImport(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t('decks.importSim')}
+          >
             <Icon name="external" size={18} color={colors.accent} />
             <Text style={s.importBtnText}>{t('decks.importSim')}</Text>
           </Pressable>
@@ -130,11 +140,21 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
           contentContainerStyle={s.list}
           ListHeaderComponent={
             <View style={{ gap: spacing.sm }}>
-              <Pressable style={s.newRow} onPress={() => setShowModal(true)}>
+              <Pressable
+                style={({ pressed }) => [s.newRow, pressed && pressedStyle]}
+                onPress={() => setShowModal(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('decks.newDeck')}
+              >
                 <Icon name="plus" size={18} color={colors.accent} />
                 <Text style={s.newRowText}>{t('decks.newDeck')}</Text>
               </Pressable>
-              <Pressable style={s.newRow} onPress={() => setShowImport(true)}>
+              <Pressable
+                style={({ pressed }) => [s.newRow, pressed && pressedStyle]}
+                onPress={() => setShowImport(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('decks.importSim')}
+              >
                 <Icon name="external" size={18} color={colors.accent} />
                 <Text style={s.newRowText}>{t('decks.importSim')}</Text>
               </Pressable>
@@ -142,9 +162,11 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
           }
           renderItem={({ item }) => (
             <Pressable
-              style={s.deckRow}
+              style={({ pressed }) => [s.deckRow, pressed && pressedSurface]}
               onPress={() => navigation.navigate('DeckDetail', { deckId: item.id })}
-              onLongPress={() => handleDelete(item)}
+              onLongPress={() => setDeckToDelete(item)}
+              accessibilityRole="button"
+              accessibilityLabel={item.name}
             >
               <DeckThumb deck={item} />
               <View style={{ flex: 1 }}>
@@ -153,7 +175,15 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
                   {item.cards.length} {t('decks.slots')} · {deckTotal(item)} {t('decks.cards')}
                 </Text>
               </View>
-              <Icon name="chevR" size={18} color={colors.textDim} />
+              <Pressable
+                onPress={() => setDeckToDelete(item)}
+                hitSlop={HIT_SLOP}
+                accessibilityRole="button"
+                accessibilityLabel={t('decks.deleteTitle')}
+                style={({ pressed }) => [s.rowMenuBtn, pressed && pressedStyle]}
+              >
+                <Icon name="dots" size={20} color={colors.textMut} />
+              </Pressable>
             </Pressable>
           )}
           ItemSeparatorComponent={() => <View style={s.sep} />}
@@ -161,77 +191,50 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
       )}
 
       {/* Create deck modal */}
-      <Modal
-        visible={showModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowModal(false)}
-      >
-        <Pressable style={s.modalBg} onPress={() => setShowModal(false)}>
-          <Pressable style={s.modalCard} onPress={() => {}}>
-            <Text style={s.modalTitle}>{t('decks.newDeck')}</Text>
-            <TextInput
-              style={s.modalInput}
-              value={newName}
-              onChangeText={setNewName}
-              placeholder={t('decks.deckName')}
-              placeholderTextColor={colors.textDim}
-              autoFocus
-              returnKeyType="done"
-              onSubmitEditing={handleCreate}
-            />
-            <View style={s.modalRow}>
-              <Pressable style={s.modalCancel} onPress={() => setShowModal(false)}>
-                <Text style={s.modalCancelText}>{t('decks.cancel')}</Text>
-              </Pressable>
-              <Pressable
-                style={[s.modalConfirm, !newName.trim() && { opacity: 0.4 }]}
-                onPress={handleCreate}
-                disabled={!newName.trim()}
-              >
-                <Text style={s.modalConfirmText}>{t('decks.create')}</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <AppModal visible={showModal} onClose={() => setShowModal(false)} title={t('decks.newDeck')}>
+        <TextInput
+          style={s.modalInput}
+          value={newName}
+          onChangeText={setNewName}
+          placeholder={t('decks.deckName')}
+          placeholderTextColor={colors.textDim}
+          autoFocus
+          returnKeyType="done"
+          onSubmitEditing={handleCreate}
+        />
+        <View style={s.modalRow}>
+          <Button title={t('decks.cancel')} variant="secondary" onPress={() => setShowModal(false)} style={s.modalBtn} />
+          <Button title={t('decks.create')} onPress={handleCreate} disabled={!newName.trim()} style={s.modalBtn} />
+        </View>
+      </AppModal>
 
       {/* Import from OPTCGSim modal */}
-      <Modal
-        visible={showImport}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowImport(false)}
-      >
-        <Pressable style={s.modalBg} onPress={() => setShowImport(false)}>
-          <Pressable style={s.modalCard} onPress={() => {}}>
-            <Text style={s.modalTitle}>{t('decks.importTitle')}</Text>
-            <TextInput
-              style={[s.modalInput, s.importInput]}
-              value={importText}
-              onChangeText={setImportText}
-              placeholder={t('decks.importPlaceholder')}
-              placeholderTextColor={colors.textDim}
-              autoFocus
-              multiline
-              autoCapitalize="characters"
-              autoCorrect={false}
-            />
-            <View style={s.modalRow}>
-              <Pressable style={s.modalCancel} onPress={() => setShowImport(false)}>
-                <Text style={s.modalCancelText}>{t('decks.cancel')}</Text>
-              </Pressable>
-              <Pressable
-                style={[s.modalConfirm, !importText.trim() && { opacity: 0.4 }]}
-                onPress={handleImport}
-                disabled={!importText.trim()}
-              >
-                <Text style={s.modalConfirmText}>{t('decks.import')}</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <AppModal visible={showImport} onClose={() => setShowImport(false)} title={t('decks.importTitle')}>
+        <TextInput
+          style={[s.modalInput, s.importInput]}
+          value={importText}
+          onChangeText={setImportText}
+          placeholder={t('decks.importPlaceholder')}
+          placeholderTextColor={colors.textDim}
+          autoFocus
+          multiline
+          autoCapitalize="characters"
+          autoCorrect={false}
+        />
+        <View style={s.modalRow}>
+          <Button title={t('decks.cancel')} variant="secondary" onPress={() => setShowImport(false)} style={s.modalBtn} />
+          <Button title={t('decks.import')} onPress={handleImport} disabled={!importText.trim()} style={s.modalBtn} />
+        </View>
+      </AppModal>
+
+      {/* Delete confirmation (themed — replaces native Alert) */}
+      <AppModal visible={deckToDelete !== null} onClose={() => setDeckToDelete(null)} title={t('decks.deleteTitle')}>
+        <Text style={s.confirmBody}>{t('decks.deleteConfirm', { name: deckToDelete?.name ?? '' })}</Text>
+        <View style={s.modalRow}>
+          <Button title={t('decks.cancel')} variant="secondary" onPress={() => setDeckToDelete(null)} style={s.modalBtn} />
+          <Button title={t('common.delete')} variant="danger" onPress={confirmDelete} style={s.modalBtn} />
+        </View>
+      </AppModal>
     </View>
   );
 }
@@ -283,6 +286,7 @@ const s = StyleSheet.create({
   },
   deckName: { fontSize: 16, fontFamily: fonts.uiBold, color: colors.text },
   deckMeta: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut, marginTop: 2 },
+  rowMenuBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
 
   sep: { height: spacing.sm },
 
@@ -293,7 +297,7 @@ const s = StyleSheet.create({
     padding: 32,
     gap: 12,
   },
-  emptyTitle: { fontSize: 20, fontFamily: fonts.uiBold, color: colors.text },
+  emptyTitle: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
   emptySub: {
     fontSize: 14,
     fontFamily: fonts.ui,
@@ -356,6 +360,8 @@ const s = StyleSheet.create({
     color: colors.text,
   },
   modalRow: { flexDirection: 'row', gap: 12 },
+  modalBtn: { flex: 1 },
+  confirmBody: { fontSize: 14, fontFamily: fonts.ui, color: colors.textMut, lineHeight: 21 },
   modalCancel: {
     flex: 1,
     height: 48,

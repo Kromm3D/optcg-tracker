@@ -3,7 +3,7 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-06-07
+**Last updated:** 2026-06-14 (UI/UX overhaul — design-review remediation)
 **Current branch:** `feature/grid-workflow-refactor`
 **App version:** 0.1.0 (pre-release)
 
@@ -30,6 +30,69 @@ committed yet — review before staging.
 do not stage them. **Follow-ups still pending** from the scanner removal: run
 `npm install` in `app/` to prune dropped packages from the lockfile, then
 `npx expo prebuild --clean` before the next native build.
+
+---
+
+### UI/UX overhaul — design-review remediation (2026-06-14, typecheck-green, NOT yet device-reviewed)
+Acted on a full lead-designer review of the app. Goal: fix the accessibility +
+consistency debt the review flagged, via a shared component layer rather than
+per-screen patches. `npm run typecheck` clean. **Pending: user device review.**
+
+- **Design tokens (`theme.ts`)** — `textDim` lifted `#5e5478`→**`#8b7fae`** (≈2.3:1→
+  ≈4:1 on `bg`, was failing WCAG AA, used everywhere for secondary text). New
+  tokens: `type` (font-size scale), `elevation` (card/accent shadows), `HIT_SLOP`,
+  `MIN_TOUCH=44`, `pressedStyle`/`pressedSurface` (the press-feedback opacities).
+- **New shared primitives (`components/`)** — all with built-in press feedback +
+  44pt targets + a11y:
+  - `Touchable` — Pressable wrapper (opacity-on-press, default hitSlop, button role).
+  - `Counter` — unified +/- stepper; **disables `−` at `min`** (the missing
+    bounds-feedback). Replaced **6** divergent hand-rolled steppers
+    (CardThumb inline, DetailScreen, DeckDetail, AddCardsModal, Settings,
+    VariantPicker, BulkTargetSheet, SetWishlistSheet, WishlistDetail).
+  - `SegmentedControl` — one tab/segment style (replaced Binder + FriendProfile's
+    two different ones).
+  - `Chip`, `Button` (primary/secondary/ghost/danger).
+  - `AppModal` — centered dialog **with `KeyboardAvoidingView`** (inputs no longer
+    hidden by the keyboard); replaced the copy-pasted `modalBg/modalCard` blocks in
+    Decks/Binder/DeckDetail/WishlistDetail create/rename modals.
+  - `Toast` — `ToastProvider` + `useToast()` (animated, single-at-a-time). Wired in
+    `App.tsx`; DeckDetail's manual `setTimeout` toast now uses it.
+- **Press feedback everywhere (C1)** — every interactive `Pressable` across all
+  screens + components now has a `pressed` style (was zero in the whole repo).
+- **Touch targets (C2)** — counters/sort-chips/icon-buttons bumped to ≥44pt or
+  given `hitSlop`. CardThumb quick +/- 42→44, inline +/- now via `Counter`.
+- **Contrast (C3)** — besides the token fix, inactive bottom-tab labels and many
+  small `textDim` labels switched to `textMut`; Scan sidebar labels 10px@0.45→
+  12px@0.85; status pill text 0.55→0.85.
+- **i18n (M1)** — removed hardcoded strings: Browse (`{n} cards`, sort labels,
+  `Parallels`, placeholder), Detail (`Cost/Power/Counter/Effect/Variants`,
+  **the hardcoded-Spanish "Ver precio en Cardmarket"**, not-found), SetDetail
+  (`{n} cartas`→`set.cardsCount`, `Parallels`), FilterSheet (title, Clear all,
+  Apply, every section title, the Spanish placeholder, "No matches", "None"),
+  delete confirms, "Default", "X cards". New keys in **both** `en.ts`+`es.ts`
+  (`browse.*`, `detail.*`, `set.*`, `filter.*` section keys, `decks.delete*`,
+  `common.delete`, `wl.default`, `wl.cardsCount`).
+- **Navigation (M2)** — `TabParamList.Binder` gained `{ tab? }`; Home "Wishlist"
+  tile now lands on the wishlist tab (was dropping on Collection). Persistent
+  **Settings gear** added to the global `Header` (`App.tsx`) — reachable from
+  Browse/Binder/Decks, not just Home. New `gear` icon in `Icon.tsx`.
+- **Destructive actions surfaced (C4)** — deck + wishlist delete were long-press-
+  only (undiscoverable). Added a visible **`dots` menu button** per row, and
+  replaced the OS-native `Alert.alert` confirms with themed `AppModal` dialogs
+  (DecksScreen, BinderScreen). (Onboarding coachmarks deferred — see QoL.)
+- **Virtualization (M6)** — DeckDetail + WishlistDetail grids converted from
+  `ScrollView.map` to `FlatList` (numColumns), matching the other grids.
+- **Polish** — loading `Text "Loading…"` → `ActivityIndicator` (App, DeckDetail,
+  WishlistDetail); empty-state titles standardized to `fonts.display`; Home tile
+  width 47%→48%; accent-tile subtitle contrast bumped.
+- **Files**: new `components/{Touchable,Counter,SegmentedControl,Chip,Button,AppModal,Toast}.tsx`;
+  edited `theme.ts`, `App.tsx`, `navigation.ts`, `Icon.tsx`, `CardThumb.tsx`,
+  `ColumnsToggle.tsx`, `BulkActionBar.tsx`, `BulkTargetSheet.tsx`, `FilterSheet.tsx`,
+  `AddCardsModal.tsx`, `WishlistPickerModal.tsx`, `VariantPickerSheet.tsx`,
+  `SetWishlistSheet.tsx`, `ShareSheet.tsx`, all screens, `i18n/{en,es}.ts`.
+- **Deferred (QoL)**: first-run onboarding/coachmarks for hidden gestures
+  (long-press multi-select, hold-to-repeat); locale-aware currency (prices are
+  EUR/Cardmarket so `€` is correct for now); skeleton loaders.
 
 ---
 
@@ -168,6 +231,101 @@ nativo + verificación en dispositivo por el usuario**.
   autolink de vision-camera v4 con RN 0.85/React 19.2. Recalibrar
   `AHASH_MAX_DISTANCE` (60→100-120) si falla con brillo/ángulo. Confía en
   `docs/scanner-native-handoff.md`.
+
+### Scanner — enmascarar la marca de agua "SAMPLE" del hash (2026-06-07)
+**Problema (antes en bugs conocidos):** las imágenes oficiales en `images/` llevan
+un sello blanco **"SAMPLE"** en la banda central vertical; las cartas reales
+escaneadas NO. El `rgb_average_hash` se calculaba sobre la carta entera, así que
+la banda central de TODOS los hashes de la BD reflejaba el sello → desajuste
+train/test (bits volteados en cada lookup) y menor discriminación (la misma franja
+blanca en el mismo sitio en todas las cartas).
+**Fix:** se enmascara el cuarto central (filas 6–9 de la rejilla 16×16) en AMBOS
+lados. El umbral de media se calcula sólo sobre celdas NO enmascaradas y los bits
+de la banda se fuerzan a 0; al ser 0 en todos los hashes no aportan a la distancia
+hamming (sin tocar `hammingDistance`).
+- `app/src/lib/phash.ts`: nuevas constantes `MASK_ROWS=[6,7,8,9]` / `MASKED_INDEX`;
+  `channelHash` enmascara; `HASH_BITS` 768 → **576** (768 − 192 enmascarados) para
+  que el score normalizado `1 − dist/HASH_BITS` siga siendo [0,1]. `AHASH_MIN_SCORE`
+  deriva de `HASH_BITS`, se reescala solo.
+- `scripts/build_card_database.py`: `rgb_average_hash` ahora usa
+  `_channel_average_hash_masked` (replica `imagehash.average_hash` LANCZOS +
+  empaquetado, pero enmascara). Metadatos: `hash_algo:"rgb_average_hash_masked"`,
+  `masked_rows:[6,7,8,9]`.
+- **BD regenerada**: `python scripts/build_card_database.py --hashes-only` → 4571
+  hashes (192-hex), copiada a `app/`. Los hashes nuevos NO son comparables con los
+  viejos: BD + JS deben ir juntos.
+- **Verificado**: paridad JS↔Python sobre input idéntico (bit a bit), bits
+  enmascarados a 0 en BD, packing == `imagehash` con máscara vacía, typecheck verde,
+  discriminación OK (OP01-001 vs 002 = 156 bits). **Pendiente usuario**: escaneo en
+  dispositivo (build nativo) — verificar márgenes de auto-confirm y, si las
+  distancias de cartas reales bajan mucho, afinar `AHASH_MAX_DISTANCE`/`AUTO_CONFIRM_MARGIN`.
+
+### Scanner — hash solo de la ILUSTRACIÓN (ART_CROP) (2026-06-07)
+Idea adoptada del repo open-source `tranhd95/tcg-scanner` (su roadmap propone
+"hashear solo el arte, no la carta entera"). Nuestro pipeline ya iba por delante
+del suyo (detección Canny vs threshold+RDP; 24-bit RGB ahash vs dhash gris), pero
+hasta ahora hasheábamos la carta ENTERA y solo enmascarábamos la banda SAMPLE.
+**Problema:** el tercio inferior de la carta es el cuadro de efecto (texto
+dependiente del idioma EN/JP + nombre/tipo) — ruido con layout casi idéntico entre
+cartas que *gasta* bits y empeora la discriminación y la robustez entre idiomas.
+**Fix:** se recorta a la ilustración superior **antes** de hashear.
+- **`ART_CROP = (0.05, 0.05, 0.90, 0.38)`** (fracciones x,y,w,h → x 5–95%, y 5–43%
+  de la carta). Elegido empíricamente barriendo candidatos sobre 400 cartas: la
+  distancia Hamming al vecino más cercano (separación entre cartas distintas) sube
+  de **mediana 126 (carta entera) → 262 (recortada)**; los pares confundibles
+  (<20 bits) que quedan son SOLO variantes/reprints del mismo código base (mismo
+  arte — los desambigua el usuario, flujo intacto). La banda SAMPLE cae **por
+  debajo** de ART_CROP → ya no hace falta máscara: `MASK_ROWS=[]`, los **768 bits
+  vuelven a ser informativos** (`HASH_BITS` 576→768).
+- **Sincronía bit-a-bit** (contrato del repo): `ART_CROP` + `MASK_ROWS` replicados
+  en `app/src/lib/phash.ts` y `scripts/build_card_database.py`. `computeAhash`
+  resuelve dims de la imagen de trabajo (recorte de caja-foco opcional aplicado
+  primero) y luego recorta ART_CROP fraccional → resize 16×16 (2 pasadas de
+  `manipulateAsync`). Python: nuevo `_crop_art()` antes del resize en
+  `_channel_average_hash_masked`.
+- **Umbral**: `AHASH_MAX_DISTANCE` 60→**80** en `cardMatch.ts` (misma fracción
+  ~10.4 %, reescalada 60/576 ≈ 80/768). `AHASH_MIN_SCORE` se deriva solo. Margen
+  amplísimo vs cartas distintas (mediana 262).
+- **BD regenerada**: `python scripts/build_card_database.py --hashes-only` → 4571
+  hashes (192-hex), `hash_algo:"rgb_average_hash_artcrop"`, metadatos `art_crop`,
+  copiada a `app/`. **Los hashes nuevos NO son comparables con los viejos**: BD + JS
+  van juntos.
+- **`scripts/visualize_hashes.py`** actualizado para aplicar ART_CROP (la columna 1
+  muestra el recorte; matriz de discriminación con la nueva separación).
+- **Verificado (offline)**: typecheck verde; matriz de discriminación (todas las
+  parejas de muestra ≥276 bits, antes OP01-001 vs 002 = 156 → ahora 418); NN sobre
+  la BD real mediana 262. **Pendiente usuario**: escaneo en dispositivo (build
+  nativo) — confirmar paridad JS↔Python end-to-end (el motor de resize de
+  expo-image-manipulator vs PIL puede voltear unos bits, absorbidos por el umbral)
+  y reafinar `AHASH_MAX_DISTANCE` (~130–160/768 si el campo lo exige).
+- **Rollback**: restaurar `ART_CROP`/`MASK_ROWS` antiguos en ambos ficheros y
+  re-ejecutar `--hashes-only`.
+
+### Scanner — shutter + feedback (2026-06-07)
+Primer test en dispositivo: el scanner "no hacía nada" al pulsar el botón de captura.
+Tres bugs encontrados y corregidos:
+1. **Shutter nativo sin carta detectada → no-op silencioso.** El `handleShutter`
+   simplemente volvía sin hacer nada (caso 3) si `pendingUriRef.current` era nulo en
+   modo nativo. Fix: `NativeScanCamera` expone `triggerCapture()` vía `forwardRef`+
+   `useImperativeHandle` con un `forceCapture` shared value. Al pulsarlo, el frame
+   processor rectifica el primer frame con cualquier quad detectado (sin esperar los
+   300 ms de estabilidad). Si no hay quad en 1.2 s → `showNoMatch()`.
+2. **Fallo de hash silencioso** (todas las rutas). Cuando `matchTopK` devolvía `[]`,
+   ninguna ruta mostraba feedback. El usuario no sabía si el scanner estaba
+   funcionando o no. Fix: `showNoMatch()` en `handleShutter` (casos 1, 2, 3) y un
+   overlay animado rojo (0.8 s) con el texto `scan.noMatch` ("Card not recognized").
+3. **`computeAhash` con ops vacío.** Con ART_CROP la Stage A llamaba a
+   `manipulateAsync(uri, [], PNG)` para resolver dims; algunos dispositivos devuelven
+   `width`/`height` incorrectos (0 o undefined) con array de acciones vacío. Fix:
+   cuando no hay `crop` (path nativo), se usan las constantes `RECTIFIED_W=350` /
+   `RECTIFIED_H=490` directamente (el PNG de NativeScanCamera siempre tiene ese tamaño).
+4. **`AHASH_MAX_DISTANCE` sin calibrar → 80 → 150.** 80/768 (≈10.4%) era arbitrario
+   y nunca probado; las fotos de cámara pueden diferir bastante de la referencia.
+   Subido a 150 (≈19.5%) que sigue siendo cómodo frente al margen de discriminación
+   offline (mediana de distancia entre cartas distintas = 262 bits). Si aparecen
+   falsos positivos, bajar; si se pierden cartas correctas, subir hasta ~200.
+- `i18n`: añadido `scan.noMatch` en en.ts + es.ts.
+- Typecheck limpio. **Pendiente usuario**: verificar en dispositivo.
 
 ### Browse Screen
 - Full-text + fuzzy search over `CARD_LIST`. Multi-criteria `FilterSheet` (set, color, type,
@@ -576,6 +734,40 @@ plan). Static data (card index, prices, images) is never sent to Supabase.
   offline can be resurrected if B logs in and pushes first. Acceptable for v1.
 
 ## Known Bugs
+
+### ~~B-10 — Web build (`npm start` → web) rendered a blank page~~ — RESOLVED (2026-06-07)
+- **Symptom:** Running the web target showed a blank page; no error overlay, no
+  console error. React never mounted (`__REACT_DEVTOOLS_GLOBAL_HOOK__.renderers`
+  = 0, `#root` empty) even though the bundle loaded HTTP 200.
+- **Root cause:** `App.tsx → ScanScreen.tsx` *statically* imports
+  `lib/cardDetect` (for `isCardDetectAvailable`). `cardDetect.ts` defines
+  `'worklet'` functions that reference `OpenCV.frameBufferToMat` (react-native-
+  fast-opencv). The **react-native-worklets-core babel plugin builds each
+  worklet's closure at MODULE-EVAL time**, emitting `{ frameBufferToMat:
+  OpenCV.frameBufferToMat, … }()` — which dereferences `OpenCV` (null on web)
+  the instant the module is imported → `TypeError: Cannot read properties of
+  null (reading 'frameBufferToMat')` thrown from the entry require, aborting the
+  whole bundle before `registerRootComponent` could mount. The throw was swallowed
+  (entry-level, pre-mount), hence the silent blank page. Surfaced by manually
+  re-requiring the entry module via the metro runtime (`window.__r(0)`), which
+  re-throws metro's cached module error.
+- **Fix:** platform stubs so the native/worklet code is never bundled on web
+  (Metro prefers `.web.*`):
+  - `app/src/lib/cardDetect.web.ts` — `isCardDetectAvailable()` → false; no-op
+    `detectCardQuad`/`rectifyCardCrop`; re-exports the same types/constants.
+  - `app/src/screens/NativeScanCamera.web.tsx` — returns `null`; keeps the
+    vision-camera + frame-processor worklet imports (and their eager closures)
+    out of the web bundle. Needed because Metro statically bundles the
+    conditional `require('./NativeScanCamera')` in `ScanScreen` regardless of the
+    runtime guard.
+  - ScanScreen already degrades to the manual code-lookup path on web/Expo Go.
+- **Verified (browser preview):** fresh cache-cleared web bundle is ~83 KB
+  smaller (OpenCV/vision-camera excluded); React mounts; Home dashboard renders
+  full-height (`#root` fills viewport). Typecheck clean.
+- **Note:** the web entry point is `node_modules/expo/AppEntry.bundle` (from
+  `package.json` `"main"`), **not** `./index` — no root `index.js` is needed for
+  web. The `expo-reset` full-height CSS is provided by Expo's default HTML
+  template; no custom template required.
 
 ### ~~B-08 — Hold-repeat timer leak: rapid +/- added hundreds of copies~~ — RESOLVED (2026-06-06)
 - **File:** `components/CardThumb.tsx` (quickActions `+/-`, `startHold`/`stopHold`).

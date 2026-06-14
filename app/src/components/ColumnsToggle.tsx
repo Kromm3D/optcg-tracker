@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts } from '../theme';
+import { colors, fonts, pressedStyle } from '../theme';
 import {
   getSettings,
   setColumns,
@@ -26,7 +26,10 @@ export function ColumnsToggle() {
           <Pressable
             key={n}
             onPress={() => setColumns(n)}
-            style={[s.btn, on && s.btnOn]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={`${n}`}
+            style={({ pressed }) => [s.btn, on && s.btnOn, pressed && pressedStyle]}
           >
             <Text style={[s.txt, on && s.txtOn]}>{n}</Text>
           </Pressable>
@@ -46,17 +49,17 @@ const s = StyleSheet.create({
     padding: 2,
   },
   btn: {
-    paddingHorizontal: 7,
-    paddingVertical: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
     borderRadius: 7,
-    minWidth: 22,
+    minWidth: 26,
     alignItems: 'center',
   },
   btnOn: { backgroundColor: colors.accentDim },
   txt: {
     fontSize: 12,
     fontFamily: fonts.uiSemi,
-    color: colors.textDim,
+    color: colors.textMut,
   },
   txtOn: { color: colors.accent },
 });

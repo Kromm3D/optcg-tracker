@@ -8,8 +8,12 @@ export const colors = {
   surface2: '#1e1a30',
   border: 'rgba(236,72,153,0.12)',
   text: '#f4f0ff',
+  // Secondary text. ~5.0:1 sobre bg — pasa WCAG AA para texto normal.
   textMut: '#9d91b8',
-  textDim: '#5e5478',
+  // Texto terciario. Subido de #5e5478 (≈2.3:1, fallaba AA) a #8b7fae
+  // (≈4.0:1 sobre bg) para que códigos/subtítulos/placeholder sean legibles.
+  // Nunca usar para etiquetas de navegación o texto <14px crítico.
+  textDim: '#8b7fae',
   accent: '#ec4899',
   accentDim: 'rgba(236,72,153,0.13)',
   accentGlow: 'rgba(236,72,153,0.35)',
@@ -73,3 +77,46 @@ export const spacing = {
   xl: 20,
   xxl: 28,
 };
+
+/** Escala tipográfica. Sustituye a los fontSize sueltos por todo el código. */
+export const type = {
+  display: 30,
+  h1: 22,
+  h2: 18,
+  title: 16,
+  body: 14,
+  label: 13,
+  caption: 12,
+  micro: 11,
+};
+
+/** Sombras/elevación reutilizables (dark theme). */
+export const elevation = {
+  card: {
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  accent: {
+    shadowColor: colors.accent,
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+};
+
+/** Tamaño mínimo de área táctil (Apple HIG / Material). */
+export const HIT_SLOP = { top: 10, bottom: 10, left: 10, right: 10 };
+export const MIN_TOUCH = 44;
+
+/**
+ * Opacidad de feedback al pulsar. Úsese en `Pressable`:
+ *   style={({ pressed }) => [base, pressed && pressedStyle]}
+ * Da la confirmación visual de pulsación que faltaba en toda la app.
+ */
+export const pressedStyle = { opacity: 0.55 };
+/** Variante para superficies grandes (cards): hundimiento sutil. */
+export const pressedSurface = { opacity: 0.8 };

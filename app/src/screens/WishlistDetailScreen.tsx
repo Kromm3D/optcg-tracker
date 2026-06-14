@@ -4,10 +4,10 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,11 +16,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { WishlistDetailScreenProps } from '../navigation';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
 import { DeckCardPile } from '../components/DeckCardPile';
 import { CachedImage } from '../components/CachedImage';
 import { VariantPickerSheet } from '../components/VariantPickerSheet';
+import { AppModal } from '../components/AppModal';
+import { Button } from '../components/Button';
+import { Counter } from '../components/Counter';
 import { CARDS, CARD_LIST } from '../data/loadIndex';
 import { fuzzyFilter } from '../lib/filters';
 import { resolveImageUris } from '../lib/images';
@@ -110,7 +113,7 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
   if (!wishlist) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: colors.textMut }}>Loading…</Text>
+        <ActivityIndicator color={colors.accent} size="large" />
       </View>
     );
   }
@@ -122,19 +125,32 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {/* Header */}
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={HIT_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.done')}
+          style={({ pressed }) => [s.backBtn, pressed && pressedStyle]}
+        >
           <Icon name="chevL" size={22} color={colors.text} />
         </Pressable>
         <Pressable
           onPress={() => { setNewName(wishlist.name); setRenaming(true); }}
-          style={{ flex: 1 }}
+          style={({ pressed }) => [{ flex: 1 }, pressed && pressedStyle]}
+          accessibilityRole="button"
+          accessibilityLabel={t('wl.rename')}
         >
           <Text style={s.headerTitle} numberOfLines={1}>{wishlist.name}</Text>
           <Text style={s.headerSub}>
             {entries.length} {t('wl.entries')} · {totalOwned}/{totalNeeded} {t('wl.copiesNeeded')}
           </Text>
         </Pressable>
-        <Pressable style={s.addBtn} onPress={() => setShowAdd(true)}>
+        <Pressable
+          style={({ pressed }) => [s.addBtn, pressed && pressedStyle]}
+          onPress={() => setShowAdd(true)}
+          accessibilityRole="button"
+          accessibilityLabel={t('wl.addCards')}
+        >
           <Icon name="plus" size={20} color="#fff" />
         </Pressable>
       </View>
@@ -147,14 +163,27 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
           <Text style={s.emptySub}>{t('wl.emptyBody')}</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={s.grid}>
-          {entries.map(({ wc, card }) => {
+        <FlatList
+          data={entries}
+          keyExtractor={(e) => `${e.wc.code}${e.wc.suffix}`}
+          numColumns={COLUMNS}
+          columnWrapperStyle={{ gap: CARD_GAP }}
+          contentContainerStyle={s.grid}
+          initialNumToRender={18}
+          maxToRenderPerBatch={18}
+          windowSize={5}
+          removeClippedSubviews
+          renderItem={({ item: { wc, card } }) => {
             const owned = getOwnedFor(card.code);
             const variant = card.variants.find((v) => v.suffix === wc.suffix) ?? card.variants[0];
-            // DeckCardPile with qty=needed, owned=owned shows the same layered pile UX
             return (
-              <View key={`${wc.code}${wc.suffix}`} style={[s.pileWrap, { width: cardW }]}>
-                <Pressable onPress={() => { setPickerCard(card); setShowPicker(true); }}>
+              <View style={[s.pileWrap, { width: cardW }]}>
+                <Pressable
+                  onPress={() => { setPickerCard(card); setShowPicker(true); }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${card.name} ${card.code}`}
+                  style={({ pressed }) => pressed && pressedStyle}
+                >
                   <DeckCardPile card={card} qty={wc.needed} owned={owned} width={cardW} variant={variant} />
                 </Pressable>
 
@@ -165,30 +194,24 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
 
                 {/* +/- controls for "needed" */}
                 <View style={s.pileControls}>
-                  <Pressable
-                    style={s.qtyBtn}
-                    onPress={() => handleNeededChange(wc, -1)}
-                  >
-                    <Text style={s.qtySign}>−</Text>
-                  </Pressable>
-                  <Text style={s.qtyVal}>{wc.needed}</Text>
-                  <Pressable
-                    style={s.qtyBtn}
-                    onPress={() => handleNeededChange(wc, +1)}
-                  >
-                    <Text style={s.qtySign}>+</Text>
-                  </Pressable>
+                  <Counter
+                    value={wc.needed}
+                    onAdjust={(d) => handleNeededChange(wc, d)}
+                    min={0}
+                    size="sm"
+                    label={card.code}
+                  />
                 </View>
 
                 {/* variant label + card code */}
                 <Text style={s.variantLabel} numberOfLines={1}>
-                  {variant?.label || 'Normal'}
+                  {variant?.label || t('wl.normal')}
                 </Text>
                 <Text style={s.pileCode} numberOfLines={1}>{card.code}</Text>
               </View>
             );
-          })}
-        </ScrollView>
+          }}
+        />
       )}
 
       {/* Add cards modal */}
@@ -196,17 +219,23 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
         <View style={{ flex: 1, backgroundColor: colors.bg }}>
           <View style={[s.addHeader, { paddingTop: insets.top + 12 }]}>
             <Text style={s.addTitle}>{t('wl.addCards')}</Text>
-            <Pressable onPress={() => setShowAdd(false)}>
+            <Pressable
+              onPress={() => setShowAdd(false)}
+              hitSlop={HIT_SLOP}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.done')}
+              style={({ pressed }) => pressed && pressedStyle}
+            >
               <Icon name="close" size={22} color={colors.text} />
             </Pressable>
           </View>
           <View style={s.searchWrap}>
-            <Icon name="search" size={18} color={colors.textDim} />
+            <Icon name="search" size={18} color={colors.textMut} />
             <TextInput
               style={s.searchInput}
               value={search}
               onChangeText={setSearch}
-              placeholder="yellow luffy op15, OP01-001…"
+              placeholder={t('browse.searchPlaceholder')}
               placeholderTextColor={colors.textDim}
               autoFocus
               autoCorrect={false}
@@ -247,24 +276,20 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
                     </Text>
                   </View>
                   <View style={s.addControls}>
-                    <Pressable
-                      style={[s.qtyBtn, totalNeededForCard === 0 && s.qtyBtnOff]}
-                      onPress={() => {
-                        // Remove 1 from the default-variant entry
-                        const suffix = getDefaultWishlistSuffix(item.variants);
-                        adjustNeeded(wishlistId, item.code, suffix, -1);
+                    <Counter
+                      value={totalNeededForCard}
+                      min={0}
+                      size="sm"
+                      label={item.code}
+                      onAdjust={(d) => {
+                        if (d < 0) {
+                          const suffix = getDefaultWishlistSuffix(item.variants);
+                          adjustNeeded(wishlistId, item.code, suffix, -1);
+                        } else {
+                          handleAddCard(item.code);
+                        }
                       }}
-                      disabled={totalNeededForCard === 0}
-                    >
-                      <Text style={s.qtySign}>−</Text>
-                    </Pressable>
-                    <Text style={s.qtyVal}>{totalNeededForCard}</Text>
-                    <Pressable
-                      style={s.qtyBtn}
-                      onPress={() => handleAddCard(item.code)}
-                    >
-                      <Text style={s.qtySign}>+</Text>
-                    </Pressable>
+                    />
                   </View>
                 </View>
               );
@@ -275,30 +300,21 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
       </Modal>
 
       {/* Rename modal */}
-      <Modal visible={renaming} transparent animationType="fade" onRequestClose={() => setRenaming(false)}>
-        <Pressable style={s.modalBg} onPress={() => setRenaming(false)}>
-          <Pressable style={s.modalCard} onPress={() => {}}>
-            <Text style={s.modalTitle}>{t('wl.rename')}</Text>
-            <TextInput
-              style={s.modalInput}
-              value={newName}
-              onChangeText={setNewName}
-              placeholderTextColor={colors.textDim}
-              autoFocus
-              returnKeyType="done"
-              onSubmitEditing={handleRename}
-            />
-            <View style={s.modalRow}>
-              <Pressable style={s.modalCancel} onPress={() => setRenaming(false)}>
-                <Text style={s.modalCancelText}>{t('common.cancel')}</Text>
-              </Pressable>
-              <Pressable style={s.modalConfirm} onPress={handleRename}>
-                <Text style={s.modalConfirmText}>{t('wl.renameAction')}</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <AppModal visible={renaming} onClose={() => setRenaming(false)} title={t('wl.rename')}>
+        <TextInput
+          style={s.modalInput}
+          value={newName}
+          onChangeText={setNewName}
+          placeholderTextColor={colors.textDim}
+          autoFocus
+          returnKeyType="done"
+          onSubmitEditing={handleRename}
+        />
+        <View style={s.modalRow}>
+          <Button title={t('common.cancel')} variant="secondary" onPress={() => setRenaming(false)} style={s.modalBtn} />
+          <Button title={t('wl.renameAction')} onPress={handleRename} disabled={!newName.trim()} style={s.modalBtn} />
+        </View>
+      </AppModal>
 
       {/* Variant picker (tap a pile to reassign variant) */}
       <VariantPickerSheet
@@ -329,14 +345,12 @@ const s = StyleSheet.create({
   },
 
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     padding: spacing.lg,
     gap: CARD_GAP,
     paddingBottom: 110,
   },
 
-  pileWrap: { alignItems: 'center', gap: 4 },
+  pileWrap: { alignItems: 'center', gap: 4, marginBottom: CARD_GAP },
   fraction: { fontSize: 11, fontFamily: fonts.uiSemi, color: colors.textMut },
   fractionDone: { color: colors.up },
   pileControls: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
@@ -353,7 +367,7 @@ const s = StyleSheet.create({
   pileCode: { fontSize: 10, fontFamily: fonts.uiSemi, color: colors.textDim },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
-  emptyTitle: { fontSize: 20, fontFamily: fonts.uiBold, color: colors.text },
+  emptyTitle: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
   emptySub: { fontSize: 14, fontFamily: fonts.ui, color: colors.textMut, textAlign: 'center' },
 
   // Add cards modal
@@ -395,6 +409,7 @@ const s = StyleSheet.create({
   modalTitle: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
   modalInput: { height: 50, borderRadius: radii.lg, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, fontSize: 16, fontFamily: fonts.ui, color: colors.text },
   modalRow: { flexDirection: 'row', gap: 12 },
+  modalBtn: { flex: 1 },
   modalCancel: { flex: 1, height: 48, borderRadius: radii.lg, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
   modalCancelText: { fontSize: 15, fontFamily: fonts.uiSemi, color: colors.textMut },
   modalConfirm: { flex: 1, height: 48, borderRadius: radii.lg, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },

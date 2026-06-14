@@ -1,8 +1,8 @@
 // Punto de entrada. NavigationContainer con stack raiz + tabs (4).
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
@@ -34,7 +34,8 @@ import { FriendsScreen }         from './src/screens/FriendsScreen';
 import { FriendProfileScreen }   from './src/screens/FriendProfileScreen';
 import './src/lib/sync'; // side-effect: arranca el listener de login/logout para la sync
 import { Icon }             from './src/components/Icon';
-import { colors, fonts }    from './src/theme';
+import { ToastProvider }    from './src/components/Toast';
+import { colors, fonts, pressedStyle, HIT_SLOP } from './src/theme';
 import { useT }             from './src/lib/i18n';
 import type { TKey }        from './src/i18n/en';
 import type { RootStackParamList, TabParamList } from './src/navigation';
@@ -83,18 +84,21 @@ function TabBar({ state, navigation }: TabBarProps) {
               {insertSpacer && <View style={s.tabSpacer} />}
               <Pressable
                 onPress={() => navigation.navigate(route.name)}
-                style={s.tabBtn}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: focused }}
+                accessibilityLabel={t(meta.labelKey)}
+                style={({ pressed }) => [s.tabBtn, pressed && pressedStyle]}
               >
                 <Icon
                   name={meta.icon}
                   size={22}
-                  color={focused ? colors.accent : colors.textDim}
+                  color={focused ? colors.accent : colors.textMut}
                   stroke={focused ? 2.2 : 1.8}
                 />
                 <Text
                   style={[
                     s.tabLabel,
-                    { color: focused ? colors.accent : colors.textDim },
+                    { color: focused ? colors.accent : colors.textMut },
                     focused && { fontFamily: fonts.uiBold },
                   ]}
                 >
@@ -108,8 +112,9 @@ function TabBar({ state, navigation }: TabBarProps) {
 
       {/* Highlighted center Scan button */}
       <Pressable
-        style={s.scanFab}
+        style={({ pressed }) => [s.scanFab, pressed && pressedStyle]}
         onPress={() => navigation.navigate('Scan')}
+        accessibilityRole="button"
         accessibilityLabel={t('tab.scan')}
       >
         <Icon name="scan" size={26} color="#fff" stroke={2.2} />
@@ -121,9 +126,19 @@ function TabBar({ state, navigation }: TabBarProps) {
 function Header({ titleKey }: { titleKey: TKey }) {
   const t = useT();
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   return (
     <View style={[s.header, { paddingTop: insets.top + 10 }]}>
       <Text style={s.headerTitle}>{t(titleKey)}</Text>
+      <Pressable
+        onPress={() => navigation.navigate('Settings')}
+        accessibilityRole="button"
+        accessibilityLabel={t('settings.title')}
+        hitSlop={HIT_SLOP}
+        style={({ pressed }) => [s.headerBtn, pressed && pressedStyle]}
+      >
+        <Icon name="gear" size={22} color={colors.textMut} stroke={1.8} />
+      </Pressable>
     </View>
   );
 }
@@ -168,13 +183,14 @@ export default function App() {
   if (!fontsLoaded) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: colors.textMut }}>Loading fonts…</Text>
+        <ActivityIndicator color={colors.accent} size="large" />
       </View>
     );
   }
 
   return (
     <SafeAreaProvider>
+      <ToastProvider>
       <NavigationContainer theme={NavTheme}>
         <StatusBar style="light" />
         <Stack.Navigator
@@ -196,18 +212,26 @@ export default function App() {
           <Stack.Screen name="FriendProfile"  component={FriendProfileScreen}  options={{ headerShown: false }} />
         </Stack.Navigator>
       </NavigationContainer>
+      </ToastProvider>
     </SafeAreaProvider>
   );
 }
 
 const s = StyleSheet.create({
-  header: { paddingHorizontal: 18, paddingBottom: 10 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingBottom: 10,
+  },
   headerTitle: {
     fontSize: 30,
     fontFamily: fonts.display,
     color: colors.text,
     letterSpacing: -0.6,
   },
+  headerBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   tabBarWrap: {
     position: 'absolute',
     bottom: 0,

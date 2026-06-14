@@ -7,7 +7,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CachedImage } from './CachedImage';
 import { Icon } from './Icon';
-import { colors, fonts } from '../theme';
+import { Touchable } from './Touchable';
+import { Counter } from './Counter';
+import { colors, fonts, HIT_SLOP, pressedStyle, pressedSurface } from '../theme';
 import { resolveImageUris } from '../lib/images';
 import { adjust, getCount, getCountSync, subscribe as subColl } from '../lib/collection';
 import {
@@ -186,8 +188,16 @@ function CardThumbBase({
     };
   }, [quickActions, card.code, v]);
 
+  const qaCount = live ? effectiveOwned : vCount;
+
   return (
-    <Pressable onPress={onPress} onLongPress={onLongPress} style={[styles.wrap, width !== undefined && { width }]}>
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${card.name} ${card.code}`}
+      style={({ pressed }) => [styles.wrap, width !== undefined && { width }, pressed && pressedSurface]}
+    >
       {/* Contenedor externo: define tamaño, permite overflow para las capas fantasma */}
       <View style={styles.imgContainer}>
         {/* Capas fantasma: de atrás (i=0) hacia adelante (i=ghostCount-1) */}
@@ -251,16 +261,23 @@ function CardThumbBase({
           {quickActions && v ? (
             <View style={styles.qa}>
               <Pressable
-                onPressIn={() => startHold(() => adjust(card.code, v.suffix, -1))}
+                onPressIn={() => qaCount > 0 && startHold(() => adjust(card.code, v.suffix, -1))}
                 onPressOut={stopHold}
-                style={styles.qaBtn}
+                disabled={qaCount <= 0}
+                hitSlop={HIT_SLOP}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove one ${card.code}`}
+                style={({ pressed }) => [styles.qaBtn, qaCount <= 0 && styles.qaBtnOff, pressed && pressedStyle]}
               >
                 <Text style={styles.qaSign}>−</Text>
               </Pressable>
               <Pressable
                 onPressIn={() => startHold(() => adjust(card.code, v.suffix, +1))}
                 onPressOut={stopHold}
-                style={styles.qaBtn}
+                hitSlop={HIT_SLOP}
+                accessibilityRole="button"
+                accessibilityLabel={`Add one ${card.code}`}
+                style={({ pressed }) => [styles.qaBtn, pressed && pressedStyle]}
               >
                 <Text style={styles.qaSign}>+</Text>
               </Pressable>
@@ -296,19 +313,7 @@ function CardThumbBase({
       {/* Inline ±  controls — shown whenever onAdjust is provided */}
       {!quickActions && onAdjust && (
         <View style={styles.inlineControls}>
-          <Pressable
-            style={styles.inlineBtn}
-            onPress={(e: any) => { (e as any).stopPropagation?.(); onAdjust(-1); }}
-          >
-            <Text style={styles.inlineSign}>−</Text>
-          </Pressable>
-          <Text style={styles.inlineQty}>{displayQty}</Text>
-          <Pressable
-            style={styles.inlineBtn}
-            onPress={(e: any) => { (e as any).stopPropagation?.(); onAdjust(+1); }}
-          >
-            <Text style={styles.inlineSign}>+</Text>
-          </Pressable>
+          <Counter value={displayQty} onAdjust={onAdjust} size="sm" label={card.code} />
         </View>
       )}
     </Pressable>
@@ -361,13 +366,14 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   qaBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(244,246,249,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  qaBtnOff: { backgroundColor: 'rgba(244,246,249,0.4)' },
   qaSign: { color: '#0d0f14', fontSize: 22, fontFamily: fonts.uiBold, lineHeight: 26 },
   // Bleeds slightly outside the top-right corner of the card image.
   countBubble: {

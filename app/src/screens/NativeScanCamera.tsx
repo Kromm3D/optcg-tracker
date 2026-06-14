@@ -8,13 +8,12 @@
 // availability guard.
 //
 // Pipeline per frame:
-//   resize(frame → 480×640 bgr uint8) → detectCardQuad → (overlay polygon)
-//   → when the quad is stable ~300 ms → rectifyCardCrop → onStableCard(uri)
+//   resize(frame → 480×640 bgr uint8) → detectCardQuad → (overlay corner brackets)
+//   → when the quad is stable ~300 ms → rectifyCardCrop → onCardReady(uri)
 // ScanScreen owns identification (matchTopK) + the confirmation flow.
 
-import React, { useState } from 'react';
+import React, { forwardRef, useImperativeHandle, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Svg, { Polygon } from 'react-native-svg';
 
 // @ts-ignore — native deps; resolved only in the custom dev build.
 import { Camera, useCameraDevice, useFrameProcessor } from 'react-native-vision-camera';
@@ -35,26 +34,54 @@ const RES_H = 640;
 const STABLE_PX = 14;
 const STABLE_MS = 300;
 
+// Size of each L-shaped corner bracket drawn at the card corners.
+const BRACKET_LEN = 22;
+const BRACKET_W   = 3;
+const BRACKET_R   = 4;
+
 type Props = {
   /** Camera runs only while true (screen focused + no sheet open). */
   isActive: boolean;
   /** Receives the rectified card crop as a base64 PNG data-URI. */
-  onStableCard: (uri: string) => void;
+  onCardReady: (uri: string) => void;
+  /** Called whenever card detection state changes (true = quad visible). */
+  onQuadChange?: (detected: boolean) => void;
 };
 
-export function NativeScanCamera({ isActive, onStableCard }: Props) {
+/** Imperative handle exposed to ScanScreen via ref. */
+export type NativeScanCameraHandle = {
+  /**
+   * Force-rectify the next camera frame that contains a detectable card quad,
+   * bypassing the stability dwell. Call this when the user presses the shutter
+   * manually. If no quad is visible the flag clears automatically on the next
+   * frameless cycle.
+   */
+  triggerCapture: () => void;
+};
+
+export const NativeScanCamera = forwardRef<NativeScanCameraHandle, Props>(
+function NativeScanCamera({ isActive, onCardReady, onQuadChange }, ref) {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const device = useCameraDevice('back');
   const { resize } = useResizePlugin();
   const [quad, setQuad] = useState<Quad | null>(null);
 
   // Worklet-shared throttle state (last quad centre + timestamp).
-  const lastTs = useSharedValue(0);
-  const lastX = useSharedValue(0);
-  const lastY = useSharedValue(0);
+  const lastTs       = useSharedValue(0);
+  const lastX        = useSharedValue(0);
+  const lastY        = useSharedValue(0);
+  // Set to true by triggerCapture() so the next frame with any quad fires immediately.
+  const forceCapture = useSharedValue(false);
 
-  const onQuad = Worklets.createRunOnJS((q: Quad | null) => setQuad(q));
-  const onStable = Worklets.createRunOnJS((uri: string) => onStableCard(uri));
+  useImperativeHandle(ref, () => ({
+    triggerCapture: () => { forceCapture.value = true; },
+  }), [forceCapture]);
+
+  const onQuad   = Worklets.createRunOnJS((q: Quad | null) => {
+    setQuad(q);
+    onQuadChange?.(q != null);
+  });
+  const onStable = Worklets.createRunOnJS((uri: string) => onCardReady(uri));
 
   const frameProcessor = useFrameProcessor(
     (frame: any) => {
@@ -69,6 +96,7 @@ export function NativeScanCamera({ isActive, onStableCard }: Props) {
       onQuad(q);
       if (!q) {
         lastTs.value = 0;
+        forceCapture.value = false; // clear flag if card leaves frame
         return;
       }
 
@@ -76,21 +104,33 @@ export function NativeScanCamera({ isActive, onStableCard }: Props) {
       const cx = (q[0].x + q[1].x + q[2].x + q[3].x) / 4;
       const cy = (q[0].y + q[1].y + q[2].y + q[3].y) / 4;
       const now = Date.now();
-      const moved = Math.abs(cx - lastX.value) > STABLE_PX || Math.abs(cy - lastY.value) > STABLE_PX;
+      const moved =
+        Math.abs(cx - lastX.value) > STABLE_PX ||
+        Math.abs(cy - lastY.value) > STABLE_PX;
 
       if (moved || lastTs.value === 0) {
         lastX.value = cx;
         lastY.value = cy;
         lastTs.value = now;
+        // Shutter pressed: fire even on a freshly-detected / still-moving quad.
+        if (forceCapture.value) {
+          forceCapture.value = false;
+          const uri = rectifyCardCrop(buf, q);
+          lastTs.value = now + 500;
+          if (uri) onStable(uri);
+        }
         return;
       }
-      if (now - lastTs.value >= STABLE_MS) {
+
+      // Natural stability reached OR user pressed shutter on an already-steady quad.
+      if (forceCapture.value || now - lastTs.value >= STABLE_MS) {
+        forceCapture.value = false;
         const uri = rectifyCardCrop(buf, q);
         lastTs.value = now + 500; // brief cooldown so we don't re-fire instantly
         if (uri) onStable(uri);
       }
     },
-    [resize],
+    [resize, forceCapture],
   );
 
   if (!device) {
@@ -101,12 +141,9 @@ export function NativeScanCamera({ isActive, onStableCard }: Props) {
     );
   }
 
-  // Scale the quad (resized coords) → screen coords for the overlay polygon.
+  // Scale quad (resized coords) → screen coords for the corner bracket overlay.
   const sx = screenW / RES_W;
   const sy = screenH / RES_H;
-  const points = quad
-    ? quad.map((p) => `${p.x * sx},${p.y * sy}`).join(' ')
-    : null;
 
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -116,22 +153,53 @@ export function NativeScanCamera({ isActive, onStableCard }: Props) {
         isActive={isActive}
         frameProcessor={frameProcessor}
         pixelFormat="yuv"
+        // Note: no ref needed here — we expose triggerCapture via useImperativeHandle
+        // using the forceCapture shared value (worklet-safe, no Camera ref required).
       />
-      {points && (
-        <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Polygon
-            points={points}
-            fill="rgba(34,197,94,0.12)"
-            stroke="#22c55e"
-            strokeWidth={3}
+
+      {/* Corner-bracket markers at each quad corner (tracks the card live). */}
+      {quad && quad.map((pt, i) => {
+        const sx_ = pt.x * sx;
+        const sy_ = pt.y * sy;
+
+        // Determine which corner: 0=TL, 1=TR, 2=BR, 3=BL (from orderCorners).
+        const isTL = i === 0;
+        const isTR = i === 1;
+        const isBR = i === 2;
+        const isBL = i === 3;
+
+        return (
+          <View
+            key={i}
+            style={[
+              s.bracket,
+              {
+                left:   sx_ - (isTR || isBR ? BRACKET_LEN : 0),
+                top:    sy_ - (isBL || isBR ? BRACKET_LEN : 0),
+                borderTopWidth:    isTL || isTR ? BRACKET_W : 0,
+                borderBottomWidth: isBL || isBR ? BRACKET_W : 0,
+                borderLeftWidth:   isTL || isBL ? BRACKET_W : 0,
+                borderRightWidth:  isTR || isBR ? BRACKET_W : 0,
+                borderTopLeftRadius:     isTL ? BRACKET_R : 0,
+                borderTopRightRadius:    isTR ? BRACKET_R : 0,
+                borderBottomRightRadius: isBR ? BRACKET_R : 0,
+                borderBottomLeftRadius:  isBL ? BRACKET_R : 0,
+              },
+            ]}
           />
-        </Svg>
-      )}
+        );
+      })}
     </View>
   );
-}
+});
 
 const s = StyleSheet.create({
   noDevice: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' },
   hint: { color: colors.textMut, fontFamily: fonts.ui, fontSize: 14 },
+  bracket: {
+    position: 'absolute',
+    width:  BRACKET_LEN,
+    height: BRACKET_LEN,
+    borderColor: '#ffffff',
+  },
 });

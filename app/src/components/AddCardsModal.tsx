@@ -20,7 +20,8 @@ import { fuzzyFilter } from '../lib/filters';
 import { resolveImageUris } from '../lib/images';
 import { getOwnedFor } from '../lib/ownedAggregate';
 import { useT } from '../lib/i18n';
-import { colors, fonts, radii, spacing } from '../theme';
+import { Counter } from './Counter';
+import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
 
 export type AddCardsModalProps = {
   visible: boolean;
@@ -54,12 +55,18 @@ export function AddCardsModal({
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <View style={[s.addHeader, { paddingTop: insets.top + 12 }]}>
           <Text style={s.addTitle}>{t('add.title')}</Text>
-          <Pressable onPress={onClose}>
+          <Pressable
+            onPress={onClose}
+            hitSlop={HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.done')}
+            style={({ pressed }) => pressed && pressedStyle}
+          >
             <Icon name="close" size={22} color={colors.text} />
           </Pressable>
         </View>
         <View style={s.searchWrap}>
-          <Icon name="search" size={18} color={colors.textDim} />
+          <Icon name="search" size={18} color={colors.textMut} />
           <TextInput
             style={s.searchInput}
             value={search}
@@ -97,17 +104,13 @@ export function AddCardsModal({
                   <Text style={s.addOwned}>{t('add.owned')}: {owned}</Text>
                 </View>
                 <View style={s.addControls}>
-                  <Pressable
-                    style={[s.qtyBtn, qty === 0 && s.qtyBtnOff]}
-                    onPress={() => onChange(item.code, -1)}
-                    disabled={qty === 0}
-                  >
-                    <Text style={s.qtySign}>−</Text>
-                  </Pressable>
-                  <Text style={s.qtyVal}>{qty}</Text>
-                  <Pressable style={s.qtyBtn} onPress={() => onChange(item.code, +1)}>
-                    <Text style={s.qtySign}>+</Text>
-                  </Pressable>
+                  <Counter
+                    value={qty}
+                    onAdjust={(d) => onChange(item.code, d)}
+                    min={0}
+                    size="sm"
+                    label={item.code}
+                  />
                 </View>
               </View>
             );

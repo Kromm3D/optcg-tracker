@@ -13,8 +13,9 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, pressedSurface } from '../theme';
 import { Icon } from './Icon';
+import { Counter } from './Counter';
 import { useT } from '../lib/i18n';
 import { summarizeSet, isEntryComplete, type SetEntry } from '../lib/setsStats';
 import { getSettings } from '../lib/settings';
@@ -135,11 +136,17 @@ export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
                 <View style={s.chipRow}>
                   {(['normal', 'parallel', 'both'] as Printing[]).map((p) => {
                     const on = printing === p;
+                    const label = p === 'normal' ? t('setwl.normal') : p === 'parallel' ? t('setwl.parallel') : t('setwl.both');
                     return (
-                      <Pressable key={p} style={[s.chip, on && s.chipOn]} onPress={() => setPrinting(p)}>
-                        <Text style={[s.chipText, on && s.chipTextOn]}>
-                          {p === 'normal' ? t('setwl.normal') : p === 'parallel' ? t('setwl.parallel') : t('setwl.both')}
-                        </Text>
+                      <Pressable
+                        key={p}
+                        style={({ pressed }) => [s.chip, on && s.chipOn, pressed && pressedStyle]}
+                        onPress={() => setPrinting(p)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: on }}
+                        accessibilityLabel={label}
+                      >
+                        <Text style={[s.chipText, on && s.chipTextOn]}>{label}</Text>
                       </Pressable>
                     );
                   })}
@@ -153,15 +160,13 @@ export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
                   {rarities.map((r) => (
                     <View key={r} style={s.rarityRow}>
                       <Text style={s.rarityLabel}>{r}</Text>
-                      <View style={s.stepper}>
-                        <Pressable style={s.stepBtn} onPress={() => bumpRarity(r, -1)}>
-                          <Text style={s.stepSign}>−</Text>
-                        </Pressable>
-                        <Text style={s.stepVal}>{qtyByRarity[r] ?? 0}</Text>
-                        <Pressable style={s.stepBtn} onPress={() => bumpRarity(r, +1)}>
-                          <Text style={s.stepSign}>+</Text>
-                        </Pressable>
-                      </View>
+                      <Counter
+                        value={qtyByRarity[r] ?? 0}
+                        onAdjust={(d) => bumpRarity(r, d)}
+                        min={0}
+                        size="sm"
+                        label={r}
+                      />
                     </View>
                   ))}
                 </View>
@@ -174,8 +179,11 @@ export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
                   {wishlists.map((w) => (
                     <Pressable
                       key={w.id}
-                      style={[s.item, pickedId === w.id && s.itemOn]}
+                      style={({ pressed }) => [s.item, pickedId === w.id && s.itemOn, pressed && pressedSurface]}
                       onPress={() => setPickedId(w.id)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: pickedId === w.id }}
+                      accessibilityLabel={w.name}
                     >
                       <Icon name="heart" size={18} color={colors.accent} />
                       <Text style={s.itemName}>{w.name}</Text>
@@ -194,15 +202,22 @@ export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
                         onSubmitEditing={handleCreateWL}
                       />
                       <Pressable
-                        style={[s.smallBtn, !newName.trim() && { opacity: 0.4 }]}
+                        style={({ pressed }) => [s.smallBtn, !newName.trim() && { opacity: 0.4 }, pressed && pressedStyle]}
                         onPress={handleCreateWL}
                         disabled={!newName.trim()}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('wl.create')}
                       >
                         <Text style={s.smallBtnText}>{t('wl.create')}</Text>
                       </Pressable>
                     </View>
                   ) : (
-                    <Pressable style={s.newRow} onPress={() => setCreating(true)}>
+                    <Pressable
+                      style={({ pressed }) => [s.newRow, pressed && pressedStyle]}
+                      onPress={() => setCreating(true)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('wl.newWishlist')}
+                    >
                       <Icon name="plus" size={16} color={colors.accent} />
                       <Text style={s.newRowText}>{t('wl.newWishlist')}</Text>
                     </Pressable>
@@ -214,9 +229,11 @@ export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
 
           {missing.length > 0 && (
             <Pressable
-              style={[s.confirmBtn, !pickedId && { opacity: 0.4 }]}
+              style={({ pressed }) => [s.confirmBtn, !pickedId && { opacity: 0.4 }, pressed && pressedStyle]}
               onPress={apply}
               disabled={!pickedId}
+              accessibilityRole="button"
+              accessibilityLabel={t('wl.confirm')}
             >
               <Text style={s.confirmText}>{t('wl.confirm')}</Text>
             </Pressable>

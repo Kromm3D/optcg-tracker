@@ -15,10 +15,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CachedImage } from '../components/CachedImage';
 import type { DetailScreenProps } from '../navigation';
 import { CARDS } from '../data/loadIndex';
-import { colors, fonts, colorOf } from '../theme';
+import { colors, fonts, colorOf, pressedStyle, HIT_SLOP } from '../theme';
+import { useT } from '../lib/i18n';
 import { Icon } from '../components/Icon';
 import { ColorDot } from '../components/ColorDot';
 import { RarityPip } from '../components/RarityPip';
+import { Counter } from '../components/Counter';
 import { resolveImageUris } from '../lib/images';
 import { adjust, getCount, getCountSync, subscribe as subColl } from '../lib/collection';
 import { buildCardmarketVariantUrl } from '../lib/cardmarket';
@@ -33,6 +35,7 @@ import { EffectText } from '../components/EffectText';
 import type { Variant, Wishlist } from '../types';
 
 export function DetailScreen({ route, navigation }: DetailScreenProps) {
+  const t = useT();
   const { code, suffix } = route.params;
   const insets = useSafeAreaInsets();
   const card = CARDS[code];
@@ -69,7 +72,7 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
   if (!card) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, padding: 16 }}>
-        <Text style={{ color: colors.down }}>No se encontró la carta {code}.</Text>
+        <Text style={{ color: colors.down }}>{t('detail.notFound')} ({code})</Text>
       </View>
     );
   }
@@ -86,10 +89,21 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
     >
       {/* Close + heart */}
       <View style={[s.topBar, { paddingTop: insets.top + 12 }]}>
-        <Pressable onPress={() => navigation.goBack()} style={s.topBtn}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.done')}
+          style={({ pressed }) => [s.topBtn, pressed && pressedStyle]}
+        >
           <Icon name="close" size={20} color={colors.text} />
         </Pressable>
-        <Pressable onPress={handleHeartPress} style={s.topBtn}>
+        <Pressable
+          onPress={handleHeartPress}
+          accessibilityRole="button"
+          accessibilityLabel={t('wl.pickTitle')}
+          accessibilityState={{ selected: wished }}
+          style={({ pressed }) => [s.topBtn, pressed && pressedStyle]}
+        >
           <Icon
             name="heart"
             size={20}
@@ -131,7 +145,10 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
               <Pressable
                 key={v.suffix || 'base'}
                 onPress={() => setHeroIdx(i)}
-                style={[s.galleryThumb, active && s.galleryThumbActive]}
+                accessibilityRole="button"
+                accessibilityLabel={v.label}
+                accessibilityState={{ selected: active }}
+                style={({ pressed }) => [s.galleryThumb, active && s.galleryThumbActive, pressed && pressedStyle]}
               >
                 {uri ? (
                   <CachedImage uri={uri} fallbackUri={fallback} style={s.galleryImg} contentFit="contain" />
@@ -165,17 +182,17 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
           ) : null}
           {card.cost !== null && card.cost !== undefined ? (
             <View style={s.chip}>
-              <Text style={s.chipText}>Cost {card.cost}</Text>
+              <Text style={s.chipText}>{t('detail.cost')} {card.cost}</Text>
             </View>
           ) : null}
           {card.power ? (
             <View style={s.chip}>
-              <Text style={s.chipText}>Power {card.power.toLocaleString()}</Text>
+              <Text style={s.chipText}>{t('detail.power')} {card.power.toLocaleString()}</Text>
             </View>
           ) : null}
           {card.counter ? (
             <View style={s.chip}>
-              <Text style={s.chipText}>Counter {card.counter}</Text>
+              <Text style={s.chipText}>{t('detail.counter')} {card.counter}</Text>
             </View>
           ) : null}
           {card.attribute ? (
@@ -189,24 +206,26 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
       {/* Effect text */}
       {card.effect ? (
         <View style={s.panel}>
-          <Text style={s.panelLabel}>Effect</Text>
+          <Text style={s.panelLabel}>{t('detail.effect')}</Text>
           <EffectText text={card.effect} />
         </View>
       ) : null}
 
       {/* Cardmarket button — URL específica del arte actualmente visible */}
       <Pressable
-        style={s.cmBtn}
+        style={({ pressed }) => [s.cmBtn, pressed && pressedStyle]}
         onPress={() => Linking.openURL(buildCardmarketVariantUrl(code, main?.suffix ?? ''))}
+        accessibilityRole="link"
+        accessibilityLabel={t('detail.priceCardmarket')}
       >
-        <Text style={s.cmText}>Ver precio en Cardmarket</Text>
+        <Text style={s.cmText}>{t('detail.priceCardmarket')}</Text>
         <Icon name="external" size={16} color="#fff" />
       </Pressable>
 
       {/* Variants */}
       <View style={{ paddingHorizontal: 18, marginTop: 26 }}>
         <Text style={s.sectionTitle}>
-          Variants · {card.variants.length}
+          {t('detail.variants')} · {card.variants.length}
         </Text>
         {card.variants.map((v) => (
           <VariantRow key={v.suffix || 'base'} code={code} cardSet={code.split('-')[0]} variant={v} />
@@ -223,6 +242,7 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
 }
 
 function VariantRow({ code, cardSet, variant }: { code: string; cardSet: string; variant: Variant }) {
+  const t = useT();
   const [count, setCountState] = useState(0);
 
   useEffect(() => {
@@ -263,23 +283,18 @@ function VariantRow({ code, cardSet, variant }: { code: string; cardSet: string;
           </Text>
         </View>
         <View style={s.counter}>
-          <Pressable
-            onPress={() => adjust(code, variant.suffix, -1)}
-            style={s.counterBtn}
-          >
-            <Icon name="minus" size={16} color={colors.text} />
-          </Pressable>
-          <Text style={s.counterValue}>{count}</Text>
-          <Pressable
-            onPress={() => adjust(code, variant.suffix, +1)}
-            style={s.counterBtn}
-          >
-            <Icon name="plus" size={16} color={colors.text} />
-          </Pressable>
+          <Counter
+            value={count}
+            onAdjust={(d) => adjust(code, variant.suffix, d)}
+            size="sm"
+            label={`${code} ${variant.label}`}
+          />
           <Pressable
             onPress={() => Linking.openURL(buildCardmarketVariantUrl(code, variant.suffix))}
-            style={[s.counterBtn, { marginLeft: 'auto' }]}
-            accessibilityLabel="Ver en Cardmarket"
+            hitSlop={HIT_SLOP}
+            style={({ pressed }) => [s.counterBtn, { marginLeft: 'auto' }, pressed && pressedStyle]}
+            accessibilityRole="link"
+            accessibilityLabel={t('detail.priceCardmarket')}
           >
             <Icon name="external" size={14} color={colors.textMut} />
           </Pressable>

@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AccountScreenProps } from '../navigation';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
 import { useT } from '../lib/i18n';
 import { isSupabaseEnabled } from '../lib/supabase';
@@ -56,7 +56,13 @@ export function AccountScreen({ navigation }: AccountScreenProps) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={HIT_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.done')}
+          style={({ pressed }) => [s.backBtn, pressed && pressedStyle]}
+        >
           <Icon name="chevL" size={22} color={colors.text} />
         </Pressable>
         <Text style={s.headerTitle}>{t('account.title')}</Text>
@@ -142,7 +148,13 @@ function AuthForm() {
 
       {msg && <Text style={s.msg}>{msg}</Text>}
 
-      <Pressable style={s.btnPrimary} onPress={submit} disabled={busy}>
+      <Pressable
+        style={({ pressed }) => [s.btnPrimary, pressed && pressedStyle]}
+        onPress={submit}
+        disabled={busy}
+        accessibilityRole="button"
+        accessibilityLabel={mode === 'signin' ? t('account.signIn') : t('account.signUp')}
+      >
         {busy ? (
           <ActivityIndicator color="#fff" />
         ) : (
@@ -152,7 +164,12 @@ function AuthForm() {
         )}
       </Pressable>
 
-      <Pressable onPress={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setMsg(null); }}>
+      <Pressable
+        onPress={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setMsg(null); }}
+        hitSlop={HIT_SLOP}
+        accessibilityRole="button"
+        style={({ pressed }) => pressed && pressedStyle}
+      >
         <Text style={s.link}>
           {mode === 'signin' ? t('account.noAccount') : t('account.haveAccount')}
         </Text>
@@ -201,15 +218,26 @@ function SignedInView({ onOpenFriends }: { onOpenFriends: () => void }) {
           lastSynced ? new Date(lastSynced).toLocaleTimeString() : t('account.never'),
         )}
       </Text>
-      <Pressable style={s.btnOutline} onPress={() => void syncNow()} disabled={status === 'syncing'}>
+      <Pressable
+        style={({ pressed }) => [s.btnOutline, pressed && pressedStyle]}
+        onPress={() => void syncNow()}
+        disabled={status === 'syncing'}
+        accessibilityRole="button"
+        accessibilityLabel={t('account.syncNow')}
+      >
         <Text style={s.btnOutlineText}>{t('account.syncNow')}</Text>
       </Pressable>
 
       {/* Friends */}
-      <Pressable style={s.navRow} onPress={onOpenFriends}>
+      <Pressable
+        style={({ pressed }) => [s.navRow, pressed && pressedStyle]}
+        onPress={onOpenFriends}
+        accessibilityRole="button"
+        accessibilityLabel={t('account.friends')}
+      >
         <Icon name="binder" size={18} color={colors.accent} />
         <Text style={s.navRowText}>{t('account.friends')}</Text>
-        <Icon name="chevR" size={18} color={colors.textDim} />
+        <Icon name="chevR" size={18} color={colors.textMut} />
       </Pressable>
 
       {/* Privacy */}
@@ -229,8 +257,11 @@ function SignedInView({ onOpenFriends }: { onOpenFriends: () => void }) {
                 return (
                   <Pressable
                     key={vis}
-                    style={[s.chip, on && s.chipOn]}
+                    style={({ pressed }) => [s.chip, on && s.chipOn, pressed && pressedStyle]}
                     onPress={() => changeVis(key, vis)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={t(VIS_LABEL[vis])}
                   >
                     <Text style={[s.chipText, on && s.chipTextOn]}>{t(VIS_LABEL[vis])}</Text>
                   </Pressable>
@@ -240,7 +271,12 @@ function SignedInView({ onOpenFriends }: { onOpenFriends: () => void }) {
           </View>
         ))}
 
-      <Pressable style={[s.btnOutline, { marginTop: 20 }]} onPress={() => void signOut()}>
+      <Pressable
+        style={({ pressed }) => [s.btnOutline, { marginTop: 20 }, pressed && pressedStyle]}
+        onPress={() => void signOut()}
+        accessibilityRole="button"
+        accessibilityLabel={t('account.signOut')}
+      >
         <Text style={[s.btnOutlineText, { color: colors.down }]}>{t('account.signOut')}</Text>
       </Pressable>
     </View>
@@ -276,7 +312,7 @@ const s = StyleSheet.create({
     marginTop: 14,
   },
   privLabel: { fontSize: 14, fontFamily: fonts.uiSemi, color: colors.text },
-  desc: { fontSize: 12, fontFamily: fonts.ui, color: colors.textDim },
+  desc: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut },
   msg: { fontSize: 13, fontFamily: fonts.ui, color: colors.accent },
   link: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.accent, marginTop: 6 },
   input: {

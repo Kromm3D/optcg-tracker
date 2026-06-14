@@ -12,7 +12,7 @@ import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { HomeScreenProps } from '../navigation';
 import { CARD_LIST, INDEX_META } from '../data/loadIndex';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing, pressedSurface } from '../theme';
 import { getOwnedFor, getOwnedTotals, subscribe as subOwned } from '../lib/ownedAggregate';
 import { getPrice, HOLO_RARITIES } from '../lib/prices';
 import { listDecks } from '../lib/decks';
@@ -75,7 +75,12 @@ function HeroTile({ onPress, totalOwned, uniqueOwned, completion, vaultValue }: 
 }) {
   const t = useT();
   return (
-    <Pressable style={s.heroTile} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [s.heroTile, pressed && pressedSurface]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={t('home.collection')}
+    >
       <View style={s.heroIconWrap}>
         <TileIcon name="binder" size={40} color={colors.accent} />
       </View>
@@ -117,10 +122,15 @@ function SectionTile({ icon, label, sub, onPress, accent = false }: {
   accent?: boolean;
 }) {
   return (
-    <Pressable style={[s.tile, accent && s.tileAccent]} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [s.tile, accent && s.tileAccent, pressed && pressedSurface]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={sub ? `${label}, ${sub}` : label}
+    >
       <TileIcon name={icon} size={32} color={accent ? '#fff' : colors.accent} />
       <Text style={[s.tileLabel, accent && { color: '#fff' }]}>{label}</Text>
-      {sub ? <Text style={[s.tileSub, accent && { color: 'rgba(255,255,255,0.6)' }]}>{sub}</Text> : null}
+      {sub ? <Text style={[s.tileSub, accent && { color: 'rgba(255,255,255,0.85)' }]}>{sub}</Text> : null}
     </Pressable>
   );
 }
@@ -219,7 +229,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         <SectionTile
           icon="wishlist"
           label={t('home.wishlist')}
-          onPress={() => navigation.navigate('Binder')}
+          onPress={() => navigation.navigate('Binder', { tab: 'wishlist' })}
         />
         <SectionTile
           icon="settings"
@@ -279,7 +289,7 @@ const s = StyleSheet.create({
   heroStatLbl: {
     fontSize: 10,
     fontFamily: fonts.ui,
-    color: colors.textDim,
+    color: colors.textMut,
   },
   heroStatDiv: {
     width: 1,
@@ -305,7 +315,7 @@ const s = StyleSheet.create({
     gap: spacing.md,
   },
   tile: {
-    width: '47%',
+    width: '48%',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,

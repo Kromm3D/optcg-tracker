@@ -33,6 +33,14 @@ let RetrievalModes: any = {};
 let ContourApproximationModes: any = {};
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let DataTypes: any = {};
+// Enums needed by rectifyCardCrop's getPerspectiveTransform / warpPerspective
+// (fast-opencv 0.4.x requires these as explicit trailing args — see below).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let DecompTypes: any = {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let InterpolationFlags: any = {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let BorderTypes: any = {};
 try {
   // @ts-ignore — optional native dep; resolved only in the custom dev build.
   const cv = require('react-native-fast-opencv');
@@ -42,6 +50,9 @@ try {
   RetrievalModes = cv.RetrievalModes;
   ContourApproximationModes = cv.ContourApproximationModes;
   DataTypes = cv.DataTypes;
+  DecompTypes = cv.DecompTypes;
+  InterpolationFlags = cv.InterpolationFlags;
+  BorderTypes = cv.BorderTypes;
 } catch {
   // Native module absent (Expo Go / web) — functions guarded by isCardDetectAvailable().
 }
@@ -203,26 +214,41 @@ export const rectifyCardCrop: RectifyFn = (resized, quad) => {
   'worklet';
   const src = OpenCV.frameBufferToMat(resized.height, resized.width, 3, resized.data);
 
-  // Source corners (TL,TR,BR,BL) → destination upright rectangle.
-  const srcPts = OpenCV.createObject(
-    ObjectType.PointVector,
-    OpenCV.createObject(ObjectType.Point, quad[0].x, quad[0].y),
-    OpenCV.createObject(ObjectType.Point, quad[1].x, quad[1].y),
-    OpenCV.createObject(ObjectType.Point, quad[2].x, quad[2].y),
-    OpenCV.createObject(ObjectType.Point, quad[3].x, quad[3].y),
-  );
-  const dstPts = OpenCV.createObject(
-    ObjectType.PointVector,
-    OpenCV.createObject(ObjectType.Point, 0, 0),
-    OpenCV.createObject(ObjectType.Point, RECTIFIED_W, 0),
-    OpenCV.createObject(ObjectType.Point, RECTIFIED_W, RECTIFIED_H),
-    OpenCV.createObject(ObjectType.Point, 0, RECTIFIED_H),
-  );
+  // getPerspectiveTransform requires Point2fVector (float), not PointVector (int).
+  // createObject(Point2fVector, points: Point2f[]) — must pass an array, not spread.
+  const srcPts = OpenCV.createObject(ObjectType.Point2fVector, [
+    OpenCV.createObject(ObjectType.Point2f, quad[0].x, quad[0].y),
+    OpenCV.createObject(ObjectType.Point2f, quad[1].x, quad[1].y),
+    OpenCV.createObject(ObjectType.Point2f, quad[2].x, quad[2].y),
+    OpenCV.createObject(ObjectType.Point2f, quad[3].x, quad[3].y),
+  ]);
+  const dstPts = OpenCV.createObject(ObjectType.Point2fVector, [
+    OpenCV.createObject(ObjectType.Point2f, 0, 0),
+    OpenCV.createObject(ObjectType.Point2f, RECTIFIED_W, 0),
+    OpenCV.createObject(ObjectType.Point2f, RECTIFIED_W, RECTIFIED_H),
+    OpenCV.createObject(ObjectType.Point2f, 0, RECTIFIED_H),
+  ]);
 
-  const M = OpenCV.invoke('getPerspectiveTransform', srcPts, dstPts);
+  // fast-opencv 0.4.x signatures (verified against the installed version):
+  //   getPerspectiveTransform(src, dst, solveMethod)   ← solveMethod is REQUIRED
+  //   warpPerspective(src, dst, M, size, flags, borderMode, borderValue) ← all 7 args
+  // Omitting these trailing args makes the native invoke read an out-of-bounds
+  // argument index and throws "Argument index (N) is out of bounds!", crashing the
+  // frame processor. The `?? <literal>` fallbacks mirror the DataTypes guard above.
+  const M = OpenCV.invoke('getPerspectiveTransform', srcPts, dstPts, DecompTypes.DECOMP_LU ?? 0);
   const out = OpenCV.createObject(ObjectType.Mat, RECTIFIED_H, RECTIFIED_W, DataTypes.CV_8UC3);
   const size = OpenCV.createObject(ObjectType.Size, RECTIFIED_W, RECTIFIED_H);
-  OpenCV.invoke('warpPerspective', src, out, M, size);
+  const borderValue = OpenCV.createObject(ObjectType.Scalar, 0, 0, 0, 0);
+  OpenCV.invoke(
+    'warpPerspective',
+    src,
+    out,
+    M,
+    size,
+    InterpolationFlags.INTER_LINEAR ?? 1,
+    BorderTypes.BORDER_CONSTANT ?? 0,
+    borderValue,
+  );
 
   const encoded = OpenCV.toJSValue(out, 'png');
   OpenCV.clearBuffers(); // critical: free Mats every frame

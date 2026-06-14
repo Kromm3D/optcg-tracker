@@ -22,7 +22,8 @@ export type RootStackParamList = {
 export type TabParamList = {
   Home: undefined;
   Browse: undefined;
-  Binder: undefined;
+  /** `tab` preselects a Binder sub-tab (Home "Wishlist" tile → wishlist). */
+  Binder: { tab?: 'owned' | 'wishlist' | 'trade' } | undefined;
   Decks: undefined;
 };
 
