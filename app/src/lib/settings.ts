@@ -10,6 +10,9 @@ export type Language = 'en' | 'es';
 
 export type WishlistDefaultVariant = 'normal' | 'parallel';
 
+/** Ventana temporal seleccionada en el módulo de valor del vault (Home). */
+export type ValueTimeframe = '7d' | '30d' | 'all';
+
 export type Settings = {
   columns: 2 | 3 | 4 | 5;
   /** Idioma de la UI. */
@@ -27,6 +30,8 @@ export type Settings = {
   showAlternateArt: boolean;
   /** true si el usuario ha completado la descarga offline de todas las imágenes. */
   imagesDownloaded: boolean;
+  /** Ventana temporal del módulo de valor del vault en Home. */
+  valueTimeframe: ValueTimeframe;
   /** Timestamp (ms) del último cambio. Usado por la sync LWW. */
   updatedAt?: number;
 };
@@ -39,6 +44,7 @@ const DEFAULTS: Settings = {
   wishlistDefaultVariant: 'normal',
   showAlternateArt: false,
   imagesDownloaded: false,
+  valueTimeframe: '7d',
 };
 
 let cache: Settings | null = null;
@@ -120,6 +126,11 @@ export async function setShowAlternateArt(v: boolean): Promise<void> {
 export async function setImagesDownloaded(v: boolean): Promise<void> {
   const current = await read();
   await write({ ...current, imagesDownloaded: v });
+}
+
+export async function setValueTimeframe(v: ValueTimeframe): Promise<void> {
+  const current = await read();
+  await write({ ...current, valueTimeframe: v });
 }
 
 /** Helper: pick the right variant suffix from a card based on the user's default setting. */

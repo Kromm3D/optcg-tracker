@@ -19,6 +19,7 @@ import { getPrice, HOLO_RARITIES } from '../lib/prices';
 import { listDecks } from '../lib/decks';
 import { useT } from '../lib/i18n';
 import { SetUpdateBanner } from '../components/SetUpdateBanner';
+import { VaultValueCard } from '../components/VaultValueCard';
 
 // ─── Small inline SVG icons for tiles ────────────────────────────────────────
 
@@ -68,12 +69,11 @@ function TileIcon({ name, size = 36, color = colors.accent }: { name: string; si
 
 // ─── Tile components ──────────────────────────────────────────────────────────
 
-function HeroTile({ onPress, totalOwned, uniqueOwned, completion, vaultValue }: {
+function HeroTile({ onPress, totalOwned, uniqueOwned, completion }: {
   onPress: () => void;
   totalOwned: number;
   uniqueOwned: number;
   completion: number;
-  vaultValue: number;
 }) {
   const t = useT();
   return (
@@ -101,11 +101,6 @@ function HeroTile({ onPress, totalOwned, uniqueOwned, completion, vaultValue }: 
         <View style={s.heroStat}>
           <Text style={[s.heroStatVal, { color: colors.ghost }]}>{completion}%</Text>
           <Text style={s.heroStatLbl}>{t('home.ofIndex')}</Text>
-        </View>
-        <View style={s.heroStatDiv} />
-        <View style={s.heroStat}>
-          <Text style={[s.heroStatVal, { color: colors.accent }]}>~€{vaultValue.toFixed(0)}</Text>
-          <Text style={s.heroStatLbl}>{t('home.vaultValue')}</Text>
         </View>
       </View>
       {/* Progress bar */}
@@ -235,8 +230,10 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         totalOwned={stats.totalOwned}
         uniqueOwned={stats.uniqueOwned}
         completion={stats.completion}
-        vaultValue={stats.vaultValue}
       />
+
+      {/* Vault value over time */}
+      <VaultValueCard currentValue={stats.vaultValue} />
 
       {/* Main section tiles */}
       <View style={s.grid}>
