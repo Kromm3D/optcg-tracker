@@ -559,11 +559,11 @@ def load_index():
 
 
 # ---------------------------------------------------------------------------
-# Box art — foto de empaque del booster, "mejor esfuerzo segun disponibilidad"
+# Box art — key art / main visual del set ("mv.webp"), "mejor esfuerzo segun disponibilidad"
 # ---------------------------------------------------------------------------
 # El sitio oficial SOLO mantiene viva la página de producto del set vigente
 # (/products/<slug>.html). En cuanto un set nuevo lo sustituye, la página (y
-# su foto) desaparecen — no hay archivo histórico. Por eso esto descarga lo
+# su imagen) desaparecen — no hay archivo histórico. Por eso esto descarga lo
 # que encuentre EN ESTE RUN y lo acumula con lo ya guardado de runs
 # anteriores; nunca borra lo que ya tenemos aunque el set rote fuera del
 # listado. La mayoría de sets antiguos simplemente nunca tendrán box art.
@@ -588,15 +588,17 @@ def discover_box_art_candidates(session):
 
 
 def fetch_box_art_image_url(session, product_url):
-    """Abre la página de producto y devuelve la URL absoluta de la foto de
-    empaque (img_item01), o None si no aparece."""
+    """Abre la página de producto y devuelve la URL absoluta del key art /
+    main visual del set ("mv.webp" — la imagen ancha de cabecera, NO
+    "bg_mv.webp" que es solo el fondo difuminado). Si no aparece, cae a la
+    foto de empaque del booster (img_item01) como último recurso."""
     try:
         resp = session.get(product_url, timeout=HTTP_TIMEOUT)
         resp.raise_for_status()
     except Exception:
         return None
     soup = BeautifulSoup(resp.text, "html.parser")
-    img = soup.select_one('img[src*="img_item01"]')
+    img = soup.select_one('img[src$="/mv.webp"]') or soup.select_one('img[src*="img_item01"]')
     if not img or not img.get("src"):
         return None
     return urljoin(product_url, img["src"])

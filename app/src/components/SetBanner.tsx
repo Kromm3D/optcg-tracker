@@ -1,6 +1,6 @@
 // Banner de cabecera de SetDetail: código + título + progreso a la
-// izquierda, box art del booster a la derecha con un fade horizontal que la
-// funde con el fondo de la cápsula. La mayoría de sets no tienen box art
+// izquierda, key art del set ("mv.webp") a la derecha con un fade horizontal
+// que la funde con el fondo de la cápsula. La mayoría de sets no tienen key art
 // disponible (el sitio oficial solo mantiene la página del set vigente — ver
 // scripts/build_card_database.py), así que caen a un degradado temático
 // determinista por set en vez de dejar un hueco vacío.

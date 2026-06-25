@@ -1,4 +1,4 @@
-// Box art (foto de empaque del booster) por set. El sitio oficial solo
+// Box art (key art / main visual "mv.webp") por set. El sitio oficial solo
 // mantiene viva la página de producto del set vigente — la mayoría de sets
 // antiguos nunca tendrán box art. boxArt.json (generado por
 // scripts/build_card_database.py) es la lista de los que SÍ lo tienen; el
