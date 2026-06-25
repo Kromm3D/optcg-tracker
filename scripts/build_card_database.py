@@ -607,11 +607,24 @@ def fetch_box_art_image_url(session, product_url):
 def fetch_box_art(session, known_set_codes):
     """Descarga el box art de los sets vigentes en /products/ y mantiene un
     manifest (boxArt.json) con TODO lo que haya en disco, no solo lo de este
-    run, para no perder el art de un set que ya rotó fuera del listado."""
+    run, para no perder el art de un set que ya rotó fuera del listado.
+
+    El manifest también guarda un `versions[code]` (timestamp de la última
+    descarga real) para que el cliente pueda cache-bust la URL — el contenido
+    de "{code}.webp" puede cambiar (como hoy: booster photo -> key art) sin
+    que la URL cambie, y tanto el navegador como el CDN cachean por URL."""
     print(f"[*] Buscando box art en {PRODUCTS_URL}")
     candidates = discover_box_art_candidates(session)
     relevant = {c: u for c, u in candidates.items() if c in known_set_codes}
     print(f"    {len(relevant)} sets vigentes con página de producto reconocida")
+
+    # Preserva versions[] de runs anteriores para sets que no se re-descargan hoy.
+    versions = {}
+    if BOXART_MANIFEST_PATH.exists():
+        try:
+            versions = json.loads(BOXART_MANIFEST_PATH.read_text(encoding="utf-8")).get("versions", {})
+        except Exception:
+            versions = {}
 
     BOXART_DIR.mkdir(parents=True, exist_ok=True)
     for code, product_url in relevant.items():
@@ -624,12 +637,15 @@ def fetch_box_art(session, known_set_codes):
             continue
         ok, err = download_one(session, img_url, dest)
         print(f"    {'[OK]' if ok else '[!]'} {code}: {img_url}" + (f" — {err}" if err else ""))
+        if ok:
+            versions[code] = int(time.time())
         time.sleep(REQUEST_DELAY)
 
     available = sorted(p.stem for p in BOXART_DIR.glob("*.webp")) if BOXART_DIR.exists() else []
+    versions = {code: v for code, v in versions.items() if code in available}
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(BOXART_MANIFEST_PATH, "w", encoding="utf-8") as f:
-        json.dump({"sets": available}, f, ensure_ascii=False)
+        json.dump({"sets": available, "versions": versions}, f, ensure_ascii=False)
     print(f"[OK] {len(available)} sets con box art en total -> {BOXART_MANIFEST_PATH}")
 
     app_manifest = ROOT / "app" / "src" / "data" / "boxArt.json"
