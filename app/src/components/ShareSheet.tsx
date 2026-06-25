@@ -121,7 +121,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 1,
   },
-  badgeText: { fontSize: 10, fontFamily: fonts.uiBold, color: '#fff' },
+  badgeText: { fontSize: 10, fontFamily: fonts.uiBold, color: colors.onAccent },
   shareBtn: {
     position: 'absolute',
     bottom: 0,
@@ -134,5 +134,5 @@ const s = StyleSheet.create({
     backgroundColor: colors.accent,
     paddingTop: 14,
   },
-  shareBtnText: { fontSize: 16, fontFamily: fonts.uiBold, color: '#fff' },
+  shareBtnText: { fontSize: 16, fontFamily: fonts.uiBold, color: colors.onAccent },
 });

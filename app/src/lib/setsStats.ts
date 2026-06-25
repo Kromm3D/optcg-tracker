@@ -52,13 +52,16 @@ function eventBucketOf(getInfo: string): string {
 
 /** Set al que pertenece una variante concreta.
  *  - printed_set (string) → set canónico del corchete del sitio oficial
- *  - printed_set (null)   → evento/promo sin set code; se clasifica por get_info
- *  - printed_set ausente  → datos legacy; cae a set_source o prefijo */
+ *  - printed_set ausente/null → puede ser un insert temático del propio set
+ *    (p.ej. una SP CARD "WINGS OF THE CAPTAIN" sigue siendo de OP06, solo que
+ *    el scraper no le asignó printed_set) — en ese caso set_source ya trae el
+ *    set real y hay que confiar en él. Solo cae a eventBucketOf() cuando
+ *    set_source es 'P' (promo suelto sin set real) o falta del todo. */
 export function variantSetOf(card: Card, v: Variant): string {
-  if (v.printed_set !== undefined) {
-    return v.printed_set ?? eventBucketOf(v.get_info ?? '');
-  }
-  return v.set_source || setPrefix(card.code);
+  if (v.printed_set) return v.printed_set;
+  if (v.set_source && v.set_source !== 'P') return v.set_source;
+  if (v.printed_set === undefined && !v.set_source) return setPrefix(card.code);
+  return eventBucketOf(v.get_info ?? '');
 }
 
 /** Una carta dentro de un set, junto con las variantes impresas en ese set. */

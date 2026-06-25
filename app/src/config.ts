@@ -33,6 +33,14 @@ export const CDN_AVAILABLE = true;
 export const IMAGE_BASE_URL =
   `https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${GITHUB_REPO}@${GITHUB_BRANCH}`;
 
+/**
+ * Base URL del CDN para data/meta.json, data/index.json y data/hashes.json.
+ * Permite comprobar si hay un set nuevo sin esperar a una actualización de la
+ * app (ver lib/remoteIndex.ts). jsDelivr cachea contenido por branch durante
+ * un rato; un set recién publicado puede tardar hasta ~24h en propagarse aquí.
+ */
+export const DATA_BASE_URL = `${IMAGE_BASE_URL}/data`;
+
 /** URL base de la búsqueda de Cardmarket para One Piece TCG. */
 export const CARDMARKET_BASE = 'https://www.cardmarket.com/en/OnePiece/Products/Search';
 

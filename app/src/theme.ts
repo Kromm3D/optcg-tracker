@@ -2,23 +2,34 @@
 // de Claude Design pero adaptado a OPTCG: cambiamos las "factions" del
 // proto por los 6 colores oficiales de One Piece TCG.
 
+// Paleta "Horo Horo" — ambientada en Perona y sus fantasmas Negative Hollow:
+// rosa Perona (marca) + cian espectral (progreso/colección) sobre base gótica.
 export const colors = {
-  bg: '#0e0c1a',
-  surface: '#151226',
-  surface2: '#1e1a30',
-  border: 'rgba(236,72,153,0.12)',
-  text: '#f4f0ff',
-  // Secondary text. ~5.0:1 sobre bg — pasa WCAG AA para texto normal.
-  textMut: '#9d91b8',
-  // Texto terciario. Subido de #5e5478 (≈2.3:1, fallaba AA) a #8b7fae
-  // (≈4.0:1 sobre bg) para que códigos/subtítulos/placeholder sean legibles.
+  bg: '#131019',
+  surface: '#1c1726',
+  surface2: '#261f33',
+  border: 'rgba(255,111,181,0.12)',
+  text: '#f6f0fa',
+  // Secondary text. ~5:1 sobre bg — pasa WCAG AA para texto normal.
+  textMut: '#a99bba',
+  // Texto terciario (~4:1 sobre bg) para códigos/subtítulos/placeholder.
   // Nunca usar para etiquetas de navegación o texto <14px crítico.
-  textDim: '#8b7fae',
-  accent: '#ec4899',
-  accentDim: 'rgba(236,72,153,0.13)',
-  accentGlow: 'rgba(236,72,153,0.35)',
-  badge: '#ec4899',
-  ring: 'rgba(236,72,153,0.18)',
+  textDim: '#8a7ca0',
+  // Rosa Perona (candy-gótico). Es claro: el texto encima va en `onAccent`.
+  accent: '#ff6fb5',
+  accentDim: 'rgba(255,111,181,0.14)',
+  accentGlow: 'rgba(255,111,181,0.35)',
+  // Texto/iconos sobre rellenos accent (rosa claro → tinta ciruela oscura).
+  onAccent: '#3d1228',
+  // Cian "fantasma": color SEMÁNTICO de progreso/colección (barras, anillos, %).
+  ghost: '#9fe3e8',
+  ghostDim: 'rgba(159,227,232,0.14)',
+  ghostGlow: 'rgba(159,227,232,0.30)',
+  // Texto/iconos sobre rellenos ghost (cian claro → tinta verde-azulada oscura).
+  onGhost: '#0c3b3e',
+  badge: '#ff6fb5',
+  // Pista neutra del ProgressRing (funciona bajo relleno rosa o cian).
+  ring: 'rgba(246,240,250,0.08)',
   up: '#4ec98b',
   down: '#ef5d6b',
 };

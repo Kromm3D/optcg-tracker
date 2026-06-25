@@ -3,8 +3,8 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-06-14 (UI/UX overhaul — design-review remediation)
-**Current branch:** `feature/grid-workflow-refactor`
+**Last updated:** 2026-06-25 (remote set-update banner, box-art set banner, SP-card display/stats fixes)
+**Current branch:** `main`
 **App version:** 0.1.0 (pre-release)
 
 ---
@@ -93,6 +93,152 @@ per-screen patches. `npm run typecheck` clean. **Pending: user device review.**
 - **Deferred (QoL)**: first-run onboarding/coachmarks for hidden gestures
   (long-press multi-select, hold-to-repeat); locale-aware currency (prices are
   EUR/Cardmarket so `€` is correct for now); skeleton loaders.
+
+---
+
+### Reskin "Horo Horo" — paleta Perona + Carga + Home + Colección (2026-06-24, typecheck-green, NOT yet device-reviewed)
+El usuario pidió acercar la UI a una app-tracker de referencia (OP.TCG) **sin
+copiarla**, sobre todo Home, pantalla de carga y la vista de colección, y darle
+un **twist de paleta** ambientado en Perona y sus fantasmas Horo Horo. Mockups
+validados con el usuario (visualize) antes de implementar. Decisiones de paleta
+fijadas con el usuario: **cian fantasma = progreso/colección** (semántico),
+**rosa Perona candy = marca**.
+
+- **Paleta global (`theme.ts`)** — `accent` `#ec4899`→**`#ff6fb5`** (rosa candy,
+  es claro). Nuevos tokens: **`ghost` `#9fe3e8`** (cian espectral = progreso),
+  `ghostDim`/`ghostGlow`, **`onGhost` `#0c3b3e`**, y **`onAccent` `#3d1228`**
+  (texto/iconos sobre rellenos rosa — el rosa claro perdía contraste con blanco).
+  Base más fría: `bg` `#131019`, `surface` `#1c1726`, `surface2` `#261f33`;
+  `ring` (pista del anillo) ahora neutra.
+- **Contraste on-accent (consecuencia de la paleta)** — barrido de texto blanco
+  sobre rellenos accent → `onAccent`: `Button` primario, FAB de Scan
+  (`App.tsx`), burbuja de cantidad + multi-art (`CardThumb`), `SegmentedControl`,
+  y botones confirmar de FilterSheet/BulkTargetSheet/SetWishlistSheet/
+  VariantPickerSheet/WishlistPickerModal/ShareSheet. (`sourceSetText` se queda
+  blanco: va sobre badge oscuro.) Overlays con el `bg` viejo `rgba(14,12,26,…)`
+  actualizados a `rgba(19,16,25,…)` en CardThumb.
+- **Pantalla de carga (`App.tsx`)** — `LoadingSplash`: logo fantasma (nuevo icono
+  `ghost` en `Icon.tsx`) + wordmark `HoroHoro.tcg` + subtítulo "ONE PIECE TCG" en
+  cian + spinner cian + mensaje `common.loadingDb` (nuevo en `en.ts`/`es.ts`).
+  Nota: el wordmark cae a system-font un instante (fuentes Sora aún no cargadas
+  en ese gate). Sustituye al `ActivityIndicator` pelado.
+- **Home (`HomeScreen.tsx`)** — header fijo: wordmark centrado + buscar(→Browse)
+  + ajustes (sin icono de menú: no hay drawer). Hero conserva los stats (sello
+  propio, la referencia no los tiene); barra de progreso y "% índice" en cian, el
+  "valor €" en rosa. Tile accent (Decks) con texto `onAccent`; **cinta "NEW"**
+  (cian, decorativa por ahora) en el tile de Scan vía prop `isNew` de SectionTile.
+- **Colección (`SetsScreen.tsx`) — "Invocación espectral"** — reescrita: filas en
+  lista → **macro-tabs MAIN/PROMO/SPECIAL/DECK** + tarjetas de **familia** dentro,
+  cada una con un **anillo agregado** (`ProgressRing`, cian) y una **rejilla de
+  "orbes fantasma"**. Cada orbe es un set con 3 estados semánticos: **vacío**
+  (anillo punteado tenue), **en progreso** (arco cian + código + %), **materializado**
+  (100% → orbe sólido cian con el fantasma dentro). Línea "*N materializados*" por
+  familia. Taxonomía `familyOf(code)`: OP/EB/PRB→main, ST→deck, P→promo,
+  `__ev_*`+resto→special. Reusa `summarizeSet()`; abreviaturas de evento vía
+  `EV_BADGE_LABELS` (ahora exportado de `SetBadge`). `ProgressRing` ahora por
+  defecto **cian** (`colors.ghost`); barras de SetsScreen también.
+- **i18n** — nuevas claves en `en.ts`+`es.ts`: `common.loadingDb`, `sets.tab*`,
+  `sets.fam*`, `sets.setsWord`, `sets.cardsLabel`, `sets.materialized`.
+- **Pendiente usuario**: revisar en dispositivo las 3 pantallas + el reskin global
+  (todas las pantallas heredan la paleta). Posibles ajustes: tono del rosa,
+  legibilidad del cian en textos pequeños, densidad de la rejilla de orbes (ST
+  tiene ~28 sets). Sin commit hasta review (Regla 3).
+
+---
+
+### Remote set-update banner + box-art set banner + SP-card fixes (2026-06-25, typecheck-green, device-reviewed in web preview, COMMITTED)
+
+**Remote index update (new feature).** The card index was previously baked into
+the bundle with no way to surface a newly-released set without an app-store
+rebuild. Shaped via `/impeccable shape`, then built:
+- `scripts/build_card_database.py` `save_index()` now stamps `schema_version`
+  (=1) + `version` (unix epoch at generation) on `index.json`, and writes a
+  small `data/meta.json` (`{schema_version, version, card_count, newest_set}`,
+  copied to `app/src/data/` like `hashes.json` already was) so the client can
+  check freshness without downloading the multi-MB index.
+- `src/data/loadIndex.ts`: `CARDS`/`CARD_LIST`/`INDEX_META`/`SET_META`/`PHASHES`
+  changed from `const` to `export let` (ESM live bindings) + new
+  `applyIndexPayload(payload, hashes?)` that recomputes and reassigns them in
+  place. Every existing screen that does `import { CARDS } from ...` picks up
+  a swapped index automatically — no call-site changes needed.
+- `src/lib/remoteIndex.ts` (NEW) — `checkForUpdate()` (called once from
+  `App.tsx` after fonts load): fetches `meta.json` → `index.json` →
+  `hashes.json` from `config.ts`'s `DATA_BASE_URL` (jsDelivr, `IMAGE_BASE_URL +
+  '/data'`), validates `schema_version`, diffs new set codes vs. current
+  `SET_META`, caches the result in memory only — **never applies anything
+  automatically**. Fails completely silently at every step (offline, CDN down,
+  bad JSON, unsupported schema) — the bundled index keeps working regardless.
+  `applyPendingUpdate()` calls `applyIndexPayload` + persists
+  `lastSeenVersion` to AsyncStorage (`optcg.remoteIndex.v1`).
+- `components/SetUpdateBanner.tsx` (NEW) on `HomeScreen` — "`{set}` has
+  arrived — tap to update" (or a generic multi-set string), ghost/cyan styled,
+  dismissible (X, session-only — reappears next launch if not applied). Tap →
+  `applyPendingUpdate()` + `navigation.reset` to the `Home` tab (soft reload,
+  not a full data swap mid-render).
+- `App.tsx` `TabBar` — small accent dot on the **Home** tab icon while an
+  update is pending (the "Sets" entry point is a tile inside Home, not its own
+  tab, so Home is the correct badge target — not "Sets tab" as originally
+  phrased in the brief).
+- i18n: `setUpdate.bannerSingle/bannerMulti/dismiss/badgeA11y` in en+es.
+- **Bug caught during verification**: `SetUpdateBanner` initially nested a
+  `Pressable` (Dismiss) inside another `Pressable` with
+  `accessibilityRole="button"` — the same invalid-nested-`<button>` pattern as
+  the CardThumb fix below. Fixed identically (drop the outer's button role
+  when a nested actionable child exists).
+- **Verified end-to-end** in the web preview using a temporarily-seeded fake
+  pending update (reverted before commit): banner+badge render, tap applies
+  the swapped index (`CARD_LIST.length` changed live), banner/badge clear,
+  navigation lands back on Home. Real CDN trigger only activates once
+  `data/meta.json`/`index.json`/`hashes.json` are pushed to the public repo
+  (this commit does that for the current OP16-era index).
+
+**Box-art set banner (pre-existing, undocumented until now).** `SetBanner.tsx`
++ `lib/setBoxArt.ts`, wired into `SetDetailScreen.tsx`: per-set header capsule
+with code + title + `ProgressRing` + owned/total on the left, the booster's
+box-art photo with a horizontal SVG fade into the capsule background on the
+right, falling back to a deterministic themed-color gradient (hashed from
+`OPTCG_COLORS`) for sets with no art.
+- **Source**: `build_card_database.py` `fetch_box_art()` scrapes the official
+  site's `/products/` listing for pages shaped like `op16.html`, pulls the
+  packaging photo (`img_item01`), saves as `.webp` to `images/boxart/`. The
+  official site **only keeps a live product page for the currently-on-sale
+  set** — once a new set replaces it, the page and photo are gone for good, no
+  archive. The scraper never deletes from `images/boxart/`, so art is
+  accumulated across runs into `data/boxArt.json` (copied to
+  `app/src/data/`) rather than lost when a set rotates out of the listing.
+  Currently only **OP16** has real art (the one live product page right now).
+- Box art has **no fallback URL** (unlike card art's `image_source`) since
+  there's no permanent official source to fall back to — `CachedImage` is
+  called without a `fallbackUri`, so a CDN miss renders blank rather than
+  erroring. Will resolve once `images/boxart/` + `data/boxArt.json` are
+  pushed (done in this commit).
+
+**SP CARD chase reprints ignored the "Parallels" display toggle (bug fix).**
+`lib/cardDisplay.ts` `expandSetEntries()` picked a set's "normal" tile as
+`variants.find(v => v.suffix === '') ?? variants[0]`. For a card whose *only*
+printing within a given set is an SP CARD chase insert (e.g. Bartholomew Kuma
+`EB04-054`, reprinted as an OP16 SP parallel with no plain-suffix variant in
+OP16), the fallback landed on the SP variant — so with "Parallels"
+(`showAlternateArt`) off it still rendered as if it were a standard print.
+Added `isSpecialInsert()` (matches rarity `SP`/`SP CARD`) and `normalInSet()`
+(prefers empty-suffix → any non-SP variant → only falls back to SP if that's
+genuinely the card's only printing in that set); `expandSetEntries` now drops
+the entry entirely when every in-set variant is an SP insert, instead of
+showing its SP art as if standard. Scoped to display only — `setsStats.ts`
+set totals/completion % are unaffected. Verified live against real OP16 data
+(6 known SP-only reprints hidden when Parallels off, reappear when on).
+
+**SP-rarity/Parallels bug fix in `setsStats.ts` (`variantSetOf()`)** — carried
+over from a prior session segment, typecheck-verified, now committed alongside
+the above. See inline comment on `variantSetOf` for the printed_set/set_source
+precedence logic.
+
+**CardThumb.tsx nested-button accessibility fix** — carried over from a prior
+session segment. The outer `Pressable`'s `accessibilityRole="button"` was
+dropped only for the `quickActions` inline-controls path; the Binder
+`onAdjust`+`Counter` path (also nested buttons) was missed. Fixed:
+`accessibilityRole={(quickActions && v) || onAdjust ? undefined : 'button'}`.
+Verified via live DOM audit (157 buttons, 0 nested) on a populated Binder grid.
 
 ---
 

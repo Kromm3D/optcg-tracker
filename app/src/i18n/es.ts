@@ -30,6 +30,12 @@ export const es: Record<TKey, string> = {
   'home.stats': 'Stats',
   'home.settings': 'Ajustes',
 
+  // Aviso de set nuevo
+  'setUpdate.bannerSingle': '{set} ya está disponible — toca para actualizar',
+  'setUpdate.bannerMulti': 'Hay sets nuevos disponibles — toca para actualizar',
+  'setUpdate.dismiss': 'Descartar',
+  'setUpdate.badgeA11y': 'Set nuevo disponible',
+
   // Binder
   'binder.title': 'Mi Binder',
   'binder.collection': 'Colección',
@@ -153,6 +159,21 @@ export const es: Record<TKey, string> = {
   'sets.groupPromo': 'Promos',
   'sets.groupEvents': 'Eventos y Promos',
   'sets.groupOther': 'Otros',
+  // Colección — tabs de macro-categoría + nombres de familia + progreso espectral
+  'sets.tabMain': 'PRINCIPAL',
+  'sets.tabPromo': 'PROMO',
+  'sets.tabSpecial': 'ESPECIAL',
+  'sets.tabDeck': 'MAZOS',
+  'sets.famOnePiece': 'One Piece',
+  'sets.famExtra': 'Extra Booster',
+  'sets.famPremium': 'Premium Booster',
+  'sets.famStarter': 'Mazos Iniciales',
+  'sets.famPromos': 'Promos',
+  'sets.famEvents': 'Eventos y Colecciones',
+  'sets.famOther': 'Otros',
+  'sets.setsWord': 'sets',
+  'sets.cardsLabel': 'cartas coleccionadas',
+  'sets.materialized': '{n} materializados',
 
   // Settings
   'settings.title': 'Ajustes',
@@ -257,6 +278,7 @@ export const es: Record<TKey, string> = {
   'common.save': 'Guardar',
   'common.retry': 'Reintentar',
   'common.loading': 'Cargando…',
+  'common.loadingDb': 'Sincronizando la base de datos, espera unos segundos…',
   'common.delete': 'Eliminar',
 
   // Decks (delete)

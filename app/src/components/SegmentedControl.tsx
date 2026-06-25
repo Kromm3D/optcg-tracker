@@ -61,5 +61,5 @@ const styles = StyleSheet.create({
   },
   segOn: { backgroundColor: colors.accent },
   label: { fontSize: type.label, fontFamily: fonts.uiSemi, color: colors.textMut },
-  labelOn: { color: '#fff', fontFamily: fonts.uiBold },
+  labelOn: { color: colors.onAccent, fontFamily: fonts.uiBold },
 });

@@ -12,11 +12,13 @@ import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { HomeScreenProps } from '../navigation';
 import { CARD_LIST, INDEX_META } from '../data/loadIndex';
-import { colors, fonts, radii, spacing, pressedSurface } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, pressedSurface, HIT_SLOP } from '../theme';
+import { Icon } from '../components/Icon';
 import { getOwnedFor, getOwnedTotals, subscribe as subOwned } from '../lib/ownedAggregate';
 import { getPrice, HOLO_RARITIES } from '../lib/prices';
 import { listDecks } from '../lib/decks';
 import { useT } from '../lib/i18n';
+import { SetUpdateBanner } from '../components/SetUpdateBanner';
 
 // ─── Small inline SVG icons for tiles ────────────────────────────────────────
 
@@ -97,7 +99,7 @@ function HeroTile({ onPress, totalOwned, uniqueOwned, completion, vaultValue }: 
         </View>
         <View style={s.heroStatDiv} />
         <View style={s.heroStat}>
-          <Text style={[s.heroStatVal, { color: colors.accent }]}>{completion}%</Text>
+          <Text style={[s.heroStatVal, { color: colors.ghost }]}>{completion}%</Text>
           <Text style={s.heroStatLbl}>{t('home.ofIndex')}</Text>
         </View>
         <View style={s.heroStatDiv} />
@@ -114,12 +116,13 @@ function HeroTile({ onPress, totalOwned, uniqueOwned, completion, vaultValue }: 
   );
 }
 
-function SectionTile({ icon, label, sub, onPress, accent = false }: {
+function SectionTile({ icon, label, sub, onPress, accent = false, isNew = false }: {
   icon: string;
   label: string;
   sub?: string;
   onPress: () => void;
   accent?: boolean;
+  isNew?: boolean;
 }) {
   return (
     <Pressable
@@ -128,9 +131,14 @@ function SectionTile({ icon, label, sub, onPress, accent = false }: {
       accessibilityRole="button"
       accessibilityLabel={sub ? `${label}, ${sub}` : label}
     >
-      <TileIcon name={icon} size={32} color={accent ? '#fff' : colors.accent} />
-      <Text style={[s.tileLabel, accent && { color: '#fff' }]}>{label}</Text>
-      {sub ? <Text style={[s.tileSub, accent && { color: 'rgba(255,255,255,0.85)' }]}>{sub}</Text> : null}
+      {isNew ? (
+        <View style={s.ribbon}>
+          <Text style={s.ribbonText}>NEW</Text>
+        </View>
+      ) : null}
+      <TileIcon name={icon} size={32} color={accent ? colors.onAccent : colors.accent} />
+      <Text style={[s.tileLabel, accent && { color: colors.onAccent }]}>{label}</Text>
+      {sub ? <Text style={[s.tileSub, accent && { color: 'rgba(61,18,40,0.7)' }]}>{sub}</Text> : null}
     </Pressable>
   );
 }
@@ -185,11 +193,42 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   }, []);
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.bg }}
-      contentContainerStyle={[s.scroll, { paddingTop: insets.top + spacing.lg }]}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      {/* Branded header: wordmark centrado + buscar / ajustes */}
+      <View style={[s.header, { paddingTop: insets.top + 10 }]}>
+        <View style={s.headerSide} />
+        <Text style={s.wordmark}>
+          HoroHoro<Text style={{ color: colors.accent }}>.tcg</Text>
+        </Text>
+        <View style={[s.headerSide, { justifyContent: 'flex-end' }]}>
+          <Pressable
+            onPress={() => navigation.navigate('Browse')}
+            accessibilityRole="button"
+            accessibilityLabel={t('home.cards')}
+            hitSlop={HIT_SLOP}
+            style={({ pressed }) => [s.headerBtn, pressed && pressedStyle]}
+          >
+            <Icon name="search" size={21} color={colors.textMut} stroke={1.8} />
+          </Pressable>
+          <Pressable
+            onPress={() => navigation.navigate('Settings')}
+            accessibilityRole="button"
+            accessibilityLabel={t('home.settings')}
+            hitSlop={HIT_SLOP}
+            style={({ pressed }) => [s.headerBtn, pressed && pressedStyle]}
+          >
+            <Icon name="gear" size={21} color={colors.textMut} stroke={1.8} />
+          </Pressable>
+        </View>
+      </View>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={s.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+      <SetUpdateBanner />
+
       {/* Hero tile */}
       <HeroTile
         onPress={() => navigation.navigate('Binder')}
@@ -219,6 +258,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           label={t('home.scan')}
           sub={t('home.addCards')}
           onPress={() => navigation.navigate('Scan')}
+          isNew
         />
         <SectionTile
           icon="sets"
@@ -237,7 +277,8 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           onPress={() => navigation.navigate('Settings')}
         />
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -248,6 +289,33 @@ const s = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: 110,
     gap: spacing.md,
+  },
+
+  // Branded header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 8,
+  },
+  headerSide: {
+    minWidth: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  wordmark: {
+    fontSize: 19,
+    fontFamily: fonts.display,
+    color: colors.text,
+    letterSpacing: -0.4,
+  },
+  headerBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Hero tile
@@ -305,7 +373,7 @@ const s = StyleSheet.create({
   progFill: {
     height: '100%',
     borderRadius: 99,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.ghost,
   },
 
   // Section tile grid
@@ -324,10 +392,27 @@ const s = StyleSheet.create({
     gap: 10,
     minHeight: 110,
     justifyContent: 'flex-end',
+    overflow: 'hidden',
   },
   tileAccent: {
     backgroundColor: colors.accent,
     borderColor: colors.accent,
+  },
+  // Cinta diagonal "NEW" (cian fantasma) en la esquina superior derecha.
+  ribbon: {
+    position: 'absolute',
+    top: 11,
+    right: -26,
+    transform: [{ rotate: '45deg' }],
+    backgroundColor: colors.ghost,
+    paddingHorizontal: 26,
+    paddingVertical: 2,
+  },
+  ribbonText: {
+    color: colors.onGhost,
+    fontSize: 9,
+    fontFamily: fonts.uiBold,
+    letterSpacing: 1,
   },
   tileLabel: {
     fontSize: 16,

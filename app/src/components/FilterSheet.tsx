@@ -455,5 +455,5 @@ const s = StyleSheet.create({
     backgroundColor: colors.accent,
     alignItems: 'center',
   },
-  applyText: { fontSize: 15, color: '#fff', fontFamily: fonts.uiBold },
+  applyText: { fontSize: 15, color: colors.onAccent, fontFamily: fonts.uiBold },
 });

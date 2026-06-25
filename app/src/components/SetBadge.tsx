@@ -12,7 +12,7 @@ type Props = {
   size?: number;
 };
 
-const EV_BADGE_LABELS: Record<string, string> = {
+export const EV_BADGE_LABELS: Record<string, string> = {
   '__ev_prerelease':  'PR',
   '__ev_treasurecup': 'TC',
   '__ev_regional':    'RG',

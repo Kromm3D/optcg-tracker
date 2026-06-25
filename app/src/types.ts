@@ -72,6 +72,20 @@ export interface IndexPayload {
   /** release_order por código de set (p.ej. "OP01": {release_order: 20}). */
   set_meta?: Record<string, SetMeta>;
   cards: Record<string, Card>;
+  /** Forma de IndexPayload entendida por este build. Ausente en índices antiguos. */
+  schema_version?: number;
+  /** Timestamp (epoch seconds) de generación; usado para detectar actualizaciones remotas. */
+  version?: number;
+}
+
+/** Fichero ligero data/meta.json — permite comprobar si hay índice nuevo sin
+ *  descargar el index.json completo (varios MB). */
+export interface IndexMetaPayload {
+  schema_version: number;
+  version: number;
+  card_count: number;
+  /** Código del set más reciente (release_order 0), o null si no hay set_meta. */
+  newest_set: string | null;
 }
 
 /** Estado de una variante en la coleccion. */

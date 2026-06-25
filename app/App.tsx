@@ -1,5 +1,5 @@
 // Punto de entrada. NavigationContainer con stack raiz + tabs (4).
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
@@ -37,6 +37,7 @@ import { Icon }             from './src/components/Icon';
 import { ToastProvider }    from './src/components/Toast';
 import { colors, fonts, pressedStyle, HIT_SLOP } from './src/theme';
 import { useT }             from './src/lib/i18n';
+import { checkForUpdate, getPendingUpdate, subscribe as subRemoteIndex } from './src/lib/remoteIndex';
 import type { TKey }        from './src/i18n/en';
 import type { RootStackParamList, TabParamList } from './src/navigation';
 
@@ -71,12 +72,18 @@ type TabBarProps = {
 
 function TabBar({ state, navigation }: TabBarProps) {
   const t = useT();
+  const [hasUpdate, setHasUpdate] = useState(!!getPendingUpdate());
+  useEffect(() => subRemoteIndex(() => setHasUpdate(!!getPendingUpdate())), []);
+
   return (
     <View style={s.tabBarWrap}>
       <View style={s.tabBar}>
         {state.routes.map((route, index) => {
           const focused = state.index === index;
           const meta = TAB_META[route.name as keyof TabParamList];
+          // El tile "Sets" vive dentro de Home — el punto avisa aunque el
+          // usuario esté en otra tab, sin duplicar el aviso completo del banner.
+          const showDot = route.name === 'Home' && hasUpdate;
           // Inject a spacer in the middle so the floating Scan FAB has room.
           const insertSpacer = index === Math.floor(state.routes.length / 2);
           return (
@@ -86,15 +93,20 @@ function TabBar({ state, navigation }: TabBarProps) {
                 onPress={() => navigation.navigate(route.name)}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: focused }}
-                accessibilityLabel={t(meta.labelKey)}
+                accessibilityLabel={
+                  showDot ? `${t(meta.labelKey)}, ${t('setUpdate.badgeA11y')}` : t(meta.labelKey)
+                }
                 style={({ pressed }) => [s.tabBtn, pressed && pressedStyle]}
               >
-                <Icon
-                  name={meta.icon}
-                  size={22}
-                  color={focused ? colors.accent : colors.textMut}
-                  stroke={focused ? 2.2 : 1.8}
-                />
+                <View>
+                  <Icon
+                    name={meta.icon}
+                    size={22}
+                    color={focused ? colors.accent : colors.textMut}
+                    stroke={focused ? 2.2 : 1.8}
+                  />
+                  {showDot && <View style={s.tabDot} />}
+                </View>
                 <Text
                   style={[
                     s.tabLabel,
@@ -117,7 +129,7 @@ function TabBar({ state, navigation }: TabBarProps) {
         accessibilityRole="button"
         accessibilityLabel={t('tab.scan')}
       >
-        <Icon name="scan" size={26} color="#fff" stroke={2.2} />
+        <Icon name="scan" size={26} color={colors.onAccent} stroke={2.2} />
       </Pressable>
     </View>
   );
@@ -139,6 +151,26 @@ function Header({ titleKey }: { titleKey: TKey }) {
       >
         <Icon name="gear" size={22} color={colors.textMut} stroke={1.8} />
       </Pressable>
+    </View>
+  );
+}
+
+// Splash de marca mientras cargan las fuentes / arranca la base de datos.
+// Las fuentes aún no están listas aquí, así que el wordmark cae al system font
+// un instante (aceptable). Logo = fantasma Horo Horo; spinner en cian espectral.
+function LoadingSplash() {
+  const t = useT();
+  return (
+    <View style={s.splash}>
+      <View style={s.splashLogo}>
+        <Icon name="ghost" size={46} color={colors.accent} stroke={1.8} />
+      </View>
+      <Text style={s.splashWord}>
+        HoroHoro<Text style={{ color: colors.accent }}>.tcg</Text>
+      </Text>
+      <Text style={s.splashSub}>ONE PIECE TCG</Text>
+      <ActivityIndicator color={colors.ghost} style={{ marginTop: 22 }} />
+      <Text style={s.splashMsg}>{t('common.loadingDb')}</Text>
     </View>
   );
 }
@@ -180,12 +212,12 @@ export default function App() {
     Manrope_700Bold,
   });
 
+  useEffect(() => {
+    if (fontsLoaded) checkForUpdate();
+  }, [fontsLoaded]);
+
   if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={colors.accent} size="large" />
-      </View>
-    );
+    return <LoadingSplash />;
   }
 
   return (
@@ -218,6 +250,42 @@ export default function App() {
 }
 
 const s = StyleSheet.create({
+  splash: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  splashLogo: {
+    width: 74,
+    height: 74,
+    borderRadius: 24,
+    backgroundColor: colors.accentDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  splashWord: {
+    fontSize: 26,
+    fontFamily: fonts.display,
+    color: colors.text,
+    letterSpacing: -0.5,
+  },
+  splashSub: {
+    fontSize: 11,
+    fontFamily: fonts.uiSemi,
+    color: colors.ghost,
+    letterSpacing: 2,
+    marginTop: 3,
+  },
+  splashMsg: {
+    fontSize: 12,
+    fontFamily: fonts.ui,
+    color: colors.textMut,
+    textAlign: 'center',
+    marginTop: 14,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -247,11 +315,22 @@ const s = StyleSheet.create({
     borderRadius: 22,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(21,18,38,0.94)',
+    backgroundColor: 'rgba(28,23,38,0.94)',
     borderWidth: 1,
     borderColor: colors.border,
   },
   tabBtn: { flex: 1, alignItems: 'center', gap: 4 },
+  tabDot: {
+    position: 'absolute',
+    top: -2,
+    right: -5,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.ghost,
+    borderWidth: 1.5,
+    borderColor: colors.bg,
+  },
   tabLabel: { fontSize: 10.5, fontFamily: fonts.uiSemi },
   tabSpacer: { width: 64 },
   scanFab: {

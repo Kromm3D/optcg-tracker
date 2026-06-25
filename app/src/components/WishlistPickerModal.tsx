@@ -188,7 +188,7 @@ const s = StyleSheet.create({
     borderRadius: radii.xl,
     paddingVertical: 14,
   },
-  newBtnText: { fontSize: 15, fontFamily: fonts.uiBold, color: '#fff' },
+  newBtnText: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.onAccent },
   createBox: { gap: 10 },
   nameInput: {
     height: 48,
@@ -221,5 +221,5 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  confirmText: { fontSize: 14, fontFamily: fonts.uiBold, color: '#fff' },
+  confirmText: { fontSize: 14, fontFamily: fonts.uiBold, color: colors.onAccent },
 });

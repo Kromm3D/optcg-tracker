@@ -20,9 +20,26 @@ export type DisplayEntry = {
   setVariants?: Variant[];
 };
 
+/** SP CARD rarity = bonus chase insert, never a "standard" print. A card whose
+ *  only printing in a set is one of these has no real normal art there. */
+function isSpecialInsert(v: Variant): boolean {
+  return v.rarity?.toUpperCase().startsWith('SP') ?? false;
+}
+
 /** Pick the normal/base variant of a card: empty suffix if present, else first. */
 export function normalVariant(card: Card): Variant | undefined {
   return card.variants.find((v) => v.suffix === '') ?? card.variants[0];
+}
+
+/** Same idea as normalVariant, but scoped to the variants printed in one set:
+ *  prefer the empty-suffix print, then any non-SP print, and only fall back to
+ *  an SP insert if that's truly the only thing this card has in this set. */
+function normalInSet(variants: Variant[]): Variant | undefined {
+  return (
+    variants.find((v) => v.suffix === '') ??
+    variants.find((v) => !isSpecialInsert(v)) ??
+    variants[0]
+  );
 }
 
 /** Expand a list of cards into the tiles a grid should show, honoring the
@@ -47,9 +64,13 @@ export function expandCards(cards: Card[]): DisplayEntry[] {
 
 /** Expand a set's entries into grid tiles, showing only the variants printed
  *  in that set. With parallels off, each entry collapses to one tile using its
- *  in-set representative (empty suffix if present, else the first in-set
- *  variant) — so a cross-set reprint like the EB02 Gold Leader shows its own
- *  art, not the original set's normal print. */
+ *  in-set representative (empty suffix if present, else the first non-SP
+ *  in-set variant) — so a cross-set reprint like the EB02 Gold Leader shows
+ *  its own art, not the original set's normal print. A card whose ONLY
+ *  printing in this set is an SP CARD chase insert (e.g. a past Leader
+ *  reprinted as an SP parallel in a later set) has no normal art here at all,
+ *  so it's dropped from this set's view entirely instead of falling back to
+ *  showing the SP art as if it were standard. */
 export function expandSetEntries(entries: SetEntry[]): DisplayEntry[] {
   const showAlt = getSettings().showAlternateArt;
   const out: DisplayEntry[] = [];
@@ -59,7 +80,8 @@ export function expandSetEntries(entries: SetEntry[]): DisplayEntry[] {
         out.push({ card, variant, key: `${card.code}${variant.suffix}`, setVariants: variants });
       }
     } else {
-      const variant = variants.find((v) => v.suffix === '') ?? variants[0];
+      const variant = normalInSet(variants);
+      if (variant && isSpecialInsert(variant) && variants.every(isSpecialInsert)) continue;
       if (variant) out.push({ card, variant, key: `${card.code}${variant.suffix}`, setVariants: variants });
       else out.push({ card, variant: undefined as unknown as Variant, key: card.code, setVariants: variants });
     }

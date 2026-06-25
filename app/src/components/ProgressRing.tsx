@@ -18,7 +18,8 @@ export function ProgressRing({
   pct,
   size = 56,
   stroke = 5,
-  color = colors.accent,
+  // Cian "fantasma" por defecto: el progreso/colección es el color semántico.
+  color = colors.ghost,
 }: Props) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;

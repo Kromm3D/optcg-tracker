@@ -17,8 +17,7 @@ import { colors, fonts, pressedStyle, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
 import { CardThumb } from '../components/CardThumb';
 import { ColumnsToggle } from '../components/ColumnsToggle';
-import { SetBadge } from '../components/SetBadge';
-import { ProgressRing } from '../components/ProgressRing';
+import { SetBanner } from '../components/SetBanner';
 import { summarizeSet, rarityBuckets, setEntries } from '../lib/setsStats';
 import { setNameFor, setDateFor } from '../lib/setMeta';
 import { getVariantOwned, subscribe as subOwned } from '../lib/ownedAggregate';
@@ -169,26 +168,20 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      {/* Header */}
-      <View style={[s.header, { paddingTop: insets.top + 10 }]}>
-        <Pressable
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.done')}
-          style={({ pressed }) => [s.backBtn, pressed && pressedStyle]}
-        >
-          <Icon name="chevL" size={20} color={colors.text} />
-        </Pressable>
-        <SetBadge setCode={setCode} size={52} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={s.title} numberOfLines={1}>{setNameFor(setCode)}</Text>
-          {date ? <Text style={s.date}>{date}</Text> : null}
-        </View>
+      <View style={{ paddingTop: insets.top + 10 }}>
+        <SetBanner
+          setCode={setCode}
+          title={setNameFor(setCode)}
+          date={date}
+          owned={summary.owned}
+          total={summary.total}
+          pct={summary.pct}
+          onBack={() => navigation.goBack()}
+        />
       </View>
 
-      {/* Tira de progreso: anillo % + contadores por rareza */}
+      {/* Contadores por rareza */}
       <View style={s.progressRow}>
-        <ProgressRing pct={summary.pct} size={56} />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -281,25 +274,6 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
 }
 
 const s = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingBottom: 10,
-    gap: 10,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontSize: 20, color: colors.text, fontFamily: fonts.display },
-  date: { fontSize: 12, color: colors.textMut, fontFamily: fonts.ui, marginTop: 2 },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',

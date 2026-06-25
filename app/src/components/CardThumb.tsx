@@ -194,7 +194,9 @@ function CardThumbBase({
     <Pressable
       onPress={onPress}
       onLongPress={onLongPress}
-      accessibilityRole="button"
+      // Sin rol "button" cuando hay +/- anidados: en web evita un <button>
+      // dentro de otro <button> (HTML inválido) sin afectar el comportamiento.
+      accessibilityRole={(quickActions && v) || onAdjust ? undefined : 'button'}
       accessibilityLabel={`${card.name} ${card.code}`}
       style={({ pressed }) => [styles.wrap, width !== undefined && { width }, pressed && pressedSurface]}
     >
@@ -245,7 +247,7 @@ function CardThumbBase({
           {/* Multi-art indicator: owned across several art versions. */}
           {effectiveMultiArt && (
             <View style={styles.multiArt}>
-              <Icon name="layers" size={12} color="#fff" stroke={2} />
+              <Icon name="layers" size={12} color={colors.onAccent} stroke={2} />
             </View>
           )}
 
@@ -391,7 +393,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,
   },
-  countBubbleText: { fontSize: 12, color: '#fff', fontFamily: fonts.uiBold },
+  countBubbleText: { fontSize: 12, color: colors.onAccent, fontFamily: fonts.uiBold },
   footer: { marginTop: 5, marginBottom: 2 },
   inlineControls: {
     flexDirection: 'row',
@@ -424,7 +426,7 @@ const styles = StyleSheet.create({
   codeSm: { fontSize: 8.5 },
   dimOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(14,12,26,0.65)',
+    backgroundColor: 'rgba(19,16,25,0.65)',
   },
   selOverlay: {
     ...StyleSheet.absoluteFill,
@@ -452,7 +454,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 4,
-    backgroundColor: 'rgba(14,12,26,0.78)',
+    backgroundColor: 'rgba(19,16,25,0.78)',
     zIndex: 10,
   },
   sourceSetText: { fontSize: 9, fontFamily: fonts.uiBold, color: '#fff', letterSpacing: 0.3 },

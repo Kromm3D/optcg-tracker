@@ -29,6 +29,12 @@ export const en = {
   'home.stats': 'Stats',
   'home.settings': 'Settings',
 
+  // Set update notice
+  'setUpdate.bannerSingle': '{set} has arrived — tap to update',
+  'setUpdate.bannerMulti': 'New sets have arrived — tap to update',
+  'setUpdate.dismiss': 'Dismiss',
+  'setUpdate.badgeA11y': 'New set available',
+
   // Binder
   'binder.title': 'My Binder',
   'binder.collection': 'Collection',
@@ -152,6 +158,21 @@ export const en = {
   'sets.groupPromo': 'Promos',
   'sets.groupEvents': 'Events & Promos',
   'sets.groupOther': 'Other',
+  // Colección — tabs de macro-categoría + nombres de familia + progreso espectral
+  'sets.tabMain': 'MAIN',
+  'sets.tabPromo': 'PROMO',
+  'sets.tabSpecial': 'SPECIAL',
+  'sets.tabDeck': 'DECK',
+  'sets.famOnePiece': 'One Piece',
+  'sets.famExtra': 'Extra Booster',
+  'sets.famPremium': 'Premium Booster',
+  'sets.famStarter': 'Starter Decks',
+  'sets.famPromos': 'Promos',
+  'sets.famEvents': 'Events & Collections',
+  'sets.famOther': 'Other',
+  'sets.setsWord': 'sets',
+  'sets.cardsLabel': 'cards collected',
+  'sets.materialized': '{n} materialized',
 
   // Settings
   'settings.title': 'Settings',
@@ -256,6 +277,7 @@ export const en = {
   'common.save': 'Save',
   'common.retry': 'Retry',
   'common.loading': 'Loading…',
+  'common.loadingDb': 'Syncing the card database, just a moment…',
   'common.delete': 'Delete',
 
   // Decks (delete)

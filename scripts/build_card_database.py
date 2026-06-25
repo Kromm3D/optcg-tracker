@@ -94,6 +94,15 @@ IMAGES_DIR = ROOT / "images"
 DATA_DIR = ROOT / "data"
 INDEX_PATH = DATA_DIR / "index.json"
 HASHES_PATH = DATA_DIR / "hashes.json"
+META_PATH = DATA_DIR / "meta.json"
+BOXART_DIR = IMAGES_DIR / "boxart"
+BOXART_MANIFEST_PATH = DATA_DIR / "boxArt.json"
+PRODUCTS_URL = "https://en.onepiece-cardgame.com/products/"
+
+# Incrementa si el SHAPE de IndexPayload cambia de forma incompatible (campos
+# requeridos nuevos, renombrados, etc). El cliente remoto rechaza un índice
+# cuyo schema_version no entiende en vez de aplicarlo a ciegas.
+INDEX_SCHEMA_VERSION = 1
 
 # Configuración de compresión de imágenes
 MAX_IMG_WIDTH = 480   # ancho máximo en píxeles (LANCZOS si es mayor)
@@ -504,16 +513,41 @@ def scrape_all(session):
 
 def save_index(index, set_meta=None):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    set_meta = set_meta or {}
+    version = int(time.time())
     payload = {
         "generated_with": "build_card_database.py",
         "source": "https://en.onepiece-cardgame.com/cardlist/",
+        "schema_version": INDEX_SCHEMA_VERSION,
+        "version": version,
         "card_count": len(index),
-        "set_meta": set_meta or {},
+        "set_meta": set_meta,
         "cards": index,
     }
     with open(INDEX_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
     print(f"[OK] Índice guardado en {INDEX_PATH}  ({len(index)} códigos únicos)")
+
+    # meta.json: ficherito aparte para que el cliente compruebe si hay una
+    # versión nueva sin tener que descargar los ~3-4MB de index.json entero.
+    newest_set = min(set_meta, key=lambda c: set_meta[c]["release_order"]) if set_meta else None
+    meta_payload = {
+        "schema_version": INDEX_SCHEMA_VERSION,
+        "version": version,
+        "card_count": len(index),
+        "newest_set": newest_set,
+    }
+    with open(META_PATH, "w", encoding="utf-8") as f:
+        json.dump(meta_payload, f, ensure_ascii=False)
+    print(f"[OK] Meta guardado en {META_PATH}  (version={version}, newest_set={newest_set})")
+
+    # Copiar a la app (mismo patrón que hashes.json) para que el bundle
+    # tenga su propia versión/schema de referencia al arrancar offline.
+    app_meta = ROOT / "app" / "src" / "data" / "meta.json"
+    if app_meta.parent.exists():
+        import shutil
+        shutil.copy2(META_PATH, app_meta)
+        print(f"[OK] Copiado a {app_meta}")
 
 
 def load_index():
@@ -522,6 +556,85 @@ def load_index():
         sys.exit(1)
     with open(INDEX_PATH, "r", encoding="utf-8") as f:
         return json.load(f).get("cards", {})
+
+
+# ---------------------------------------------------------------------------
+# Box art — foto de empaque del booster, "mejor esfuerzo segun disponibilidad"
+# ---------------------------------------------------------------------------
+# El sitio oficial SOLO mantiene viva la página de producto del set vigente
+# (/products/<slug>.html). En cuanto un set nuevo lo sustituye, la página (y
+# su foto) desaparecen — no hay archivo histórico. Por eso esto descarga lo
+# que encuentre EN ESTE RUN y lo acumula con lo ya guardado de runs
+# anteriores; nunca borra lo que ya tenemos aunque el set rote fuera del
+# listado. La mayoría de sets antiguos simplemente nunca tendrán box art.
+def discover_box_art_candidates(session):
+    """Links a páginas de producto con forma de set conocido (op16.html,
+    eb05.html, prb02.html...) en la página de listado. Devuelve {code: url}."""
+    try:
+        resp = session.get(PRODUCTS_URL, timeout=HTTP_TIMEOUT)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"[!] No se pudo abrir {PRODUCTS_URL}: {e}")
+        return {}
+    soup = BeautifulSoup(resp.text, "html.parser")
+    out = {}
+    for a in soup.select("a[href]"):
+        m = re.search(r"/products/([a-z]+)(\d+)\.html?$", a["href"], re.IGNORECASE)
+        if not m:
+            continue
+        code = f"{m.group(1).upper()}{m.group(2)}"
+        out[code] = urljoin(PRODUCTS_URL, a["href"])
+    return out
+
+
+def fetch_box_art_image_url(session, product_url):
+    """Abre la página de producto y devuelve la URL absoluta de la foto de
+    empaque (img_item01), o None si no aparece."""
+    try:
+        resp = session.get(product_url, timeout=HTTP_TIMEOUT)
+        resp.raise_for_status()
+    except Exception:
+        return None
+    soup = BeautifulSoup(resp.text, "html.parser")
+    img = soup.select_one('img[src*="img_item01"]')
+    if not img or not img.get("src"):
+        return None
+    return urljoin(product_url, img["src"])
+
+
+def fetch_box_art(session, known_set_codes):
+    """Descarga el box art de los sets vigentes en /products/ y mantiene un
+    manifest (boxArt.json) con TODO lo que haya en disco, no solo lo de este
+    run, para no perder el art de un set que ya rotó fuera del listado."""
+    print(f"[*] Buscando box art en {PRODUCTS_URL}")
+    candidates = discover_box_art_candidates(session)
+    relevant = {c: u for c, u in candidates.items() if c in known_set_codes}
+    print(f"    {len(relevant)} sets vigentes con página de producto reconocida")
+
+    BOXART_DIR.mkdir(parents=True, exist_ok=True)
+    for code, product_url in relevant.items():
+        dest = BOXART_DIR / f"{code}.jpg"
+        if dest.with_suffix(".webp").exists():
+            continue  # ya lo tenemos de un run anterior
+        img_url = fetch_box_art_image_url(session, product_url)
+        if not img_url:
+            print(f"    [!] {code}: no se encontró imagen de empaque en {product_url}")
+            continue
+        ok, err = download_one(session, img_url, dest)
+        print(f"    {'[OK]' if ok else '[!]'} {code}: {img_url}" + (f" — {err}" if err else ""))
+        time.sleep(REQUEST_DELAY)
+
+    available = sorted(p.stem for p in BOXART_DIR.glob("*.webp")) if BOXART_DIR.exists() else []
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    with open(BOXART_MANIFEST_PATH, "w", encoding="utf-8") as f:
+        json.dump({"sets": available}, f, ensure_ascii=False)
+    print(f"[OK] {len(available)} sets con box art en total -> {BOXART_MANIFEST_PATH}")
+
+    app_manifest = ROOT / "app" / "src" / "data" / "boxArt.json"
+    if app_manifest.parent.exists():
+        import shutil
+        shutil.copy2(BOXART_MANIFEST_PATH, app_manifest)
+        print(f"[OK] Copiado a {app_manifest}")
 
 
 # ---------------------------------------------------------------------------
@@ -775,6 +888,7 @@ def main():
     parser.add_argument("--hashes-only", action="store_true", help="Solo generar hashes perceptuales (usa index.json existente).")
     parser.add_argument("--workers", type=int, default=8, help="Hilos paralelos para descargar (defecto 8).")
     parser.add_argument("--wipe", action="store_true", help="Borrar index.json anterior sin preguntar.")
+    parser.add_argument("--no-boxart", action="store_true", help="No intentar descargar box art de /products/.")
     args = parser.parse_args()
 
     exclusive = sum([args.index_only, args.images_only, args.hashes_only])
@@ -822,6 +936,13 @@ def main():
         save_index(index, set_meta)
         with_variants = sum(1 for c in index.values() if len(c["variants"]) > 1)
         print(f"     Códigos únicos: {len(index)} · con variantes: {with_variants}")
+
+        if not args.no_boxart:
+            try:
+                print("\n[FASE 1.5] Box art de sets vigentes")
+                fetch_box_art(session, set(set_meta.keys()))
+            except Exception as e:
+                print(f"[!] Box art falló (no crítico, se continúa): {e}")
     else:
         index = load_index()
 

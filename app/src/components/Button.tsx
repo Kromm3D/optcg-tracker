@@ -21,7 +21,8 @@ interface Props {
 export function Button({ title, onPress, variant = 'primary', icon, disabled, loading, style }: Props) {
   const isPrimary = variant === 'primary';
   const isDanger = variant === 'danger';
-  const fg = isPrimary || isDanger ? '#fff' : variant === 'secondary' ? colors.text : colors.textMut;
+  // Primario = rosa claro → texto ciruela oscuro (onAccent). Danger = rojo → blanco.
+  const fg = isPrimary ? colors.onAccent : isDanger ? '#fff' : variant === 'secondary' ? colors.text : colors.textMut;
   return (
     <Touchable
       style={[styles.base, styles[variant], style]}

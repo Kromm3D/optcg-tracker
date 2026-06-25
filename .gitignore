@@ -27,3 +27,7 @@ Thumbs.db
 
 # Claude
 .claude/
+.impeccable/
+
+# Debug/test artifacts from scripts (hash visualizations, scratch dumps)
+scripts/output/

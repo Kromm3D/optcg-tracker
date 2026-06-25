@@ -206,5 +206,5 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
-  confirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: '#fff' },
+  confirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.onAccent },
 });

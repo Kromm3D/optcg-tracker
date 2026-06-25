@@ -318,9 +318,9 @@ const s = StyleSheet.create({
     height: 44, paddingHorizontal: 16, borderRadius: radii.lg,
     backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
   },
-  smallBtnText: { fontSize: 14, fontFamily: fonts.uiBold, color: '#fff' },
+  smallBtnText: { fontSize: 14, fontFamily: fonts.uiBold, color: colors.onAccent },
   confirmBtn: { backgroundColor: colors.accent, borderRadius: radii.xl, paddingVertical: 14, alignItems: 'center' },
-  confirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: '#fff' },
+  confirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.onAccent },
   indivToggleRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingVertical: 4,
