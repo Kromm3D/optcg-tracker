@@ -604,45 +604,62 @@ def fetch_box_art_image_url(session, product_url):
     return urljoin(product_url, img["src"])
 
 
-def fetch_box_art(session, known_set_codes):
-    """Descarga el box art de los sets vigentes en /products/ y mantiene un
-    manifest (boxArt.json) con TODO lo que haya en disco, no solo lo de este
-    run, para no perder el art de un set que ya rotó fuera del listado.
+def _boxart_files_on_disk():
+    """Devuelve {code: version} de los webp versionados en disco.
 
-    El manifest también guarda un `versions[code]` (timestamp de la última
-    descarga real) para que el cliente pueda cache-bust la URL — el contenido
-    de "{code}.webp" puede cambiar (como hoy: booster photo -> key art) sin
-    que la URL cambie, y tanto el navegador como el CDN cachean por URL."""
+    Los ficheros se nombran "{code}.{version}.webp" (la versión va en el PATH,
+    no en un query ?v=). jsDelivr resuelve "@main" a un commit y cachea esa
+    resolución por región hasta 12h; un query distinto NO esquiva eso. Un path
+    nuevo, en cambio, no existe en ningún caché → fuerza un fetch fresco. Por
+    eso la versión vive en el nombre del fichero."""
+    out = {}
+    if not BOXART_DIR.exists():
+        return out
+    for p in BOXART_DIR.glob("*.webp"):
+        parts = p.stem.split(".")  # "OP16.1782381877" -> ["OP16", "1782381877"]
+        if len(parts) != 2:
+            continue  # ignora nombres planos legacy "OP16.webp"
+        code, ver = parts
+        try:
+            out[code] = int(ver)
+        except ValueError:
+            continue
+    return out
+
+
+def fetch_box_art(session, known_set_codes):
+    """Descarga el box art (key art "mv.webp") de los sets vigentes en
+    /products/ y mantiene un manifest (boxArt.json) con TODO lo que haya en
+    disco, no solo lo de este run, para no perder el art de un set que ya rotó
+    fuera del listado.
+
+    Cada fichero se guarda como "{code}.{version}.webp" (versión = timestamp).
+    Para ACTUALIZAR el art de un set (p.ej. si el sitio cambia la imagen),
+    borra a mano el "{code}.*.webp" viejo y vuelve a ejecutar: se re-descarga
+    con una versión nueva → path nuevo → ningún caché lo tiene → se ve al
+    instante en cliente y CDN."""
     print(f"[*] Buscando box art en {PRODUCTS_URL}")
     candidates = discover_box_art_candidates(session)
     relevant = {c: u for c, u in candidates.items() if c in known_set_codes}
     print(f"    {len(relevant)} sets vigentes con página de producto reconocida")
 
-    # Preserva versions[] de runs anteriores para sets que no se re-descargan hoy.
-    versions = {}
-    if BOXART_MANIFEST_PATH.exists():
-        try:
-            versions = json.loads(BOXART_MANIFEST_PATH.read_text(encoding="utf-8")).get("versions", {})
-        except Exception:
-            versions = {}
-
     BOXART_DIR.mkdir(parents=True, exist_ok=True)
+    existing = _boxart_files_on_disk()
     for code, product_url in relevant.items():
-        dest = BOXART_DIR / f"{code}.jpg"
-        if dest.with_suffix(".webp").exists():
-            continue  # ya lo tenemos de un run anterior
+        if code in existing:
+            continue  # ya lo tenemos de un run anterior (borra el fichero para forzar refresh)
         img_url = fetch_box_art_image_url(session, product_url)
         if not img_url:
-            print(f"    [!] {code}: no se encontró imagen de empaque en {product_url}")
+            print(f"    [!] {code}: no se encontró imagen en {product_url}")
             continue
+        ts = int(time.time())
+        dest = BOXART_DIR / f"{code}.{ts}.jpg"  # download_one lo guarda como .webp
         ok, err = download_one(session, img_url, dest)
         print(f"    {'[OK]' if ok else '[!]'} {code}: {img_url}" + (f" — {err}" if err else ""))
-        if ok:
-            versions[code] = int(time.time())
         time.sleep(REQUEST_DELAY)
 
-    available = sorted(p.stem for p in BOXART_DIR.glob("*.webp")) if BOXART_DIR.exists() else []
-    versions = {code: v for code, v in versions.items() if code in available}
+    versions = _boxart_files_on_disk()
+    available = sorted(versions.keys())
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(BOXART_MANIFEST_PATH, "w", encoding="utf-8") as f:
         json.dump({"sets": available, "versions": versions}, f, ensure_ascii=False)

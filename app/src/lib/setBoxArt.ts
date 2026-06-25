@@ -19,13 +19,15 @@ export function hasBoxArt(setCode: string): boolean {
 }
 
 /** URL del CDN para el box art de un set, o '' si no existe.
- *  Cache-busted con `versions[code]` (timestamp de la última descarga real):
- *  el contenido de "{code}.webp" puede cambiar sin que la URL cambie, y tanto
- *  el navegador como el CDN cachean por URL — sin esto, una imagen actualizada
- *  podría seguir mostrando bytes viejos indefinidamente. */
+ *  La versión va en el NOMBRE DE FICHERO (`{code}.{version}.webp`), no en un
+ *  query `?v=`. jsDelivr resuelve `@main` a un commit y cachea esa resolución
+ *  por región hasta 12h; un `?v=` distinto NO esquiva eso (sirve el mismo
+ *  commit cacheado). Un PATH nuevo, en cambio, no existe en ningún caché de
+ *  ningún edge ni navegador → fuerza una resolución fresca. Fallback al nombre
+ *  plano `{code}.webp` para manifiestos antiguos sin `versions`. */
 export function boxArtUrl(setCode: string): string {
   if (!hasBoxArt(setCode)) return '';
-  const base = imageUrl(`images/boxart/${setCode}.webp`);
   const version = manifest.versions?.[setCode];
-  return version ? `${base}?v=${version}` : base;
+  const file = version ? `${setCode}.${version}.webp` : `${setCode}.webp`;
+  return imageUrl(`images/boxart/${file}`);
 }
