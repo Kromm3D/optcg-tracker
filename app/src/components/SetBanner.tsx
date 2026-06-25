@@ -60,7 +60,10 @@ export function SetBanner({ setCode, title, date, owned, total, pct, onBack }: P
   // El SVG necesita píxeles reales para que el `slice` recorte sin deformar.
   const { width: winW } = useWindowDimensions();
   const w = Math.max(280, Math.round(winW) - CAPSULE_MARGIN);
-  const artW = Math.min(Math.round(w * ART_FRACTION), ART_MAX_W);
+  // Suelo del 50%: el cap absoluto (ART_MAX_W) evita pixelado en pantallas
+  // anchas, pero nunca debe encoger el panel de arte por debajo de la mitad
+  // de la cápsula.
+  const artW = Math.max(Math.round(w * 0.5), Math.min(Math.round(w * ART_FRACTION), ART_MAX_W));
   const artX = w - artW;
 
   return (

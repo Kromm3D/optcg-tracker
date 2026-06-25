@@ -11,17 +11,14 @@ import {
   Text,
   View,
 } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation';
 type SetsScreenProps = NativeStackScreenProps<RootStackParamList, 'Sets'>;
 import { colors, fonts, radii, spacing } from '../theme';
 import { Icon } from '../components/Icon';
-import { Touchable } from '../components/Touchable';
 import { ProgressRing } from '../components/ProgressRing';
-import { EV_BADGE_LABELS } from '../components/SetBadge';
-import { listSetCodes, summarizeSet, type SetSummary } from '../lib/setsStats';
-import { setNameFor } from '../lib/setMeta';
+import { SetRow } from '../components/SetRow';
+import { listSetCodes, summarizeSet, rarityBuckets, type SetSummary } from '../lib/setsStats';
 import { subscribe as subOwned } from '../lib/ownedAggregate';
 import { subscribe as subSettings } from '../lib/settings';
 import { useT } from '../lib/i18n';
@@ -80,84 +77,7 @@ function familyOf(code: string): FamilyKey {
   return 'other';
 }
 
-/** Texto corto centrado en el orbe (abreviatura para los buckets de evento). */
-function orbCode(code: string): string {
-  return EV_BADGE_LABELS[code] ?? code;
-}
-
-// ─── Orbe fantasma: anillo de progreso de un set, con 3 estados ──────────────
-
-function SetOrb({ summary, onPress }: { summary: SetSummary; onPress: () => void }) {
-  const { code, pct } = summary;
-  const size = 48;
-  const stroke = 4;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const clamped = Math.max(0, Math.min(100, pct));
-  const complete = clamped >= 100;
-  const empty = clamped <= 0;
-  const offset = c * (1 - clamped / 100);
-  const center = size / 2;
-  const label = orbCode(code);
-
-  return (
-    <Touchable
-      style={s.orb}
-      onPress={onPress}
-      hitSlopOn={false}
-      accessibilityRole="button"
-      accessibilityLabel={`${setNameFor(code)}, ${clamped}%`}
-    >
-      <View style={{ width: size, height: size }}>
-        <Svg width={size} height={size}>
-          {complete ? (
-            <Circle cx={center} cy={center} r={r + 1} fill={colors.ghost} />
-          ) : (
-            <>
-              <Circle
-                cx={center}
-                cy={center}
-                r={r}
-                fill="none"
-                stroke={colors.surface2}
-                strokeWidth={stroke}
-                strokeDasharray={empty ? '3 4' : undefined}
-              />
-              {!empty && (
-                <Circle
-                  cx={center}
-                  cy={center}
-                  r={r}
-                  fill="none"
-                  stroke={colors.ghost}
-                  strokeWidth={stroke}
-                  strokeLinecap="round"
-                  strokeDasharray={c}
-                  strokeDashoffset={offset}
-                  transform={`rotate(-90 ${center} ${center})`}
-                />
-              )}
-            </>
-          )}
-        </Svg>
-        <View style={[StyleSheet.absoluteFill, s.orbCenter]}>
-          {complete ? (
-            <Icon name="ghost" size={20} color={colors.onGhost} stroke={1.8} />
-          ) : (
-            <Text style={[s.orbCode, empty && { color: colors.textDim }]} numberOfLines={1}>
-              {label}
-            </Text>
-          )}
-        </View>
-      </View>
-      <Text style={[s.orbLabel, complete && { color: colors.ghost }]} numberOfLines={1}>
-        {complete ? label : `${clamped}%`}
-      </Text>
-    </Touchable>
-  );
-}
-
-// ─── Tarjeta de familia: anillo agregado + rejilla de orbes ──────────────────
+// ─── Tarjeta de familia: anillo agregado + columna de banners de set ────────
 
 function FamilyCard({ famKey, sets, t, onOpen }: {
   famKey: FamilyKey;
@@ -191,9 +111,14 @@ function FamilyCard({ famKey, sets, t, onOpen }: {
         </View>
       </View>
 
-      <View style={s.grid}>
+      <View style={s.rows}>
         {sets.map((sum) => (
-          <SetOrb key={sum.code} summary={sum} onPress={() => onOpen(sum.code)} />
+          <SetRow
+            key={sum.code}
+            summary={sum}
+            rarities={rarityBuckets(sum.code)}
+            onPress={() => onOpen(sum.code)}
+          />
         ))}
       </View>
     </View>
@@ -396,26 +321,8 @@ const s = StyleSheet.create({
     color: colors.ghost,
   },
 
-  // Rejilla de orbes
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  orb: {
-    width: '20%',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 12,
-  },
-  orbCenter: { alignItems: 'center', justifyContent: 'center' },
-  orbCode: {
-    fontSize: 9.5,
-    fontFamily: fonts.display,
-    color: colors.text,
-  },
-  orbLabel: {
-    fontSize: 9,
-    fontFamily: fonts.uiSemi,
-    color: colors.textMut,
+  // Columna de banners de set
+  rows: {
+    gap: 0,
   },
 });
