@@ -567,41 +567,71 @@ def load_index():
 # que encuentre EN ESTE RUN y lo acumula con lo ya guardado de runs
 # anteriores; nunca borra lo que ya tenemos aunque el set rote fuera del
 # listado. La mayoría de sets antiguos simplemente nunca tendrán box art.
-def discover_box_art_candidates(session):
-    """Links a páginas de producto con forma de set conocido (op16.html,
-    eb05.html, prb02.html...) en la página de listado. Devuelve {code: url}."""
-    try:
-        resp = session.get(PRODUCTS_URL, timeout=HTTP_TIMEOUT)
-        resp.raise_for_status()
-    except Exception as e:
-        print(f"[!] No se pudo abrir {PRODUCTS_URL}: {e}")
-        return {}
-    soup = BeautifulSoup(resp.text, "html.parser")
-    out = {}
-    for a in soup.select("a[href]"):
-        m = re.search(r"/products/([a-z]+)(\d+)\.html?$", a["href"], re.IGNORECASE)
-        if not m:
+# Patrón del key visual: "mv.webp", "pc/mv.webp", "mv_01.jpg"… (NO "bg_mv",
+# que es solo el fondo difuminado). Cubre el formato nuevo (.webp con variante
+# pc/sp) y el viejo (mv_NN.jpg).
+_MV_RE = re.compile(r"""['"\s(]([^'"\s()]*\bmv(?:_\d+)?\.(?:webp|jpg|png))""", re.IGNORECASE)
+
+
+def discover_product_pages(session):
+    """Devuelve el conjunto de URLs de páginas de producto, combinando la
+    portada de /products/ (set vigente, .html) con los tres archivos por
+    subcategoría (?subcategory=boosters|decks|others, .php). El archivo es la
+    clave: cubre sets recientes ya rotados de la portada, no solo el vigente."""
+    pages = set()
+    sources = [PRODUCTS_URL] + [f"{PRODUCTS_URL}?subcategory={s}" for s in ("boosters", "decks", "others")]
+    for src in sources:
+        try:
+            resp = session.get(src, timeout=HTTP_TIMEOUT)
+            resp.raise_for_status()
+        except Exception as e:
+            print(f"    [!] No se pudo abrir {src}: {e}")
             continue
-        code = f"{m.group(1).upper()}{m.group(2)}"
-        out[code] = urljoin(PRODUCTS_URL, a["href"])
-    return out
+        for a in BeautifulSoup(resp.text, "html.parser").select("a[href]"):
+            href = a["href"]
+            if re.search(r"/products/[a-z0-9_-]+\.html?$", href, re.I) or \
+               re.search(r"/products/(?:boosters|decks|other)/[^/]+\.php$", href, re.I):
+                pages.add(urljoin(PRODUCTS_URL, href))
+    return pages
 
 
 def fetch_box_art_image_url(session, product_url):
-    """Abre la página de producto y devuelve la URL absoluta del key art /
-    main visual del set ("mv.webp" — la imagen ancha de cabecera, NO
-    "bg_mv.webp" que es solo el fondo difuminado). Si no aparece, cae a la
-    foto de empaque del booster (img_item01) como último recurso."""
+    """Abre una página de producto y devuelve la URL absoluta de su key visual
+    (mv.webp / pc/mv.webp / mv_01.jpg…), prefiriendo la variante 'pc' y el
+    .webp. None si la página no expone ninguno."""
     try:
         resp = session.get(product_url, timeout=HTTP_TIMEOUT)
         resp.raise_for_status()
     except Exception:
         return None
-    soup = BeautifulSoup(resp.text, "html.parser")
-    img = soup.select_one('img[src$="/mv.webp"]') or soup.select_one('img[src*="img_item01"]')
-    if not img or not img.get("src"):
+    hits = [u for u in _MV_RE.findall(resp.text) if "bg_mv" not in u.lower()]
+    if not hits:
         return None
-    return urljoin(product_url, img["src"])
+    def rank(u):
+        u = u.lower()
+        return (0 if "/pc/" in u else 1, 0 if u.endswith("mv.webp") else 1, 0 if ".webp" in u else 1)
+    return urljoin(product_url, sorted(hits, key=rank)[0].split("?")[0])
+
+
+def set_codes_from_slug(slug):
+    """Mapea el slug de la página a los códigos de set que cubre.
+    'op10' -> [OP10]; 'op14-eb04' -> [OP14, EB04]; 'st15-20' -> [ST15..ST20]
+    (un número suelto tras un prefijo es el fin de un rango con ese prefijo)."""
+    codes, prefix, last_num = [], None, None
+    for part in slug.lower().split("-"):
+        m = re.match(r"^([a-z]+)?(\d+)$", part)
+        if not m:
+            continue
+        pre, num = m.group(1), int(m.group(2))
+        if pre:
+            prefix = pre.upper()
+            codes.append(f"{prefix}{num:02d}")
+            last_num = num
+        elif prefix is not None and last_num is not None and num > last_num:
+            # rango: rellena prefix(last_num+1)..prefix(num)
+            codes.extend(f"{prefix}{n:02d}" for n in range(last_num + 1, num + 1))
+            last_num = num
+    return codes
 
 
 def _boxart_files_on_disk():
@@ -638,24 +668,46 @@ def fetch_box_art(session, known_set_codes):
     borra a mano el "{code}.*.webp" viejo y vuelve a ejecutar: se re-descarga
     con una versión nueva → path nuevo → ningún caché lo tiene → se ve al
     instante en cliente y CDN."""
-    print(f"[*] Buscando box art en {PRODUCTS_URL}")
-    candidates = discover_box_art_candidates(session)
-    relevant = {c: u for c, u in candidates.items() if c in known_set_codes}
-    print(f"    {len(relevant)} sets vigentes con página de producto reconocida")
+    print(f"[*] Buscando box art en {PRODUCTS_URL} (+ archivos por subcategoría)")
+    pages = discover_product_pages(session)
+    print(f"    {len(pages)} páginas de producto encontradas")
+
+    # Mapea cada código de set conocido a la URL de su key visual. Varias
+    # páginas pueden compartir arte (op14-eb04 → OP14+EB04), y varios sets
+    # pueden compartir la misma imagen → se agrupa para descargar una sola vez.
+    code_to_url = {}
+    for page in sorted(pages):
+        slug = re.sub(r"\.(php|html?)$", "", page.rsplit("/", 1)[-1])
+        codes = [c for c in set_codes_from_slug(slug) if c in known_set_codes]
+        if not codes:
+            continue
+        img_url = fetch_box_art_image_url(session, page)
+        time.sleep(REQUEST_DELAY)
+        if not img_url:
+            continue
+        for code in codes:
+            code_to_url.setdefault(code, img_url)
+    print(f"    {len(code_to_url)} sets del índice con key art disponible")
 
     BOXART_DIR.mkdir(parents=True, exist_ok=True)
     existing = _boxart_files_on_disk()
-    for code, product_url in relevant.items():
-        if code in existing:
-            continue  # ya lo tenemos de un run anterior (borra el fichero para forzar refresh)
-        img_url = fetch_box_art_image_url(session, product_url)
-        if not img_url:
-            print(f"    [!] {code}: no se encontró imagen en {product_url}")
-            continue
+    # Descarga agrupada por URL: una imagen que sirve a N sets se baja una vez
+    # y se escribe en el fichero versionado de cada set que aún no lo tenga.
+    by_url = {}
+    for code, url in code_to_url.items():
+        if code not in existing:
+            by_url.setdefault(url, []).append(code)
+    for img_url, codes in by_url.items():
         ts = int(time.time())
-        dest = BOXART_DIR / f"{code}.{ts}.jpg"  # download_one lo guarda como .webp
+        first = codes[0]
+        dest = BOXART_DIR / f"{first}.{ts}.jpg"  # download_one lo guarda como .webp
         ok, err = download_one(session, img_url, dest)
-        print(f"    {'[OK]' if ok else '[!]'} {code}: {img_url}" + (f" — {err}" if err else ""))
+        print(f"    {'[OK]' if ok else '[!]'} {','.join(codes)}: {img_url}" + (f" — {err}" if err else ""))
+        if ok:
+            src_webp = dest.with_suffix(".webp")
+            for other in codes[1:]:
+                import shutil as _sh
+                _sh.copy2(src_webp, BOXART_DIR / f"{other}.{ts}.webp")
         time.sleep(REQUEST_DELAY)
 
     versions = _boxart_files_on_disk()

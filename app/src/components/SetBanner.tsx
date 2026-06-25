@@ -1,14 +1,16 @@
-// Banner de cabecera de SetDetail: código + título + progreso a la
-// izquierda, key art del set ("mv.webp") a la derecha con un fade horizontal
-// que la funde con el fondo de la cápsula. La mayoría de sets no tienen key art
-// disponible (el sitio oficial solo mantiene la página del set vigente — ver
+// Banner de cabecera de SetDetail: código + título + progreso a la izquierda,
+// key art del set ("mv.webp") ocupando la derecha y FUNDIÉNDOSE en la cápsula
+// mediante una máscara alpha horizontal (transparente a la izquierda → opaca a
+// la derecha) — el arte se disuelve de verdad en el fondo, no se tapa con un
+// rectángulo del color de la cápsula. Encima, un velo de legibilidad mantiene
+// el texto de la izquierda nítido. La mayoría de sets no tienen key art (el
+// sitio oficial solo mantiene la página del set vigente — ver
 // scripts/build_card_database.py), así que caen a un degradado temático
-// determinista por set en vez de dejar un hueco vacío.
+// determinista por set, tratado con la misma máscara para que case visualmente.
 
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { CachedImage } from './CachedImage';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Svg, { Defs, Image as SvgImage, LinearGradient, Mask, Rect, Stop } from 'react-native-svg';
 import { ProgressRing } from './ProgressRing';
 import { Icon } from './Icon';
 import { hasBoxArt, boxArtUrl } from '../lib/setBoxArt';
@@ -25,7 +27,19 @@ type Props = {
   onBack: () => void;
 };
 
-const ART_WIDTH = 132;
+const BANNER_H = 132;
+/** Fracción del ancho de la cápsula que ocupa el panel de arte (anclado a la
+ *  derecha). El arte se desvanece dentro de este panel; su mitad izquierda
+ *  queda transparente y deja ver la cápsula. */
+const ART_FRACTION = 0.72;
+/** Tope de ancho del panel de arte = ancho nativo del key art (480px). Sin
+ *  esto, en pantallas anchas (navegador a Full HD) la cápsula mide ~1900px, el
+ *  panel ~1360px, y el `slice` ampliaría el arte de 480px ~2.8× recortándolo a
+ *  una franja superior borrosa. Con el tope, el arte se mantiene nítido y bien
+ *  encuadrado a cualquier resolución, anclado a la derecha. */
+const ART_MAX_W = 480;
+/** Márgenes horizontales de la cápsula (marginHorizontal 14 · 2). */
+const CAPSULE_MARGIN = 28;
 
 /** Degradado temático estable por set (mismo código → mismo color siempre),
  *  usando los tonos de OPTCG_COLORS ya documentados en DESIGN.md. */
@@ -41,28 +55,64 @@ export function SetBanner({ setCode, title, date, owned, total, pct, onBack }: P
   const hasArt = hasBoxArt(setCode);
   const fallbackTone = hasArt ? undefined : fallbackToneFor(setCode);
 
+  // Ancho de la cápsula derivado del ancho de ventana (idiomático en RN y, a
+  // diferencia de onLayout en web, fiable y reactivo a cambios de resolución).
+  // El SVG necesita píxeles reales para que el `slice` recorte sin deformar.
+  const { width: winW } = useWindowDimensions();
+  const w = Math.max(280, Math.round(winW) - CAPSULE_MARGIN);
+  const artW = Math.min(Math.round(w * ART_FRACTION), ART_MAX_W);
+  const artX = w - artW;
+
   return (
     <View style={s.capsule}>
-      {/* Capa de arte: imagen real o degradado temático, siempre detrás del fade. */}
-      <View style={s.artLayer} pointerEvents="none">
-        {hasArt ? (
-          <CachedImage uri={boxArtUrl(setCode)} style={s.artImage} contentFit="cover" />
-        ) : (
-          <View style={[s.artImage, { backgroundColor: fallbackTone }]} />
-        )}
-        <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+      {/* Capa de arte enmascarada — siempre detrás del contenido. */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg width={w} height={BANNER_H}>
           <Defs>
-            <LinearGradient id="setBannerFade" x1="0" y1="0" x2="1" y2="0">
-              <Stop offset="0" stopColor={colors.surface2} stopOpacity={1} />
-              <Stop offset="0.55" stopColor={colors.surface2} stopOpacity={0.6} />
-              <Stop offset="1" stopColor={colors.surface2} stopOpacity={0} />
+            {/* Máscara alpha: el arte va de transparente (izq) a opaco (der).
+                Luminancia blanca con opacidad creciente = más visible. */}
+            <LinearGradient id="setArtFade" x1="0" y1="0" x2="1" y2="0">
+              <Stop offset="0" stopColor="#fff" stopOpacity={0} />
+              <Stop offset="0.5" stopColor="#fff" stopOpacity={0.55} />
+              <Stop offset="0.82" stopColor="#fff" stopOpacity={1} />
+              <Stop offset="1" stopColor="#fff" stopOpacity={1} />
+            </LinearGradient>
+            <Mask id="setArtMask">
+              <Rect x={artX} y={0} width={artW} height={BANNER_H} fill="url(#setArtFade)" />
+            </Mask>
+            {/* Velo de legibilidad: base de la cápsula opaca a la izquierda que
+                se va a 0 antes del punto de interés del arte (der), para que el
+                texto quede sobre una base limpia sin tapar la cara/acción. */}
+            <LinearGradient id="setArtScrim" x1="0" y1="0" x2="1" y2="0">
+              <Stop offset="0" stopColor={colors.surface2} stopOpacity={0.92} />
+              <Stop offset="0.42" stopColor={colors.surface2} stopOpacity={0.5} />
+              <Stop offset="0.66" stopColor={colors.surface2} stopOpacity={0} />
             </LinearGradient>
           </Defs>
-          <Rect x="0" y="0" width="100%" height="100%" fill="url(#setBannerFade)" />
+
+          {hasArt ? (
+            <SvgImage
+              href={{ uri: boxArtUrl(setCode) }}
+              x={artX}
+              y={0}
+              width={artW}
+              height={BANNER_H}
+              // slice = cubre el panel recortando; yMin encuadra la parte alta
+              // del arte (caras/acción), el "punto de interés" de la mayoría de
+              // key arts de OPTCG.
+              preserveAspectRatio="xMidYMin slice"
+              mask="url(#setArtMask)"
+            />
+          ) : (
+            <Rect x={artX} y={0} width={artW} height={BANNER_H} fill={fallbackTone} mask="url(#setArtMask)" />
+          )}
+
+          {/* Velo encima del arte: protege la legibilidad del texto. */}
+          <Rect x={0} y={0} width={w} height={BANNER_H} fill="url(#setArtScrim)" />
         </Svg>
       </View>
 
-      {/* Contenido */}
+      {/* Botón atrás */}
       <Pressable
         onPress={onBack}
         accessibilityRole="button"
@@ -73,6 +123,7 @@ export function SetBanner({ setCode, title, date, owned, total, pct, onBack }: P
         <Icon name="chevL" size={18} color={colors.text} />
       </Pressable>
 
+      {/* Contenido */}
       <View style={s.content}>
         <ProgressRing pct={pct} size={52} />
         <View style={s.info}>
@@ -89,20 +140,12 @@ export function SetBanner({ setCode, title, date, owned, total, pct, onBack }: P
 const s = StyleSheet.create({
   capsule: {
     marginHorizontal: 14,
+    height: BANNER_H,
     borderRadius: 26,
     backgroundColor: colors.surface2,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
-    minHeight: 120,
-  },
-  artLayer: StyleSheet.absoluteFill,
-  artImage: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: ART_WIDTH,
   },
   backBtn: {
     position: 'absolute',
@@ -117,11 +160,12 @@ const s = StyleSheet.create({
     zIndex: 2,
   },
   content: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 18,
+    paddingVertical: 18,
     paddingLeft: 54,
-    paddingRight: ART_WIDTH * 0.6,
+    paddingRight: 104,
     gap: 14,
   },
   info: { flex: 1 },

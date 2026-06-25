@@ -3,7 +3,7 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-06-25 (remote set-update banner, box-art set banner, SP-card display/stats fixes)
+**Last updated:** 2026-06-25 (SetBanner mv.webp art + real alpha mask + Full-HD fix, 26-set box-art coverage)
 **Current branch:** `main`
 **App version:** 0.1.0 (pre-release)
 
@@ -239,6 +239,79 @@ dropped only for the `quickActions` inline-controls path; the Binder
 `onAdjust`+`Counter` path (also nested buttons) was missed. Fixed:
 `accessibilityRole={(quickActions && v) || onAdjust ? undefined : 'button'}`.
 Verified via live DOM audit (157 buttons, 0 nested) on a populated Binder grid.
+
+---
+
+### SetBanner mv.webp art, real alpha mask, Full-HD fix, 26-set box-art coverage (2026-06-25, typecheck-green, web-verified at 375/768/1920px)
+
+**Box-art source switched from booster photo to key art.** `fetch_box_art()` in
+`build_card_database.py` was rewritten to pull each product page's `mv.webp`
+("main visual" key art — character art, e.g. Ace/Luffy on OP16) instead of the
+booster-pack render (`img_item01`). Regex `_MV_RE` matches `mv.webp`,
+`pc/mv.webp` (responsive desktop subpath, preferred over `/sp/` mobile), and
+the older `mv_01.jpg` naming used on legacy pages — explicitly excludes
+`bg_mv.webp` (a separate blurred-background asset). A ranking function prefers
+`/pc/` + `.webp` over `.jpg` when a page exposes both.
+
+**CDN staleness root-caused and fixed at the path level.** Swapping the art
+file in place while keeping the same filename appeared not to update — even in
+incognito, even with a `?v=<timestamp>` query string. Root cause: jsDelivr
+pins `@main` to a resolved commit per edge/region and caches that resolution
+~12h; a differing query string does **not** force re-resolution, so the same
+stale commit's bytes kept being served regardless of the query. Fixed by
+moving the version into the **filename path** itself
+(`images/boxart/{code}.{version}.webp`) — a brand-new path cannot exist in any
+cache, so it always resolves fresh. `app/src/lib/setBoxArt.ts` `boxArtUrl()`
+reads `version` from `boxArt.json`'s new `versions` map and builds the
+versioned filename (falls back to the old flat `{code}.webp` if a manifest
+has no `versions`, for forward-compat with manifests generated before this
+change).
+
+**Box-art coverage expanded 1 → 26 sets.** The official site only shows the
+*currently on-sale* set at `/products/<code>.html` — but `/products/` also has
+three archive views (`?subcategory=boosters|decks|others`) listing recently-
+rotated-out sets at `.php` pages that still serve their original key art.
+`discover_product_pages()` now crawls all three archives plus the live
+listing; `set_codes_from_slug()` parses page slugs into the set code(s) they
+cover, including combined (`op14-eb04` → OP14+EB04) and ranged (`st15-20` →
+ST15..ST20) slugs sharing one image (downloaded once, copied to each code's
+versioned filename via `fetch_box_art()`'s `by_url` grouping). Now covers:
+EB02-04, OP10-12/14-16, PRB02, ST15-30 (26 of 52 sets — the rest have no live
+or archived product page and keep the themed-gradient fallback). Older
+archive pages (OP10-12, ST15-22, EB02) only have the busier `mv_01.jpg`-style
+promo banner (character art + 3D pack render + date text baked in) rather than
+clean character art — accepted as-is since the banner's top-crop hides most of
+the clutter; revisit if it looks bad in practice on those specific sets.
+
+**`SetBanner.tsx` fade was fake; replaced with a true SVG alpha mask.** The
+original "blend" painted an opaque `colors.surface2`-colored rectangle over
+the art's left edge — it only *looked* blended because that flat color
+happened to match the capsule background, with no actual transparency. Now
+uses a `<Mask>` + `<LinearGradient>` (white, increasing `stopOpacity`
+left→right) applied directly to the `<SvgImage>`/fallback `<Rect>`, so the art
+itself fades to transparent rather than being covered. A separate
+`setArtScrim` gradient still sits above the masked art for text legibility,
+independent of the art's own fade. Crop uses `preserveAspectRatio="xMidYMin
+slice"` to frame the top region (faces/action — the focal point of most OPTCG
+key art) rather than an arbitrary center/bottom crop.
+
+**Full-HD layout corruption fixed.** The first responsive pass used
+`useState` + `onLayout` + `Dimensions.get('window').width` as an initial
+value; on web, `Dimensions.get('window').width` returned `0` at the time the
+initial state was computed and `onLayout` didn't reliably correct it,
+producing a negative SVG width (`width="-20"`) at large viewports and visibly
+corrupting the art. Fixed by switching to `useWindowDimensions()` (reactive,
+no stale-initial-value problem on web) and adding `ART_MAX_W = 480` to cap the
+art panel at the key art's native resolution — without this cap, a ~1900px-
+wide capsule on a Full HD browser would stretch a 480px source ~2.8×, slicing
+it into a blurry top strip. Verified crisp and correctly right-anchored at
+375px (mobile), 768px (tablet), and 1920px (desktop browser).
+
+**Pending follow-up:** only OP16 has been visually verified rendering inside
+the live banner; the other 25 newly-added sets (especially the busier
+`mv_01.jpg`-sourced older ones) haven't been individually checked in-component
+yet — worth a pass through the Sets browser once art is live on the CDN
+(images only resolve after this commit is pushed).
 
 ---
 
