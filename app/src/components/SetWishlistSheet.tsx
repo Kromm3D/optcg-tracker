@@ -17,7 +17,7 @@ import { colors, fonts, radii, spacing, pressedStyle, pressedSurface } from '../
 import { Icon } from './Icon';
 import { Counter } from './Counter';
 import { useT } from '../lib/i18n';
-import { summarizeSet, isEntryComplete, type SetEntry } from '../lib/setsStats';
+import { summarizeSet, isEntryComplete, baseRarityOf, type SetEntry } from '../lib/setsStats';
 import { getSettings } from '../lib/settings';
 import {
   listWishlists,
@@ -29,7 +29,9 @@ import type { Variant, Wishlist } from '../types';
 
 type Printing = 'normal' | 'parallel' | 'both';
 
-const RARITY_ORDER = ['L', 'SEC', 'SR', 'SP', 'TR', 'R', 'UC', 'C', 'P'];
+// TR no es una rareza propia (ver baseRarityOf en setsStats.ts) — nunca
+// aparecerá como clave aquí.
+const RARITY_ORDER = ['L', 'SEC', 'SR', 'SP', 'R', 'UC', 'C', 'P'];
 
 type Props = {
   visible: boolean;
@@ -48,9 +50,7 @@ function inSetParallels(entry: SetEntry): Variant[] {
   return entry.variants.filter((v) => v.suffix !== normalSuffix);
 }
 
-function rarityOf(entry: SetEntry): string {
-  return entry.variants[0]?.rarity?.toUpperCase() || '—';
-}
+const rarityOf = baseRarityOf;
 
 export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
   const t = useT();

@@ -159,19 +159,30 @@ export function summarizeSet(setCode: string): SetSummary {
   return { code: setCode, entries, cards: entries.map((e) => e.card), total, owned, pct };
 }
 
+/** Rareza "real" de una carta dentro de un set: la de su impresion base
+ *  (suffix ''), sin importar si lo unico impreso EN ESTE set concreto es un
+ *  parallel (p.ej. una reimpresion TR de una carta cuya base es R/UC/SR en
+ *  otro set). TR es siempre un acabado parallel, nunca una rareza propia, asi
+ *  que nunca debe abrir su propio bucket de completitud. */
+export function baseRarityOf(entry: SetEntry): string {
+  const base = entry.card.variants.find((v) => v.suffix === '');
+  if (base?.rarity) return base.rarity.toUpperCase();
+  return entry.variants[0]?.rarity?.toUpperCase() || '—';
+}
+
 /** Desglose por rareza dentro de un set. */
 export function rarityBuckets(setCode: string): RarityBucket[] {
   const entries = setEntries(setCode);
   const map = new Map<string, RarityBucket>();
   for (const e of entries) {
-    const r = e.variants[0]?.rarity?.toUpperCase() || '—';
+    const r = baseRarityOf(e);
     const b = map.get(r) ?? { rarity: r, total: 0, owned: 0 };
     b.total += 1;
     if (isEntryComplete(e)) b.owned += 1;
     map.set(r, b);
   }
-  // Orden canonico de rarezas OPTCG
-  const order = ['L', 'SEC', 'SR', 'SP', 'TR', 'R', 'UC', 'C', 'P'];
+  // Orden canonico de rarezas OPTCG (TR no es una rareza propia, ver baseRarityOf)
+  const order = ['L', 'SEC', 'SR', 'SP', 'R', 'UC', 'C', 'P'];
   return [...map.values()].sort((a, b) => {
     const ia = order.indexOf(a.rarity);
     const ib = order.indexOf(b.rarity);

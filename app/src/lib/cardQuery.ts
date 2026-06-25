@@ -9,6 +9,7 @@ import type { Card } from '../types';
 import { RARITY_ORDER } from '../theme';
 import { setPrefix } from './filters';
 import { getOwnedFor } from './ownedAggregate';
+import { SET_META } from '../data/loadIndex';
 
 export type SortKey = 'rarity' | 'cost' | 'power' | 'owned' | 'code' | 'set';
 export type SortState = { key: SortKey; dir: 'asc' | 'desc' };
@@ -33,9 +34,13 @@ function comparatorFor(key: SortKey): (a: Card, b: Card) => number {
     case 'owned':
       return (a, b) => getOwnedFor(a.code) - getOwnedFor(b.code);
     case 'set':
+      // Por fecha de lanzamiento real del set (release_order: 0 = más reciente),
+      // no por orden alfabético del código — así "asc" deja lo más reciente
+      // primero, que es como la gente espera ver sus sets más nuevos.
       return (a, b) => {
-        const sp = setPrefix(a.code).localeCompare(setPrefix(b.code), undefined, { numeric: true });
-        return sp !== 0 ? sp : byCode(a, b);
+        const ra = SET_META[setPrefix(a.code)]?.release_order ?? 9999;
+        const rb = SET_META[setPrefix(b.code)]?.release_order ?? 9999;
+        return ra !== rb ? ra - rb : byCode(a, b);
       };
     case 'code':
     default:

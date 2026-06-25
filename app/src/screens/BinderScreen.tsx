@@ -517,7 +517,7 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
                 accessibilityLabel={t('bulk.select')}
                 accessibilityState={{ selected: selectMode }}
               >
-                <Icon name={selectMode ? 'close' : 'check'} size={15} color={selectMode ? colors.accent : colors.textMut} />
+                <Icon name={selectMode ? 'close' : 'checkSquare'} size={15} color={selectMode ? colors.accent : colors.textMut} />
               </Pressable>
               <ColumnsToggle />
               {tab === 'owned' && (

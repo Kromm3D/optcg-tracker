@@ -3,7 +3,7 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-06-25 (SetBanner mv.webp art + real alpha mask + Full-HD fix, 26-set box-art coverage)
+**Last updated:** 2026-06-25 (TR-rarity bucket fix, sort-by-set = release date, bulk-mode UX, Decks banner restyle)
 **Current branch:** `main`
 **App version:** 0.1.0 (pre-release)
 
@@ -11,7 +11,7 @@
 
 ## Current uncommitted state (read before committing)
 
-The working tree has a large set of **uncommitted** changes that span two themes.
+The working tree has a large set of **uncommitted** changes that span several themes.
 Typecheck is **green** (`npm run typecheck` clean as of this refresh). Nothing is
 committed yet — review before staging.
 
@@ -25,11 +25,241 @@ committed yet — review before staging.
    `scripts/scrape_browser_console.js` + `scripts/import_browser_prices.py`
    (manual DevTools-console fallback for when Cloudflare blocks the scraper),
    `data/prices.json` + `app/src/data/prices.json`.
+3. **Vault value over time (new feature)** — see the dated entry below. New
+   files: `app/src/lib/valueHistory.ts`, `app/src/components/Sparkline.tsx`,
+   `app/src/components/VaultValueCard.tsx`. Edited: `HomeScreen.tsx`,
+   `settings.ts`, `i18n/{en,es}.ts`.
+4. **Sets screen restyle (new feature)** — see the dated entry below. New file:
+   `app/src/components/SetRow.tsx`. Edited: `SetsScreen.tsx`, `SetBanner.tsx`.
+5. **Set name/date data bug fix** — see the dated entry below. Edited:
+   `lib/setMeta.ts` only.
+6. **TR-rarity fix, sort-by-set, bulk-mode UX, Decks banner restyle** — see the
+   dated entry below. New file: `app/src/components/DeckRow.tsx`. Edited:
+   `lib/setsStats.ts`, `theme.ts`, `components/SetWishlistSheet.tsx`,
+   `lib/cardQuery.ts`, `components/Icon.tsx`, `screens/BrowseScreen.tsx`,
+   `screens/BinderScreen.tsx`, `screens/DecksScreen.tsx`.
 
 **Housekeeping:** `venv_optcg/` and `data/browser_dump.json` are now gitignored —
 do not stage them. **Follow-ups still pending** from the scanner removal: run
 `npm install` in `app/` to prune dropped packages from the lockfile, then
 `npx expo prebuild --clean` before the next native build.
+
+---
+
+### Vault value over time — Home module (2026-06-25, typecheck-green, web-verified, NOT yet device-reviewed)
+pkmn.gg-inspired feature (its most-loved trait is "watch your collection value
+change over time"). Shaped via `/impeccable shape` (brief confirmed) then built
+with `/impeccable craft`. Turns the static vault number into a trend module on
+Home. **Value is private** (a deliberate decision tied to the planned friends
+feature — friends will see binders, not vault value; see memory
+`friends-social-plan`).
+- **`lib/valueHistory.ts` (NEW)** — store for daily value snapshots. Key
+  `optcg.valueHistory.v1`, shape `{ schemaVersion:1, points:{date,value}[],
+  updatedAt }`. Same cache+listeners+`subscribe()` pattern as `collection.ts`.
+  `recordDailySnapshot(value)` is idempotent per local day (latest value of the
+  day wins, no-ops if unchanged), caps at 365 points. `getDelta(current, days)`
+  picks the reference point ≤ (today−days), falling back to the oldest point
+  (`full:false`) and returning `null` when only today's point exists (→ first-run
+  state). `getDisplaySeries()` swaps the last point for the live current value.
+  **LOCAL-ONLY but sync-ready by shape** (serializable + `updatedAt`); deliberately
+  NOT wired into `syncBus`/`SyncDomain` (value stays private, per the decision).
+- **`components/Sparkline.tsx` (NEW)** — reusable react-native-svg sparkline:
+  area gradient + line + end dot. Stroke "draws" on mount via animated
+  `strokeDashoffset` (420ms ease-out-cubic), **guarded by
+  `AccessibilityInfo.isReduceMotionEnabled()`**. Renders nothing for <2 points.
+- **`components/VaultValueCard.tsx` (NEW)** — the Home module. Pink value
+  (`accent` = "value", consistent with prior reskin), green/red delta badge using
+  the `up`/`down` tokens (their 2nd home after Detail), 7D/30D/All toggle
+  (underline-on-active pink per DESIGN nav rule, persisted in settings). Passive
+  capture: records today's snapshot in an effect when `currentValue > 0` (the
+  `>0` guard avoids a false-zero baseline before the collection cache hydrates).
+  Caption logic: `past 7/30 days` when the window is fully covered, `since {date}`
+  for partial history (localized short date, manual month tables — no Intl
+  dependency), `all time` for All.
+- **`settings.ts`** — added `valueTimeframe: '7d'|'30d'|'all'` (default `7d`) +
+  `setValueTimeframe()`. Flows through existing `applyFromSync` spread.
+- **`HomeScreen.tsx`** — dropped the vault stat from the hero's stat row (now
+  cards/unique/%index, 3 stats) and added `<VaultValueCard>` below the hero. The
+  live `stats.vaultValue` (already computed there) feeds the card.
+- **i18n** — `home.vaultA11y`, `home.vaultPast7d/30d`, `home.vaultAllTime`,
+  `home.vaultSince`, `home.vaultTrackingStarts`, `home.tf7d/30d/All` in en+es.
+- **Verified in web preview** (375px): first-run state ("Tracking starts today"),
+  populated 7D state (delta `↑ +€3.10 · 43.7%`, drawn sparkline), partial-history
+  30D state (caption flips to `since Jun 17`), toggle interaction + underline.
+  Seeded localStorage to test the populated states, cleared after. No real console
+  errors (the `collapsable` warning is a pre-existing react-native-web/SVG quirk,
+  web-only).
+- **Caveat / first-run reality**: history starts empty, so a real user sees the
+  "Tracking starts today" state until snapshots accumulate over actual days. By
+  design.
+- **Pending user**: device review (sparkline draw animation + reduce-motion on
+  native; delta badge width with large values).
+
+---
+
+### Sets screen restyle — banner rows replace orb grid (2026-06-25, typecheck-green, web-verified, NOT yet device-reviewed)
+User-requested restyle inspired by the SetDetail header banner (key-art capsule
+with masked alpha-fade art on the right). Each set in `SetsScreen` was a small
+circular progress "orb" in a 5-per-row grid; now each set is a full-width
+banner capsule (same visual language as `SetBanner`), with the per-rarity
+completion breakdown (L/SEC/SR/R/UC/C/SP CARD…) baked *inside* the capsule
+instead of living as a separate row (as it still does today in `SetDetail` —
+noted as a likely next step: "replicate this look when inside of a set").
+- **`components/SetRow.tsx` (NEW)** — one banner per set for the Sets list.
+  Visually mirrors `SetBanner`'s masked-art-capsule technique (alpha-fade
+  gradient mask + readability scrim, art anchored right, deterministic
+  per-set fallback gradient via `fallbackToneFor` when no box art exists —
+  see `lib/setBoxArt.ts`/AGENTS' prior box-art session for the ~26/52 set
+  coverage caveat) but shorter (150px) and with a second content row: a
+  horizontally-scrollable rarity breakdown (`rarityBuckets(setCode)` from
+  `lib/setsStats.ts`), reusing the same owned/total-per-rarity display that
+  `SetDetailScreen` already renders below its banner.
+  - **Width is measured via `onLayout`, not `useWindowDimensions`.** Unlike
+    `SetBanner` (full-bleed directly under the screen root, so window width
+    minus its own margin ≈ its real width), `SetRow` is nested inside the
+    scroll's padding *and* the family card's padding — window-width-derived
+    sizing would overestimate the capsule width and miscompute the art mask's
+    `x`/width, clipping or misplacing the art. `onLayout` on the outer capsule
+    gives the true rendered width regardless of ancestor padding; the art
+    layer only renders once a non-zero width is measured.
+  - **Art ≥50% floor**: `artW = max(round(w*0.5), min(round(w*ART_FRACTION),
+    ART_MAX_W))`. The old `SetBanner` formula (`min(w*0.72, 480px)`) could
+    drop well below 50% on wide screens because the 480px absolute cap wins
+    once `w` gets large (verified: at 1920px width the old formula would have
+    given ~26% — confirmed by inspecting the rendered SVG `<image>` width in
+    the browser preview before vs. after the fix). **Applied the same floor
+    fix to `SetBanner.tsx` itself** (one-line change) so the existing
+    SetDetail header banner gets the same guarantee, even though its content
+    (rarity row merge) hasn't been touched yet.
+- **`SetsScreen.tsx`** — removed `SetOrb` (the circular-progress orb) and its
+  grid (`s.grid`/`orb*` styles); `FamilyCard` now renders a vertical stack
+  (`s.rows`) of `SetRow` instead. Family-level grouping/header (aggregate
+  progress ring, "N materialized" ghost count) is unchanged — only the
+  per-set visual changed, not the macro-tab/family taxonomy.
+- **Verified in web preview**: mobile (375px), and 1920px-wide desktop where
+  inspecting the rendered SVG confirmed the art `<image>` is exactly 50% of
+  the capsule width (927/1854px) — the floor holds at the resolution where
+  the bug would have been worst. Also checked a set with no box art (PRB01)
+  to confirm the deterministic fallback-gradient panel still respects the
+  same floor/fade treatment.
+- **Pending user**: device review. **Not done in this pass** (flagged by the
+  user as a separate future step): applying the same "rarity row merged into
+  the capsule" treatment to `SetDetailScreen`'s own header banner — currently
+  it still renders `SetBanner` + a separate sibling `rarityRow` below it.
+
+---
+
+### Set name/date data corrected against official EN site (2026-06-25, typecheck-green, web-verified)
+User asked to double-check set names/release dates against
+`https://en.onepiece-cardgame.com/products/?subcategory=boosters` after
+noticing some looked wrong. Verified by crawling the live listing + 3 archived
+subcategory pages (boosters/decks/others) and cross-checking individual
+product pages directly. WebFetch's AI-summarized output was internally
+inconsistent on this page (reported the same bracket-code twice with two
+different titles/dates) — switched to raw HTML via Python `requests` +
+`BeautifulSoup` instead, which is authoritative and matches what
+`scripts/build_card_database.py`'s `set_codes_from_slug()` already anticipates.
+Only `lib/setMeta.ts` changed (`SET_NAMES`/`SET_DATES` Records) — no code
+shape changes.
+- **Names corrected**: OP03 "Mighty Enemies" → **"Pillars of Strength"**
+  (the EN release reuses a different theme name than the JP set with that
+  EN slug); OP13 "The Three Captains" → **"Carrying on His Will"**; OP14
+  "Beyond the Horizon" → **"The Azure Sea's Seven"**; OP15 "New Generation of
+  Pirates" → **"Adventure on Kami's Island"**; EB03 "Extra Booster 03" →
+  **"One Piece Heroines Edition"**; PRB02 "Premium Booster 02" → **"One Piece
+  Card the Best vol.2"**.
+- **Dates corrected/added** (DD/MM/YYYY, EN release date — the previous table
+  mixed in JP dates and was wrong for most entries past OP08): OP02 10/03/2023,
+  OP03 30/06/2023, OP04 22/09/2023, OP05 08/12/2023, OP06 15/03/2024, OP07
+  28/06/2024, OP08 13/09/2024, OP09 13/12/2024, OP10 21/03/2025, OP11
+  06/06/2025, OP12 22/08/2025, OP13 07/11/2025, OP14 16/01/2026, OP15
+  03/04/2026. Newly added (previously missing): EB03 20/02/2026, PRB01
+  08/11/2024, PRB02 03/10/2025. OP01/OP16 were already correct, unchanged.
+- **OP05 quirk**: missing from both archive listing pages (sequence jumps
+  OP04→OP06) but its own product page (`products/boosters/op05.php`) is live
+  and authoritative — used that for the date. Likely a stale pagination gap on
+  the official site, not a data-pipeline bug on our side.
+- **EB04 left undated/generic on purpose**: it isn't a standalone EN product —
+  it ships bundled into two different retail releases, "OP14-EB04" (16/01/2026)
+  and "OP15-EB04" (03/04/2026), each a distinct product page. No single
+  code/date applies; documented inline in `setMeta.ts` rather than guessing.
+- **Verified live**: re-ran the web preview, confirmed via DOM text dump that
+  Sets-list rows show the corrected OP13/OP14/OP15 names, and confirmed
+  SetDetail's banner for OP13 shows both the corrected name *and* date
+  ("Carrying on His Will" / "07/11/2025").
+- User only asked to "double-check" — since these are primary-source-verified
+  factual corrections (not a design judgment call), applied them directly per
+  this session's Auto Mode bias toward action rather than just reporting
+  findings. Flag for the user to skim the table above in case any entry should
+  be reverted.
+- **Pending user**: review/confirm the table above. **Not done**: no commit
+  yet (Rule 3 — only after review). Scratch research files `boosters_raw.html`
+  / `op05_check.txt` (raw HTML dumps used for verification, written during this
+  session) are untracked and can be deleted — not part of the app.
+
+---
+
+### TR-rarity fix, sort-by-set, bulk-mode UX, Decks banner restyle (2026-06-25, typecheck-green, web-verified)
+Four independent user-reported fixes, actioned directly (Auto Mode — concrete,
+unambiguous corrections rather than design judgment calls).
+
+- **TR is not a standalone rarity** — it's always a "treasure rare" *parallel*
+  finish of a card whose real rarity is one of the canonical six (L/SEC/SR/R/
+  UC/C). The completion-bucket logic in `lib/setsStats.ts` was bucketing by
+  `entry.variants[0]?.rarity` — but `entry.variants` is filtered to *only the
+  variants printed in that one set*, so a card whose sole printing in a given
+  set happens to be a TR parallel reprint got misclassified into its own "TR"
+  bucket instead of its true base rarity. Fixed via new exported helper
+  `baseRarityOf(entry)` (looks up the *base* print, `suffix === ''`, off
+  `entry.card.variants` — the full cross-set list — falling back to
+  `entry.variants[0]` only if no base variant exists). Removed `'TR'` from the
+  canonical rarity `order` arrays in `setsStats.ts` and `theme.ts`
+  (`RARITY_ORDER`/`HOT_RARITIES`). `components/SetWishlistSheet.tsx` had the
+  same in-set-only bug in its own local `rarityOf()` — replaced with
+  `baseRarityOf` from `setsStats.ts`. **Deliberately left untouched**:
+  `lib/prices.ts`, `lib/filters.ts`, `components/CardThumb.tsx` — TR is a
+  legitimate per-*variant* attribute there (pricing/holo styling/art
+  selection), not a completion-bucket bug.
+- **Sort-by-set now sorts by release chronology, not set-code string.**
+  `lib/cardQuery.ts`'s `'set'` comparator used `localeCompare` on the set
+  prefix string. Replaced with `SET_META[setPrefix(code)].release_order`
+  (0 = most recent, already used by `setsStats.ts`'s `listSetCodes()`) so
+  ascending sort surfaces the newest products first, matching user
+  expectation.
+- **Bulk-mode UX**: the bulk-select toggle button's icon changed from a plain
+  checkmark to a checkbox-with-check (`checkSquare`, new path in `Icon.tsx`) —
+  more recognizable as "enter multi-select" at a glance. Applied in both
+  `BrowseScreen.tsx` and `BinderScreen.tsx`. Added long-press-to-enter-bulk-mode
+  on `BrowseScreen`'s card grid (`handleLongPressCard`, mirrors the pattern
+  `BinderScreen` already had) — wired into `CardThumb`'s `onLongPress`.
+- **Decks tab restyle**: each deck row now uses the same masked-key-art-capsule
+  banner treatment as `SetBanner`/`SetRow`, with the deck's **leader card art**
+  as the masked image instead of set key art. New `components/DeckRow.tsx`:
+  measures width via `onLayout` (same nested-padding reasoning as `SetRow`),
+  uses `preserveAspectRatio="xMidYMid slice"` (center-focused — a leader's face
+  is usually centered, unlike a set's top-anchored key art). `DecksScreen.tsx`
+  now renders `<DeckRow>` per item; removed the old `DeckThumb` component and
+  `leaderImageUri` helper (logic moved into `DeckRow.tsx`).
+  - **Found and fixed a real RN-web bug while building this**: nesting the
+    row's dots-menu `Pressable` *inside* the row's own pressable capsule
+    produced two nested `<button>` elements on web (`Pressable` with
+    `accessibilityRole="button"` renders as `<button>` on web), which is
+    invalid HTML and threw React DOM hydration errors. Fixed by making the
+    menu button a structural **sibling** of the row's press-surface
+    `Touchable`, not its child — both live directly under the capsule `View`,
+    with the menu button absolutely positioned and rendered after (so it
+    wins touch priority where they'd overlap). Gave the menu button a
+    translucent dark circular backdrop (`rgba(19,16,25,0.55)`, same token
+    `SetBanner`'s back button already uses) since the bare icon was nearly
+    invisible against busy leader art. Verified in web preview: zero nested
+    `<button>` elements in the live DOM, menu button opens the delete-confirm
+    modal correctly.
+- **Verified**: `npm run typecheck` clean; web preview — Decks tab renders the
+  new banner capsule with the leader art and legible menu button, menu press
+  opens delete confirmation, sort-by-set and bulk-mode changes confirmed by
+  code review (release-order comparator, checkSquare icon + long-press wiring).
+- **Pending user**: device review (TR-rarity bucket counts on a real set with
+  TR reprints; bulk-mode long-press feel; Decks banner on native).
 
 ---
 

@@ -64,13 +64,15 @@ export const fonts = {
   uiBold: 'Manrope_700Bold',
 };
 
-/** Lista de rarezas OPTCG canónicas y orden de "fuerza". */
+/** Lista de rarezas OPTCG canónicas y orden de "fuerza". TR no aparece aquí:
+ *  es siempre el acabado parallel de una carta cuya rareza real ya es una de
+ *  estas seis (ver normalRarityFor en cardDisplay.ts). */
 export const RARITY_ORDER: Record<string, number> = {
-  C: 1, UC: 2, R: 3, SR: 4, SEC: 5, L: 6, P: 5, SP: 5, TR: 6,
+  C: 1, UC: 2, R: 3, SR: 4, SEC: 5, L: 6, P: 5, SP: 5,
 };
 
 /** Si la rareza es "hot" (SR/L/SEC), se pinta con fondo accent. */
-export const HOT_RARITIES = new Set(['SR', 'L', 'SEC', 'SP', 'TR']);
+export const HOT_RARITIES = new Set(['SR', 'L', 'SEC', 'SP']);
 
 export const radii = {
   sm: 6,

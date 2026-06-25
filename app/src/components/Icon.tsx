@@ -26,6 +26,8 @@ const ICON_PATHS: Record<string, string> = {
   scan:    'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',
   cart:    'M3 4h2l2.4 12.4a1 1 0 0 0 1 .6h8.2a1 1 0 0 0 1-.8L20 8H6M9 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM17 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z',
   check:   'M5 12.5 10 17.5 19.5 7',
+  // Casilla con check dentro: entrar en modo selección múltiple/bulk.
+  checkSquare: 'M9 12l2 2 4-4M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z',
   dots:    'M5 12h.01M12 12h.01M19 12h.01',
   user:    'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM5 21a7 7 0 0 1 14 0',
   bell:    'M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6ZM10 21h4',

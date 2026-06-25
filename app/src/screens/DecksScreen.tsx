@@ -11,13 +11,11 @@ import {
   View,
 } from 'react-native';
 import type { DecksScreenProps } from '../navigation';
-import { colors, fonts, radii, spacing, pressedStyle, pressedSurface, HIT_SLOP } from '../theme';
+import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
 import { AppModal } from '../components/AppModal';
 import { Button } from '../components/Button';
-import { CachedImage } from '../components/CachedImage';
-import { CARDS } from '../data/loadIndex';
-import { resolveImageUris } from '../lib/images';
+import { DeckRow } from '../components/DeckRow';
 import {
   listDecks,
   createDeck,
@@ -29,38 +27,6 @@ import {
 } from '../lib/decks';
 import { parseOptcgSim, defaultDeckName } from '../lib/optcgsim';
 import { useT } from '../lib/i18n';
-
-/** Small card-art thumbnail for the deck row. Shows leader art or fallback icon. */
-function DeckThumb({ deck }: { deck: Deck }) {
-  const img = leaderImageUri(deck);
-  if (img) {
-    return (
-      <View style={s.deckThumb}>
-        <CachedImage uri={img.uri} fallbackUri={img.fallback} style={s.deckThumbImg} />
-      </View>
-    );
-  }
-  return (
-    <View style={s.deckIcon}>
-      <Icon name="binder" size={22} color={colors.accent} />
-    </View>
-  );
-}
-
-/** Returns the image URI for the first Leader card in the deck, or null. */
-function leaderImageUri(deck: Deck): { uri: string; fallback: string } | null {
-  // Prefer explicit leaderId, then first card with type Leader
-  const leaderCode =
-    deck.leaderId ??
-    deck.cards.find((dc) => CARDS[dc.code]?.type === 'Leader')?.code;
-  if (!leaderCode) return null;
-  const card = CARDS[leaderCode];
-  if (!card) return null;
-  const v = card.variants[0];
-  if (!v) return null;
-  const { uri, fallback } = resolveImageUris(v);
-  return { uri, fallback: fallback ?? '' };
-}
 
 export function DecksScreen({ navigation }: DecksScreenProps) {
   const t = useT();
@@ -161,30 +127,13 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
             </View>
           }
           renderItem={({ item }) => (
-            <Pressable
-              style={({ pressed }) => [s.deckRow, pressed && pressedSurface]}
+            <DeckRow
+              deck={item}
+              subtitle={`${item.cards.length} ${t('decks.slots')} · ${deckTotal(item)} ${t('decks.cards')}`}
               onPress={() => navigation.navigate('DeckDetail', { deckId: item.id })}
               onLongPress={() => setDeckToDelete(item)}
-              accessibilityRole="button"
-              accessibilityLabel={item.name}
-            >
-              <DeckThumb deck={item} />
-              <View style={{ flex: 1 }}>
-                <Text style={s.deckName}>{item.name}</Text>
-                <Text style={s.deckMeta}>
-                  {item.cards.length} {t('decks.slots')} · {deckTotal(item)} {t('decks.cards')}
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => setDeckToDelete(item)}
-                hitSlop={HIT_SLOP}
-                accessibilityRole="button"
-                accessibilityLabel={t('decks.deleteTitle')}
-                style={({ pressed }) => [s.rowMenuBtn, pressed && pressedStyle]}
-              >
-                <Icon name="dots" size={20} color={colors.textMut} />
-              </Pressable>
-            </Pressable>
+              onMenuPress={() => setDeckToDelete(item)}
+            />
           )}
           ItemSeparatorComponent={() => <View style={s.sep} />}
         />
@@ -256,37 +205,6 @@ const s = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   newRowText: { fontSize: 15, fontFamily: fonts.uiSemi, color: colors.accent },
-
-  deckRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: colors.surface,
-    borderRadius: radii.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  deckThumb: {
-    width: 44,
-    height: 62,
-    borderRadius: radii.md,
-    overflow: 'hidden',
-    backgroundColor: colors.surface2,
-  },
-  deckThumbImg: { width: '100%', height: '100%' },
-  deckIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.md,
-    backgroundColor: colors.accentDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deckName: { fontSize: 16, fontFamily: fonts.uiBold, color: colors.text },
-  deckMeta: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut, marginTop: 2 },
-  rowMenuBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
 
   sep: { height: spacing.sm },
 

@@ -61,6 +61,12 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
       return next;
     }), []);
   const clearSel = () => { setSelected({}); setSelectMode(false); };
+  // Mantener pulsada una carta entra directamente en modo selección (igual que
+  // en BinderScreen), sin tener que tocar el botón de la cabecera primero.
+  const handleLongPressCard = useCallback((key: string, code: string, suffix: string) => {
+    setSelectMode(true);
+    toggleSel(key, code, suffix);
+  }, [toggleSel]);
 
   // No nos suscribimos a cambios de cantidad: cada CardThumb (modo live) se
   // actualiza solo, así editar una copia no re-renderiza todo el grid.
@@ -117,10 +123,11 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
             ? toggleSel(item.key, item.card.code, item.variant.suffix)
             : navigation.navigate('Detail', { code: item.card.code, suffix: item.variant?.suffix })
         }
+        onLongPress={() => handleLongPressCard(item.key, item.card.code, item.variant?.suffix ?? '')}
         width={cardWidth}
       />
     );
-  }, [showAlt, columns, cardWidth, selectMode, selected, navigation, toggleSel]);
+  }, [showAlt, columns, cardWidth, selectMode, selected, navigation, toggleSel, handleLongPressCard]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -170,7 +177,7 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
           accessibilityState={{ selected: selectMode }}
           style={({ pressed }) => [s.filterBtn, selectMode && s.filterBtnOn, pressed && pressedStyle]}
         >
-          <Icon name={selectMode ? 'close' : 'check'} size={18} color={selectMode ? colors.accent : colors.text} />
+          <Icon name={selectMode ? 'close' : 'checkSquare'} size={18} color={selectMode ? colors.accent : colors.text} />
         </Pressable>
       </View>
 
