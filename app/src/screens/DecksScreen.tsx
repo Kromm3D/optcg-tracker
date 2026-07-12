@@ -233,7 +233,7 @@ const s = StyleSheet.create({
     borderRadius: radii.xl,
     backgroundColor: colors.accent,
   },
-  createBtnText: { fontSize: 15, fontFamily: fonts.uiBold, color: '#fff' },
+  createBtnText: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.onAccent },
   importBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -251,7 +251,7 @@ const s = StyleSheet.create({
   // Modal
   modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(14,12,26,0.85)',
+    backgroundColor: 'rgba(21,22,26,0.85)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -297,5 +297,5 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalConfirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: '#fff' },
+  modalConfirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.onAccent },
 });

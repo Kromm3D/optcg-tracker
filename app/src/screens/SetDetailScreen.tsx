@@ -21,12 +21,16 @@ import { SetBanner } from '../components/SetBanner';
 import { summarizeSet, rarityBuckets, setEntries } from '../lib/setsStats';
 import { setNameFor, setDateFor } from '../lib/setMeta';
 import { getVariantOwned, subscribe as subOwned } from '../lib/ownedAggregate';
+import { getPrice } from '../lib/prices';
+import { getPriceChangePct } from '../lib/priceHistory';
+import { adjust } from '../lib/collection';
 import { getSettings, setShowAlternateArt, subscribe as subSettings } from '../lib/settings';
 import { useCardGrid } from '../lib/useCardGrid';
 import { expandSetEntries, type DisplayEntry } from '../lib/cardDisplay';
 import { BulkActionBar, type BulkTarget } from '../components/BulkActionBar';
 import { BulkTargetSheet, type BulkSelection } from '../components/BulkTargetSheet';
-import { SetWishlistSheet } from '../components/SetWishlistSheet';
+import { SetBulkAddSheet } from '../components/SetBulkAddSheet';
+import { smartGoBack } from '../lib/nav';
 import { useT } from '../lib/i18n';
 import type { Card, Variant } from '../types';
 
@@ -94,7 +98,11 @@ const SetGridCard = React.memo(function SetGridCard({
       multiArt={multiArt}
       selected={selectMode && selected}
       compact={compact}
-      quickActions={!selectMode}
+      framed
+      price={getPrice(card, variant?.suffix ?? '')}
+      priceChange={getPriceChangePct(card.code, variant?.suffix ?? '')}
+      onAdd={selectMode ? undefined : () => adjust(card.code, variant?.suffix ?? '', +1)}
+      onRemove={selectMode ? undefined : () => adjust(card.code, variant?.suffix ?? '', -1)}
       onPress={() => onPress(card, variant, itemKey)}
       width={cardWidth}
     />
@@ -109,7 +117,8 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
   // +/- no re-renderiza toda la cuadrícula.
   const [headerTick, setHeaderTick] = useState(0);
   const [columns, setColumnsState] = useState(getSettings().columns);
-  const { cardWidth, gap, hPadding } = useCardGrid(columns);
+  // Mismo grid apretado que Browse (las pastillas framed separan las cartas).
+  const { cardWidth, gap, hPadding } = useCardGrid(columns, { gap: 8, hPadding: 18 });
   const insets = useSafeAreaInsets();
 
   // Multi-select / bulk actions
@@ -176,32 +185,20 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
           owned={summary.owned}
           total={summary.total}
           pct={summary.pct}
-          onBack={() => navigation.goBack()}
+          onBack={() => smartGoBack(navigation)}
+          rarities={rarities}
         />
       </View>
 
-      {/* Contadores por rareza */}
-      <View style={s.progressRow}>
+      {/* Controles del grid */}
+      {/* Card count vive arriba en el SetBanner (owned/total) — no se repite aquí. */}
+      <View style={s.gridControls}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.rarityRow}
+          style={s.ctrlScroll}
+          contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
         >
-          {rarities.map((b) => (
-            <View key={b.rarity} style={s.rarityCol}>
-              <Text style={s.rarityVal}>
-                {b.owned}/{b.total}
-              </Text>
-              <Text style={s.rarityLab}>{b.rarity}</Text>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Controles del grid */}
-      <View style={s.gridControls}>
-        <Text style={s.gridMeta}>{t('set.cardsCount', { n: summary.cards.length })}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Pressable
             style={({ pressed }) => [s.ctrlChip, showAlt && s.ctrlChipOn, pressed && pressedStyle]}
             onPress={() => setShowAlternateArt(!showAlt)}
@@ -209,31 +206,36 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
             accessibilityLabel={t('set.parallels')}
             accessibilityState={{ selected: showAlt }}
           >
+            <Icon name="sparkle" size={12} color={showAlt ? colors.accent : colors.textDim} />
             <Text style={[s.ctrlChipText, showAlt && s.ctrlChipTextOn]}>
               {t('set.parallels')}
             </Text>
           </Pressable>
           <Pressable
-            style={({ pressed }) => [s.ctrlBtn, showSetWL && s.ctrlBtnOn, pressed && pressedStyle]}
+            style={({ pressed }) => [s.ctrlChip, showSetWL && s.ctrlBtnOn, pressed && pressedStyle]}
             onPress={() => setShowSetWL(true)}
             hitSlop={HIT_SLOP}
             accessibilityRole="button"
             accessibilityLabel={t('setwl.addMissing')}
           >
-            <Icon name="heart" size={16} color={colors.accent} />
+            <Icon name="heart" size={13} color={colors.accent} />
+            <Text style={s.ctrlChipText}>{t('setwl.addMissingShort')}</Text>
           </Pressable>
           <Pressable
-            style={({ pressed }) => [s.ctrlBtn, selectMode && s.ctrlBtnOn, pressed && pressedStyle]}
+            style={({ pressed }) => [s.ctrlChip, selectMode && s.ctrlBtnOn, pressed && pressedStyle]}
             onPress={() => { if (selectMode) clearSel(); else setSelectMode(true); }}
             hitSlop={HIT_SLOP}
             accessibilityRole="button"
             accessibilityLabel={t('bulk.select')}
             accessibilityState={{ selected: selectMode }}
           >
-            <Icon name={selectMode ? 'close' : 'check'} size={16} color={selectMode ? colors.accent : colors.textMut} />
+            <Icon name={selectMode ? 'close' : 'checkSquare'} size={13} color={selectMode ? colors.accent : colors.textMut} />
+            <Text style={[s.ctrlChipText, selectMode && s.ctrlChipTextOn]}>
+              {selectMode ? t('common.done') : t('bulk.select')}
+            </Text>
           </Pressable>
           <ColumnsToggle />
-        </View>
+        </ScrollView>
       </View>
 
       {/* Grid con quickActions (o selección) */}
@@ -244,7 +246,7 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
         numColumns={columns}
         extraData={extraData}
         columnWrapperStyle={{ gap, paddingHorizontal: hPadding }}
-        contentContainerStyle={{ paddingTop: 4, paddingBottom: selectMode ? 180 : 30, gap: gap + 6 }}
+        contentContainerStyle={{ paddingTop: 4, paddingBottom: selectMode ? 180 : 110, gap }}
         initialNumToRender={15}
         maxToRenderPerBatch={12}
         windowSize={5}
@@ -264,7 +266,7 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
         onDone={() => { setBulkTarget(null); clearSel(); }}
       />
 
-      <SetWishlistSheet
+      <SetBulkAddSheet
         visible={showSetWL}
         setCode={setCode}
         onClose={() => setShowSetWL(false)}
@@ -274,34 +276,18 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
 }
 
 const s = StyleSheet.create({
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
-    gap: 12,
-  },
-  rarityRow: { alignItems: 'center', gap: 18, paddingHorizontal: 4 },
-  rarityCol: { alignItems: 'center', minWidth: 36 },
-  rarityVal: { fontSize: 15, fontFamily: fonts.display, color: colors.text },
-  rarityLab: { fontSize: 11, fontFamily: fonts.uiSemi, color: colors.textMut, marginTop: 3 },
   gridControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 10,
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
-  gridMeta: { color: colors.textMut, fontFamily: fonts.ui, fontSize: 13 },
-  ctrlBtn: {
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  ctrlScroll: { flex: 1 },
   ctrlBtnOn: { borderColor: colors.accent, backgroundColor: colors.accentDim },
   ctrlChip: {
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
     backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border,
   },
   ctrlChipOn: { backgroundColor: colors.accentDim, borderColor: colors.accent },

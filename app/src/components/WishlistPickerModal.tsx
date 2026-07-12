@@ -142,7 +142,7 @@ export function WishlistPickerModal({ visible, onClose, onSelect }: Props) {
 const s = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(14,12,26,0.75)',
+    backgroundColor: 'rgba(21,22,26,0.75)',
     justifyContent: 'flex-end',
   },
   sheet: {

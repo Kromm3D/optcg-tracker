@@ -5,10 +5,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SettingsScreenProps } from '../navigation';
-import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
+import { smartGoBack } from '../lib/nav';
+import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP, themeMode } from '../theme';
 import { Icon } from '../components/Icon';
 import { Counter } from '../components/Counter';
+import { useToast } from '../components/Toast';
 import { useT } from '../lib/i18n';
+import { getStoredThemeMode, setThemeMode, type ThemeMode } from '../lib/themeMode';
 import {
   getSettings,
   setColumns,
@@ -31,9 +34,23 @@ import {
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const t = useT();
   const insets = useSafeAreaInsets();
+  const toast = useToast();
   const [, force] = useState(0);
   useEffect(() => subSettings(() => force((n) => n + 1)), []);
   const settings = getSettings();
+
+  // El tema activo (themeMode, de theme.ts) ya quedó fijado al arrancar — ver
+  // lib/themeMode.ts. `pendingMode` es la preferencia GUARDADA, que puede
+  // diferir de la activa si el usuario cambió de forma y aún no reinició.
+  const [pendingMode, setPendingMode] = useState<ThemeMode>(themeMode);
+  useEffect(() => { getStoredThemeMode().then(setPendingMode); }, []);
+
+  const handlePickThemeMode = async (mode: ThemeMode) => {
+    if (mode === pendingMode) return;
+    setPendingMode(mode);
+    await setThemeMode(mode);
+    toast({ message: t('settings.themeRestartNotice') });
+  };
 
   const [dlProgress, setDlProgress] = useState<PrefetchProgress | null>(null);
   const cancelRef = useRef<PrefetchCancel>({ cancelled: false });
@@ -60,7 +77,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
         <Pressable
-          onPress={() => navigation.goBack()}
+          onPress={() => smartGoBack(navigation)}
           hitSlop={HIT_SLOP}
           accessibilityRole="button"
           accessibilityLabel={t('common.done')}
@@ -83,6 +100,32 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           <Text style={s.accountRowText}>{t('account.openSettings')}</Text>
           <Icon name="chevR" size={18} color={colors.textMut} />
         </Pressable>
+
+        {/* Zeus's form — light/dark theme */}
+        <Text style={s.sectionLabel}>{t('settings.appearance')}</Text>
+        <Text style={s.desc}>{t('settings.appearanceDesc')}</Text>
+        <View style={s.row}>
+          {(['dark', 'light'] as ThemeMode[]).map((mode) => {
+            const on = pendingMode === mode;
+            const label = mode === 'dark' ? t('settings.thundercloud') : t('settings.regularForm');
+            return (
+              <Pressable
+                key={mode}
+                style={({ pressed }) => [s.chip, s.chipWithIcon, on && s.chipOn, pressed && pressedStyle]}
+                onPress={() => handlePickThemeMode(mode)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={label}
+              >
+                <Icon name="cloud" size={14} color={on ? colors.accent : colors.textMut} />
+                <Text style={[s.chipText, on && s.chipTextOn]}>{label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {pendingMode !== themeMode ? (
+          <Text style={s.desc}>{t('settings.themeRestartNotice')}</Text>
+        ) : null}
 
         {/* Language */}
         <Text style={s.sectionLabel}>{t('settings.language')}</Text>
@@ -259,7 +302,7 @@ const s = StyleSheet.create({
   },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 26, fontFamily: fonts.display, color: colors.text, letterSpacing: -0.4 },
-  scroll: { padding: spacing.lg, gap: 10, paddingBottom: 60 },
+  scroll: { padding: spacing.lg, gap: 10, paddingBottom: 110 },
   sectionLabel: {
     fontSize: 12,
     fontFamily: fonts.uiSemi,
@@ -279,6 +322,7 @@ const s = StyleSheet.create({
     borderColor: colors.border,
   },
   chipOn: { backgroundColor: colors.accentDim, borderColor: colors.accent },
+  chipWithIcon: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   chipText: { fontSize: 14, fontFamily: fonts.uiSemi, color: colors.textMut },
   chipTextOn: { color: colors.accent },
   toggle: {
@@ -329,7 +373,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.accent,
     alignSelf: 'flex-start',
   },
-  btnPrimaryText: { fontSize: 14, fontFamily: fonts.uiSemi, color: '#fff' },
+  btnPrimaryText: { fontSize: 14, fontFamily: fonts.uiSemi, color: colors.onAccent },
   btnOutline: {
     paddingHorizontal: 16,
     paddingVertical: 9,

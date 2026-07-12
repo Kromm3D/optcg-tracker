@@ -28,6 +28,7 @@ Thumbs.db
 # Claude
 .claude/
 .impeccable/
+.playwright-mcp/
 
 # Debug/test artifacts from scripts (hash visualizations, scratch dumps)
 scripts/output/

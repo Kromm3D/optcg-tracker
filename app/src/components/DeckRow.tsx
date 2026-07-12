@@ -10,7 +10,7 @@ import { Touchable } from './Touchable';
 import { Icon } from './Icon';
 import { CARDS } from '../data/loadIndex';
 import { resolveImageUris } from '../lib/images';
-import { colors, fonts, radii, HIT_SLOP, pressedStyle } from '../theme';
+import { colors, fonts, radii, HIT_SLOP, pressedStyle, onScrim } from '../theme';
 import type { Deck } from '../lib/decks';
 
 type Props = {
@@ -106,7 +106,7 @@ export function DeckRow({ deck, subtitle, onPress, onLongPress, onMenuPress }: P
         accessibilityRole="button"
         style={({ pressed }) => [s.menuBtn, pressed && pressedStyle]}
       >
-        <Icon name="dots" size={20} color={colors.text} />
+        <Icon name="dots" size={20} color={onScrim} />
       </Pressable>
     </View>
   );
@@ -138,7 +138,7 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(19,16,25,0.55)',
+    backgroundColor: 'rgba(21,22,26,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,

@@ -8,6 +8,7 @@ export const en = {
   'tab.binder': 'Binder',
   'tab.decks': 'Decks',
   'tab.scan': 'Scan',
+  'tab.profile': 'Profile',
 
   // Home
   'home.collection': 'Collection',
@@ -186,6 +187,11 @@ export const en = {
 
   // Settings
   'settings.title': 'Settings',
+  'settings.appearance': 'Theme',
+  'settings.appearanceDesc': "Pick the mood the app's look is based on.",
+  'settings.regularForm': 'Ghost Day',
+  'settings.thundercloud': 'Hollow Night',
+  'settings.themeRestartNotice': 'Saved — restart the app to see the new look.',
   'settings.language': 'Language',
   'settings.english': 'English',
   'settings.spanish': 'Español',
@@ -214,10 +220,14 @@ export const en = {
   'bulk.added': 'Added {n} cards to {target}.',
   'bulk.chooseIndividually': 'Choose individually',
 
-  // Set-level bulk wishlist
-  'setwl.addMissing': 'Add missing to wishlist',
+  // Set-level bulk add (wishlist or collection)
+  'setwl.addMissing': 'Add missing cards',
+  'setwl.addMissingShort': 'Missing',
   'setwl.title': 'Add missing cards',
   'setwl.missingCount': '{n} missing cards in this set',
+  'setwl.destination': 'Add to',
+  'setwl.destWishlist': 'Wishlist',
+  'setwl.destCollection': 'My collection',
   'setwl.printing': 'Printing',
   'setwl.normal': 'Normal',
   'setwl.parallel': 'Parallel',
@@ -225,11 +235,15 @@ export const en = {
   'setwl.perRarity': 'Copies per rarity',
   'setwl.none': 'Nothing missing — you own them all!',
   'setwl.added': 'Added {n} entries to the wishlist.',
+  'setwl.addedToCollection': 'Added {n} entries to your collection.',
 
   // Browse
   'browse.searchPlaceholder': 'yellow luffy, red OP01-001…',
   'browse.cardsCount': '{n} cards',
   'browse.parallels': 'Parallels',
+
+  // Card tile
+  'card.quantity': 'Quantity: {n}',
 
   // Card detail
   'detail.cost': 'Cost',
@@ -289,10 +303,22 @@ export const en = {
   'common.loading': 'Loading…',
   'common.loadingDb': 'Syncing the card database, just a moment…',
   'common.delete': 'Delete',
+  'common.columns': 'Columns',
 
   // Decks (delete)
   'decks.deleteTitle': 'Delete deck',
   'decks.deleteConfirm': 'Delete "{name}"? This cannot be undone.',
+
+  // Profile (tab hub)
+  'profile.title': 'Profile',
+  'profile.guest': 'Guest',
+  'profile.guestDesc': 'Sign in to back up and sync your collection.',
+  'profile.account': 'Account & sync',
+  'profile.accountDesc': 'Sign in, cloud backup and privacy',
+  'profile.friends': 'Friends',
+  'profile.friendsDesc': 'Find players and view their binders',
+  'profile.settings': 'Settings',
+  'profile.settingsDesc': 'Theme, language and app options',
 
   // Account / cloud sync
   'account.title': 'Account',

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { WishlistDetailScreenProps } from '../navigation';
+import { smartGoBack } from '../lib/nav';
 import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
 import { DeckCardPile } from '../components/DeckCardPile';
@@ -126,7 +127,7 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
       {/* Header */}
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
         <Pressable
-          onPress={() => navigation.goBack()}
+          onPress={() => smartGoBack(navigation)}
           hitSlop={HIT_SLOP}
           accessibilityRole="button"
           accessibilityLabel={t('common.done')}
@@ -404,7 +405,7 @@ const s = StyleSheet.create({
   addControls: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
 
   // Rename modal
-  modalBg: { flex: 1, backgroundColor: 'rgba(14,12,26,0.85)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  modalBg: { flex: 1, backgroundColor: 'rgba(21,22,26,0.85)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   modalCard: { width: '100%', backgroundColor: colors.surface, borderRadius: radii.xxl, borderWidth: 1, borderColor: colors.border, padding: 24, gap: 16 },
   modalTitle: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
   modalInput: { height: 50, borderRadius: radii.lg, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, fontSize: 16, fontFamily: fonts.ui, color: colors.text },
@@ -413,5 +414,5 @@ const s = StyleSheet.create({
   modalCancel: { flex: 1, height: 48, borderRadius: radii.lg, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
   modalCancelText: { fontSize: 15, fontFamily: fonts.uiSemi, color: colors.textMut },
   modalConfirm: { flex: 1, height: 48, borderRadius: radii.lg, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  modalConfirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: '#fff' },
+  modalConfirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.onAccent },
 });

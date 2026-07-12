@@ -1,6 +1,7 @@
-// SetWishlistSheet — add every still-missing card of a set to a wishlist.
-// The user chooses a printing (Normal / Parallel / Both), tunes the number of
-// copies per rarity (Leaders default to 1), and picks a destination wishlist.
+// SetBulkAddSheet — add every still-missing card of a set, in bulk, to either
+// a wishlist or straight into the owned collection. The user chooses a
+// destination, a printing (Normal / Parallel / Both), and tunes the number of
+// copies per rarity (Leaders default to 1).
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -16,9 +17,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radii, spacing, pressedStyle, pressedSurface } from '../theme';
 import { Icon } from './Icon';
 import { Counter } from './Counter';
+import { useToast } from './Toast';
 import { useT } from '../lib/i18n';
 import { summarizeSet, isEntryComplete, baseRarityOf, type SetEntry } from '../lib/setsStats';
 import { getSettings } from '../lib/settings';
+import { adjust as adjustCollection } from '../lib/collection';
 import {
   listWishlists,
   createWishlist,
@@ -28,6 +31,7 @@ import {
 import type { Variant, Wishlist } from '../types';
 
 type Printing = 'normal' | 'parallel' | 'both';
+type Destination = 'wishlist' | 'collection';
 
 // TR no es una rareza propia (ver baseRarityOf en setsStats.ts) — nunca
 // aparecerá como clave aquí.
@@ -52,9 +56,11 @@ function inSetParallels(entry: SetEntry): Variant[] {
 
 const rarityOf = baseRarityOf;
 
-export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
+export function SetBulkAddSheet({ visible, setCode, onClose }: Props) {
   const t = useT();
   const insets = useSafeAreaInsets();
+  const toast = useToast();
+  const [destination, setDestination] = useState<Destination>('wishlist');
   const [printing, setPrinting] = useState<Printing>('normal');
   const [qtyByRarity, setQtyByRarity] = useState<Record<string, number>>({});
   const [wishlists, setWishlists] = useState<Wishlist[]>([]);
@@ -77,6 +83,7 @@ export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
 
   useEffect(() => {
     if (!visible) return;
+    setDestination('wishlist');
     setPrinting('normal');
     setPickedId(null);
     setCreating(false);
@@ -101,7 +108,8 @@ export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
   };
 
   const apply = async () => {
-    if (!pickedId) return;
+    if (destination === 'wishlist' && !pickedId) return;
+    let entryCount = 0;
     for (const entry of missing) {
       const qty = qtyByRarity[rarityOf(entry)] ?? 0;
       if (qty <= 0) continue;
@@ -110,13 +118,23 @@ export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
       if ((printing === 'normal' || printing === 'both') && normal) variants.push(normal);
       if (printing === 'parallel' || printing === 'both') variants.push(...inSetParallels(entry));
       for (const v of variants) {
-        await addCard(pickedId, entry.card.code, v.suffix, qty);
+        if (destination === 'wishlist') {
+          await addCard(pickedId!, entry.card.code, v.suffix, qty);
+        } else {
+          await adjustCollection(entry.card.code, v.suffix, qty);
+        }
+        entryCount += 1;
       }
     }
+    toast({
+      message: t(destination === 'wishlist' ? 'setwl.added' : 'setwl.addedToCollection', { n: entryCount }),
+    });
     onClose();
   };
 
   if (!visible) return null;
+
+  const canConfirm = destination === 'collection' || !!pickedId;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -130,6 +148,32 @@ export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
             <Text style={s.empty}>{t('setwl.none')}</Text>
           ) : (
             <ScrollView contentContainerStyle={{ gap: 16 }}>
+              {/* Destination choice */}
+              <View>
+                <Text style={s.sectionLabel}>{t('setwl.destination')}</Text>
+                <View style={s.chipRow}>
+                  {([
+                    ['wishlist', t('setwl.destWishlist'), 'heart'],
+                    ['collection', t('setwl.destCollection'), 'binder'],
+                  ] as [Destination, string, string][]).map(([d, label, icon]) => {
+                    const on = destination === d;
+                    return (
+                      <Pressable
+                        key={d}
+                        style={({ pressed }) => [s.chip, s.chipWithIcon, on && s.chipOn, pressed && pressedStyle]}
+                        onPress={() => setDestination(d)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: on }}
+                        accessibilityLabel={label}
+                      >
+                        <Icon name={icon} size={14} color={on ? colors.accent : colors.textMut} />
+                        <Text style={[s.chipText, on && s.chipTextOn]}>{label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
               {/* Printing choice */}
               <View>
                 <Text style={s.sectionLabel}>{t('setwl.printing')}</Text>
@@ -172,66 +216,68 @@ export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
                 </View>
               </View>
 
-              {/* Wishlist picker */}
-              <View>
-                <Text style={s.sectionLabel}>{t('wl.pickTitle')}</Text>
-                <View style={{ gap: 8 }}>
-                  {wishlists.map((w) => (
-                    <Pressable
-                      key={w.id}
-                      style={({ pressed }) => [s.item, pickedId === w.id && s.itemOn, pressed && pressedSurface]}
-                      onPress={() => setPickedId(w.id)}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: pickedId === w.id }}
-                      accessibilityLabel={w.name}
-                    >
-                      <Icon name="heart" size={18} color={colors.accent} />
-                      <Text style={s.itemName}>{w.name}</Text>
-                    </Pressable>
-                  ))}
-                  {creating ? (
-                    <View style={s.createBox}>
-                      <TextInput
-                        style={s.nameInput}
-                        value={newName}
-                        onChangeText={setNewName}
-                        placeholder={t('wl.namePlaceholder')}
-                        placeholderTextColor={colors.textDim}
-                        autoFocus
-                        returnKeyType="done"
-                        onSubmitEditing={handleCreateWL}
-                      />
+              {/* Wishlist picker — only relevant when adding to a wishlist */}
+              {destination === 'wishlist' && (
+                <View>
+                  <Text style={s.sectionLabel}>{t('wl.pickTitle')}</Text>
+                  <View style={{ gap: 8 }}>
+                    {wishlists.map((w) => (
                       <Pressable
-                        style={({ pressed }) => [s.smallBtn, !newName.trim() && { opacity: 0.4 }, pressed && pressedStyle]}
-                        onPress={handleCreateWL}
-                        disabled={!newName.trim()}
+                        key={w.id}
+                        style={({ pressed }) => [s.item, pickedId === w.id && s.itemOn, pressed && pressedSurface]}
+                        onPress={() => setPickedId(w.id)}
                         accessibilityRole="button"
-                        accessibilityLabel={t('wl.create')}
+                        accessibilityState={{ selected: pickedId === w.id }}
+                        accessibilityLabel={w.name}
                       >
-                        <Text style={s.smallBtnText}>{t('wl.create')}</Text>
+                        <Icon name="heart" size={18} color={colors.accent} />
+                        <Text style={s.itemName}>{w.name}</Text>
                       </Pressable>
-                    </View>
-                  ) : (
-                    <Pressable
-                      style={({ pressed }) => [s.newRow, pressed && pressedStyle]}
-                      onPress={() => setCreating(true)}
-                      accessibilityRole="button"
-                      accessibilityLabel={t('wl.newWishlist')}
-                    >
-                      <Icon name="plus" size={16} color={colors.accent} />
-                      <Text style={s.newRowText}>{t('wl.newWishlist')}</Text>
-                    </Pressable>
-                  )}
+                    ))}
+                    {creating ? (
+                      <View style={s.createBox}>
+                        <TextInput
+                          style={s.nameInput}
+                          value={newName}
+                          onChangeText={setNewName}
+                          placeholder={t('wl.namePlaceholder')}
+                          placeholderTextColor={colors.textDim}
+                          autoFocus
+                          returnKeyType="done"
+                          onSubmitEditing={handleCreateWL}
+                        />
+                        <Pressable
+                          style={({ pressed }) => [s.smallBtn, !newName.trim() && { opacity: 0.4 }, pressed && pressedStyle]}
+                          onPress={handleCreateWL}
+                          disabled={!newName.trim()}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('wl.create')}
+                        >
+                          <Text style={s.smallBtnText}>{t('wl.create')}</Text>
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <Pressable
+                        style={({ pressed }) => [s.newRow, pressed && pressedStyle]}
+                        onPress={() => setCreating(true)}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('wl.newWishlist')}
+                      >
+                        <Icon name="plus" size={16} color={colors.accent} />
+                        <Text style={s.newRowText}>{t('wl.newWishlist')}</Text>
+                      </Pressable>
+                    )}
+                  </View>
                 </View>
-              </View>
+              )}
             </ScrollView>
           )}
 
           {missing.length > 0 && (
             <Pressable
-              style={({ pressed }) => [s.confirmBtn, !pickedId && { opacity: 0.4 }, pressed && pressedStyle]}
+              style={({ pressed }) => [s.confirmBtn, !canConfirm && { opacity: 0.4 }, pressed && pressedStyle]}
               onPress={apply}
-              disabled={!pickedId}
+              disabled={!canConfirm}
               accessibilityRole="button"
               accessibilityLabel={t('wl.confirm')}
             >
@@ -245,7 +291,7 @@ export function SetWishlistSheet({ visible, setCode, onClose }: Props) {
 }
 
 const s = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(14,12,26,0.75)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(21,22,26,0.75)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
@@ -270,6 +316,7 @@ const s = StyleSheet.create({
     paddingVertical: 10, borderRadius: radii.lg,
     backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border,
   },
+  chipWithIcon: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
   chipOn: { backgroundColor: colors.accentDim, borderColor: colors.accent },
   chipText: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.textMut },
   chipTextOn: { color: colors.accent },
@@ -279,14 +326,6 @@ const s = StyleSheet.create({
     borderRadius: radii.lg, paddingHorizontal: 14, paddingVertical: 8,
   },
   rarityLabel: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.text },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepBtn: {
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  stepSign: { fontSize: 18, color: colors.text, fontFamily: fonts.uiBold, lineHeight: 22 },
-  stepVal: { fontSize: 16, fontFamily: fonts.display, color: colors.text, minWidth: 22, textAlign: 'center' },
   item: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border,

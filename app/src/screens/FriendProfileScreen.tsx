@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { FriendProfileScreenProps } from '../navigation';
+import { smartGoBack } from '../lib/nav';
 import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
 import { CachedImage } from '../components/CachedImage';
@@ -54,7 +55,7 @@ export function FriendProfileScreen({ route, navigation }: FriendProfileScreenPr
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
         <Pressable
-          onPress={() => navigation.goBack()}
+          onPress={() => smartGoBack(navigation)}
           hitSlop={HIT_SLOP}
           accessibilityRole="button"
           accessibilityLabel={t('common.done')}
@@ -186,7 +187,7 @@ const s = StyleSheet.create({
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 26, fontFamily: fonts.display, color: colors.text, letterSpacing: -0.4 },
   tabs: { paddingHorizontal: spacing.lg, paddingBottom: 8 },
-  scroll: { padding: spacing.lg, paddingBottom: 60 },
+  scroll: { padding: spacing.lg, paddingBottom: 110 },
   summary: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.textMut, marginBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cell: { width: '31%', aspectRatio: 5 / 7, position: 'relative' },
@@ -203,7 +204,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 5,
   },
-  countText: { fontSize: 12, fontFamily: fonts.uiBold, color: '#fff' },
+  countText: { fontSize: 12, fontFamily: fonts.uiBold, color: colors.onAccent },
   listRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, pressedStyle } from '../theme';
+import { Icon } from './Icon';
+import { useT } from '../lib/i18n';
 import {
   getSettings,
   setColumns,
@@ -11,6 +13,7 @@ import {
 } from '../lib/settings';
 
 export function ColumnsToggle() {
+  const t = useT();
   const [cols, setCols] = useState<Settings['columns']>(getSettings().columns);
 
   useEffect(() => {
@@ -19,7 +22,10 @@ export function ColumnsToggle() {
   }, []);
 
   return (
-    <View style={s.row}>
+    <View style={s.wrap}>
+      <Icon name="grid" size={12} color={colors.textMut} />
+      <Text style={s.label}>{t('common.columns')}</Text>
+      <View style={s.row}>
       {([2, 3, 4, 5] as const).map((n) => {
         const on = cols === n;
         return (
@@ -35,11 +41,18 @@ export function ColumnsToggle() {
           </Pressable>
         );
       })}
+      </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
+  wrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  label: { fontSize: 11, fontFamily: fonts.uiSemi, color: colors.textMut },
   row: {
     flexDirection: 'row',
     backgroundColor: colors.surface,

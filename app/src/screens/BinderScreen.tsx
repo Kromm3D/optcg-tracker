@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -42,6 +43,8 @@ import {
 } from '../lib/wishlists';
 import { resolveImageUris } from '../lib/images';
 import { getTradeQty, getOverrides, setTradeOverride, subscribe as subTrade } from '../lib/trade';
+import { getPrice } from '../lib/prices';
+import { getPriceChangePct } from '../lib/priceHistory';
 import { adjust } from '../lib/collection';
 import { getSettings, subscribe as subSettings } from '../lib/settings';
 import { useT } from '../lib/i18n';
@@ -110,18 +113,23 @@ const GridCard = React.memo(function GridCard({
   selectMode, selected, onPress, onLongPress, onAdjust,
 }: GridCardProps) {
   const tradeQty = useTradeQty(tab === 'trade' ? card.code : null);
+  // Pill común (framed) con precio + stepper "− N +" (mantener pulsado = repetir).
   const common = {
     card,
     variant,
     compact,
+    framed: true,
+    price: getPrice(card, variant?.suffix ?? ''),
+    priceChange: getPriceChangePct(card.code, variant?.suffix ?? ''),
     selected: selectMode && selected,
-    onAdjust: selectMode ? undefined : (delta: number) => onAdjust(card, variant, delta),
+    onAdd: selectMode ? undefined : () => onAdjust(card, variant, +1),
+    onRemove: selectMode ? undefined : () => onAdjust(card, variant, -1),
     onLongPress: () => onLongPress(card, variant, itemKey),
     onPress: () => onPress(card, variant, itemKey),
     width: cardWidth,
   };
   if (tab === 'trade') {
-    return <CardThumb {...common} owned={tradeQty} qty={tradeQty} />;
+    return <CardThumb {...common} owned={tradeQty} />;
   }
   return (
     <CardThumb
@@ -157,7 +165,8 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
   const [wlToDelete, setWlToDelete] = useState<Wishlist | null>(null);
 
   const [columns, setColumnsState] = useState(getSettings().columns);
-  const { cardWidth, gap, hPadding } = useCardGrid(columns);
+  // Mismo grid apretado que Browse/Sets (las pastillas framed separan las cartas).
+  const { cardWidth, gap, hPadding } = useCardGrid(columns, { gap: 8, hPadding: 18 });
 
   const [showAdd, setShowAdd] = useState(false);
   const [addSearch, setAddSearch] = useState('');
@@ -316,12 +325,12 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
     <View style={s.sortRow}>
       {(
         [
-          ['code', t('sort.code')],
-          ['set', t('sort.set')],
-          ['power', t('sort.power')],
-          ['rarity', t('sort.rarity')],
-        ] as [BinderSortKey, string][]
-      ).map(([k, label]) => {
+          ['code', t('sort.code'), 'tag'],
+          ['set', t('sort.set'), 'layers'],
+          ['power', t('sort.power'), 'bolt'],
+          ['rarity', t('sort.rarity'), 'star'],
+        ] as [BinderSortKey, string, string][]
+      ).map(([k, label, icon]) => {
         const active = sort.key === k;
         return (
           <Pressable
@@ -332,6 +341,7 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
             accessibilityState={{ selected: active }}
             style={({ pressed }) => [s.sortBtn, active && s.sortBtnOn, pressed && pressedStyle]}
           >
+            <Icon name={icon} size={12} color={active ? colors.accent : colors.textMut} />
             <Text style={[s.sortLabel, { color: active ? colors.accent : colors.textMut }]}>
               {label}
             </Text>
@@ -354,9 +364,9 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
       <View style={s.tabBarWrap}>
         <SegmentedControl<Tab>
           segments={[
-            { key: 'owned', label: t('binder.collection') },
-            { key: 'wishlist', label: t('binder.wishlist') },
-            { key: 'trade', label: t('binder.trade') },
+            { key: 'owned', label: t('binder.collection'), icon: 'archive' },
+            { key: 'wishlist', label: t('binder.wishlist'), icon: 'cardHeart' },
+            { key: 'trade', label: t('binder.trade'), icon: 'swap' },
           ]}
           value={tab}
           onChange={handleTabChange}
@@ -467,15 +477,34 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
       {/* ── Collection / Trade tab ────────────────────────────────────────────── */}
       {tab !== 'wishlist' && (
         <>
-          {/* Meta / action row */}
+          {/* Meta / action row. El cluster de botones vive en un ScrollView
+              horizontal propio: con iconos+texto en filter/select/share más
+              el ColumnsToggle ya etiquetado, no cabe todo en una fila fija en
+              pantallas estrechas — aquí se desplaza en vez de recortarse. */}
           <View style={s.metaRow}>
-            <Text style={s.meta}>
+            <Text style={s.meta} numberOfLines={1}>
               {tab === 'trade'
                 ? `${ownedTradeCards.length} ${t('binder.uniqueCards')} · ${ownedTradeCards.reduce((a, c) => a + getTradeQty(c.code), 0)} ${t('binder.copies')}`
                 : `${ownedTradeCards.length} ${t('binder.uniqueCards')} · ${ownedTradeCards.reduce((a, c) => a + getOwnedFor(c.code), 0)} ${t('binder.units')}`
               }
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={s.actionScroll}
+              contentContainerStyle={s.actionRow}
+            >
+              {tab === 'owned' && (
+                <Pressable
+                  style={({ pressed }) => [s.scanBtn, pressed && pressedStyle]}
+                  onPress={() => navigation.navigate('Scan')}
+                  hitSlop={HIT_SLOP}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('tab.scan')}
+                >
+                  <Icon name="camera" size={16} color={colors.onAccent} stroke={2} />
+                </Pressable>
+              )}
               {tab === 'owned' && (
                 <Pressable
                   style={({ pressed }) => [s.showAllBtn, showAll && s.showAllBtnOn, pressed && pressedStyle]}
@@ -497,7 +526,8 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
                   accessibilityRole="button"
                   accessibilityLabel={t('binder.shareImage')}
                 >
-                  <Icon name="external" size={15} color={colors.textMut} />
+                  <Icon name="external" size={13} color={colors.textMut} />
+                  <Text style={s.iconBtnText}>{t('binder.shareImage')}</Text>
                 </Pressable>
               )}
               <Pressable
@@ -507,7 +537,8 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
                 accessibilityRole="button"
                 accessibilityLabel={t('filter.title')}
               >
-                <Icon name="filter" size={15} color={activeCount(filters) > 0 ? colors.accent : colors.textMut} />
+                <Icon name="filter" size={13} color={activeCount(filters) > 0 ? colors.accent : colors.textMut} />
+                <Text style={[s.iconBtnText, activeCount(filters) > 0 && { color: colors.accent }]}>{t('filter.title')}</Text>
               </Pressable>
               <Pressable
                 style={({ pressed }) => [s.iconBtn, selectMode && s.iconBtnOn, pressed && pressedStyle]}
@@ -517,7 +548,10 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
                 accessibilityLabel={t('bulk.select')}
                 accessibilityState={{ selected: selectMode }}
               >
-                <Icon name={selectMode ? 'close' : 'checkSquare'} size={15} color={selectMode ? colors.accent : colors.textMut} />
+                <Icon name={selectMode ? 'close' : 'checkSquare'} size={13} color={selectMode ? colors.accent : colors.textMut} />
+                <Text style={[s.iconBtnText, selectMode && { color: colors.accent }]}>
+                  {selectMode ? t('common.done') : t('bulk.select')}
+                </Text>
               </Pressable>
               <ColumnsToggle />
               {tab === 'owned' && (
@@ -527,10 +561,10 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
                   accessibilityRole="button"
                   accessibilityLabel={t('wl.addCards')}
                 >
-                  <Icon name="plus" size={18} color="#fff" />
+                  <Icon name="plus" size={18} color={colors.onAccent} />
                 </Pressable>
               )}
-            </View>
+            </ScrollView>
           </View>
 
           <SortRow />
@@ -552,7 +586,7 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
               numColumns={columns}
               extraData={extraData}
               columnWrapperStyle={{ gap, paddingHorizontal: hPadding }}
-              contentContainerStyle={{ paddingVertical: 8, paddingBottom: selectMode ? 180 : 110, gap: gap + 4 }}
+              contentContainerStyle={{ paddingVertical: 8, paddingBottom: selectMode ? 180 : 110, gap }}
               renderItem={renderItem}
               initialNumToRender={15}
               maxToRenderPerBatch={12}
@@ -650,7 +684,7 @@ const s = StyleSheet.create({
     borderRadius: radii.xl,
     backgroundColor: colors.accent,
   },
-  createBtnText: { fontSize: 15, fontFamily: fonts.uiBold, color: '#fff' },
+  createBtnText: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.onAccent },
 
   // Meta row
   metaRow: {
@@ -660,16 +694,27 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
   },
-  meta: { fontSize: 12, color: colors.textMut, fontFamily: fonts.ui, flex: 1, marginRight: 8 },
+  meta: { fontSize: 12, color: colors.textMut, fontFamily: fonts.ui, flexShrink: 1, marginRight: 8 },
+  actionScroll: { flex: 1 },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   addBtn: {
     width: 30, height: 30, borderRadius: 15,
     backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
   },
-  iconBtn: {
+  // Botón de escaneo de la fila de acciones (Binder no tiene barra de búsqueda
+  // donde alojar la cámara como en Browse — vive aquí, en el contexto "añadir").
+  scanBtn: {
     width: 30, height: 30, borderRadius: 15,
-    backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
+    shadowColor: colors.accent, shadowOpacity: 0.4, shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 }, elevation: 4,
   },
+  iconBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    height: 30, paddingHorizontal: 10, borderRadius: 15,
+    backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border,
+  },
+  iconBtnText: { fontSize: 11, fontFamily: fonts.uiSemi, color: colors.textMut },
   iconBtnOn: { borderColor: colors.accent, backgroundColor: colors.accentDim },
 
   // Sort row with direction arrows
@@ -701,7 +746,7 @@ const s = StyleSheet.create({
   confirmBody: { fontSize: 14, fontFamily: fonts.ui, color: colors.textMut, lineHeight: 21 },
 
   // Create WL modal
-  modalBg: { flex: 1, backgroundColor: 'rgba(14,12,26,0.85)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  modalBg: { flex: 1, backgroundColor: 'rgba(21,22,26,0.85)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   modalCard: { width: '100%', backgroundColor: colors.surface, borderRadius: radii.xxl, borderWidth: 1, borderColor: colors.border, padding: 24, gap: 16 },
   modalTitle: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
   modalInput: { height: 50, borderRadius: radii.lg, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, fontSize: 16, fontFamily: fonts.ui, color: colors.text },
@@ -709,7 +754,7 @@ const s = StyleSheet.create({
   modalCancel: { flex: 1, height: 48, borderRadius: radii.lg, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
   modalCancelText: { fontSize: 15, fontFamily: fonts.uiSemi, color: colors.textMut },
   modalConfirm: { flex: 1, height: 48, borderRadius: radii.lg, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  modalConfirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: '#fff' },
+  modalConfirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.onAccent },
 });
 
 // Shared styles used by WishlistThumb (module-level, not inside component)

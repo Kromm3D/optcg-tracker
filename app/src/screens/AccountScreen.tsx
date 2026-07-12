@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AccountScreenProps } from '../navigation';
+import { smartGoBack } from '../lib/nav';
 import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
 import { useT } from '../lib/i18n';
@@ -57,7 +58,7 @@ export function AccountScreen({ navigation }: AccountScreenProps) {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
         <Pressable
-          onPress={() => navigation.goBack()}
+          onPress={() => smartGoBack(navigation)}
           hitSlop={HIT_SLOP}
           accessibilityRole="button"
           accessibilityLabel={t('common.done')}
@@ -293,7 +294,7 @@ const s = StyleSheet.create({
   },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 26, fontFamily: fonts.display, color: colors.text, letterSpacing: -0.4 },
-  scroll: { padding: spacing.lg, gap: 10, paddingBottom: 60 },
+  scroll: { padding: spacing.lg, gap: 10, paddingBottom: 110 },
   box: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
@@ -358,7 +359,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.accent,
     alignItems: 'center',
   },
-  btnPrimaryText: { fontSize: 15, fontFamily: fonts.uiSemi, color: '#fff' },
+  btnPrimaryText: { fontSize: 15, fontFamily: fonts.uiSemi, color: colors.onAccent },
   btnOutline: {
     paddingHorizontal: 16,
     paddingVertical: 11,

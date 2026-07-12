@@ -4,11 +4,14 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Touchable } from './Touchable';
+import { Icon } from './Icon';
 import { colors, fonts, type, MIN_TOUCH } from '../theme';
 
 export interface Segment<T extends string> {
   key: T;
   label: string;
+  /** Icono opcional, mostrado antes del texto. */
+  icon?: string;
 }
 
 interface Props<T extends string> {
@@ -31,6 +34,9 @@ export function SegmentedControl<T extends string>({ segments, value, onChange }
             accessibilityState={{ selected: active }}
             accessibilityLabel={seg.label}
           >
+            {seg.icon ? (
+              <Icon name={seg.icon} size={14} color={active ? colors.onAccent : colors.textMut} />
+            ) : null}
             <Text style={[styles.label, active && styles.labelOn]} numberOfLines={1}>
               {seg.label}
             </Text>
@@ -53,10 +59,12 @@ const styles = StyleSheet.create({
   },
   seg: {
     flex: 1,
+    flexDirection: 'row',
     minHeight: MIN_TOUCH - 8,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
     paddingVertical: 8,
   },
   segOn: { backgroundColor: colors.accent },

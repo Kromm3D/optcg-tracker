@@ -92,9 +92,9 @@ function FamilyCard({ famKey, sets, t, onOpen }: {
 
   return (
     <View style={s.fam}>
-      {/* Fantasma tenue como textura de fondo */}
+      {/* Nube tenue como textura de fondo */}
       <View style={s.ghostBg} pointerEvents="none">
-        <Icon name="ghost" size={104} color={colors.ghost} stroke={1.4} />
+        <Icon name="cloud" size={104} color={colors.ghost} stroke={1.4} />
       </View>
 
       <View style={s.famHead}>
@@ -105,7 +105,7 @@ function FamilyCard({ famKey, sets, t, onOpen }: {
             {ownedCards} / {totalCards} · {sets.length} {t('sets.setsWord')}
           </Text>
           <View style={s.spookRow}>
-            <Icon name="ghost" size={12} color={colors.ghost} stroke={1.8} />
+            <Icon name="cloud" size={12} color={colors.ghost} stroke={1.8} />
             <Text style={s.spook}>{t('sets.materialized', { n: materialized })}</Text>
           </View>
         </View>

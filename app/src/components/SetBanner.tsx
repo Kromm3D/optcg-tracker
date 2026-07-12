@@ -9,13 +9,14 @@
 // determinista por set, tratado con la misma máscara para que case visualmente.
 
 import React from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Defs, Image as SvgImage, LinearGradient, Mask, Rect, Stop } from 'react-native-svg';
 import { ProgressRing } from './ProgressRing';
 import { Icon } from './Icon';
 import { hasBoxArt, boxArtUrl } from '../lib/setBoxArt';
-import { COLOR_KEYS, OPTCG_COLORS, colors, fonts, pressedStyle, HIT_SLOP } from '../theme';
+import { COLOR_KEYS, OPTCG_COLORS, colors, fonts, pressedStyle, HIT_SLOP, onScrim } from '../theme';
 import { useT } from '../lib/i18n';
+import type { RarityBucket } from '../lib/setsStats';
 
 type Props = {
   setCode: string;
@@ -25,9 +26,14 @@ type Props = {
   total: number;
   pct: number;
   onBack: () => void;
+  /** Desglose por rareza — si se pasa, se dibuja como segunda fila dentro de
+   *  la propia cápsula en vez de como una tira aparte debajo (un set debería
+   *  leerse como una sola pieza visual). */
+  rarities?: RarityBucket[];
 };
 
 const BANNER_H = 132;
+const BANNER_H_WITH_RARITIES = 172;
 /** Fracción del ancho de la cápsula que ocupa el panel de arte (anclado a la
  *  derecha). El arte se desvanece dentro de este panel; su mitad izquierda
  *  queda transparente y deja ver la cápsula. */
@@ -50,10 +56,12 @@ function fallbackToneFor(setCode: string): string {
   return OPTCG_COLORS[key]?.tone ?? colors.surface2;
 }
 
-export function SetBanner({ setCode, title, date, owned, total, pct, onBack }: Props) {
+export function SetBanner({ setCode, title, date, owned, total, pct, onBack, rarities }: Props) {
   const t = useT();
   const hasArt = hasBoxArt(setCode);
   const fallbackTone = hasArt ? undefined : fallbackToneFor(setCode);
+  const showRarities = !!rarities?.length;
+  const bannerH = showRarities ? BANNER_H_WITH_RARITIES : BANNER_H;
 
   // Ancho de la cápsula derivado del ancho de ventana (idiomático en RN y, a
   // diferencia de onLayout en web, fiable y reactivo a cambios de resolución).
@@ -67,10 +75,10 @@ export function SetBanner({ setCode, title, date, owned, total, pct, onBack }: P
   const artX = w - artW;
 
   return (
-    <View style={s.capsule}>
+    <View style={[s.capsule, { height: bannerH }]}>
       {/* Capa de arte enmascarada — siempre detrás del contenido. */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Svg width={w} height={BANNER_H}>
+        <Svg width={w} height={bannerH}>
           <Defs>
             {/* Máscara alpha: el arte va de transparente (izq) a opaco (der).
                 Luminancia blanca con opacidad creciente = más visible. */}
@@ -81,7 +89,7 @@ export function SetBanner({ setCode, title, date, owned, total, pct, onBack }: P
               <Stop offset="1" stopColor="#fff" stopOpacity={1} />
             </LinearGradient>
             <Mask id="setArtMask">
-              <Rect x={artX} y={0} width={artW} height={BANNER_H} fill="url(#setArtFade)" />
+              <Rect x={artX} y={0} width={artW} height={bannerH} fill="url(#setArtFade)" />
             </Mask>
             {/* Velo de legibilidad: base de la cápsula opaca a la izquierda que
                 se va a 0 antes del punto de interés del arte (der), para que el
@@ -99,7 +107,7 @@ export function SetBanner({ setCode, title, date, owned, total, pct, onBack }: P
               x={artX}
               y={0}
               width={artW}
-              height={BANNER_H}
+              height={bannerH}
               // slice = cubre el panel recortando; yMin encuadra la parte alta
               // del arte (caras/acción), el "punto de interés" de la mayoría de
               // key arts de OPTCG.
@@ -107,11 +115,11 @@ export function SetBanner({ setCode, title, date, owned, total, pct, onBack }: P
               mask="url(#setArtMask)"
             />
           ) : (
-            <Rect x={artX} y={0} width={artW} height={BANNER_H} fill={fallbackTone} mask="url(#setArtMask)" />
+            <Rect x={artX} y={0} width={artW} height={bannerH} fill={fallbackTone} mask="url(#setArtMask)" />
           )}
 
           {/* Velo encima del arte: protege la legibilidad del texto. */}
-          <Rect x={0} y={0} width={w} height={BANNER_H} fill="url(#setArtScrim)" />
+          <Rect x={0} y={0} width={w} height={bannerH} fill="url(#setArtScrim)" />
         </Svg>
       </View>
 
@@ -123,18 +131,36 @@ export function SetBanner({ setCode, title, date, owned, total, pct, onBack }: P
         hitSlop={HIT_SLOP}
         style={({ pressed }) => [s.backBtn, pressed && pressedStyle]}
       >
-        <Icon name="chevL" size={18} color={colors.text} />
+        <Icon name="chevL" size={18} color={onScrim} />
       </Pressable>
 
       {/* Contenido */}
-      <View style={s.content}>
-        <ProgressRing pct={pct} size={52} />
-        <View style={s.info}>
-          <Text style={s.code}>{setCode}</Text>
-          <Text style={s.title} numberOfLines={1}>{title}</Text>
-          <Text style={s.count}>{t('set.ownedOfTotal', { owned, total })}</Text>
-          {date ? <Text style={s.date}>{date}</Text> : null}
+      <View style={s.contentCol}>
+        <View style={s.contentRow}>
+          <ProgressRing pct={pct} size={52} />
+          <View style={s.info}>
+            <Text style={s.code}>{setCode}</Text>
+            <Text style={s.title} numberOfLines={1}>{title}</Text>
+            <Text style={s.count}>{t('set.ownedOfTotal', { owned, total })}</Text>
+            {date ? <Text style={s.date}>{date}</Text> : null}
+          </View>
         </View>
+
+        {showRarities ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={s.rarityScroll}
+            contentContainerStyle={s.rarityRow}
+          >
+            {rarities!.map((b) => (
+              <View key={b.rarity} style={s.rarityCol}>
+                <Text style={s.rarityVal}>{b.owned}/{b.total}</Text>
+                <Text style={s.rarityLab}>{b.rarity}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        ) : null}
       </View>
     </View>
   );
@@ -157,18 +183,22 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(19,16,25,0.55)',
+    backgroundColor: 'rgba(21,22,26,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
   },
-  content: {
+  contentCol: {
     flex: 1,
+    justifyContent: 'center',
+    paddingLeft: 54,
+    paddingRight: 40,
+    gap: 12,
+  },
+  contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 18,
-    paddingLeft: 54,
-    paddingRight: 104,
+    paddingRight: 64,
     gap: 14,
   },
   info: { flex: 1 },
@@ -176,4 +206,9 @@ const s = StyleSheet.create({
   title: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.textMut, marginTop: 1 },
   count: { fontSize: 12, fontFamily: fonts.uiBold, color: colors.ghost, marginTop: 6 },
   date: { fontSize: 11, fontFamily: fonts.ui, color: colors.textDim, marginTop: 2 },
+  rarityScroll: { flexGrow: 0 },
+  rarityRow: { alignItems: 'center', gap: 16, paddingRight: 8 },
+  rarityCol: { alignItems: 'center', minWidth: 32 },
+  rarityVal: { fontSize: 14, fontFamily: fonts.display, color: colors.text },
+  rarityLab: { fontSize: 10, fontFamily: fonts.uiSemi, color: colors.textMut, marginTop: 2 },
 });

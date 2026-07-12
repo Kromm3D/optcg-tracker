@@ -36,6 +36,7 @@ import * as Haptics from 'expo-haptics';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import type { ScanScreenProps } from '../navigation';
+import { smartGoBack } from '../lib/nav';
 import type { Card, Variant } from '../types';
 import { CARDS } from '../data/loadIndex';
 import { adjust } from '../lib/collection';
@@ -448,7 +449,7 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
       {/* ── Close button (top-left) ── */}
       <Pressable
         style={({ pressed }) => [s.closeBtn, { top: insets.top + 12 }, pressed && pressedStyle]}
-        onPress={() => navigation.goBack()}
+        onPress={() => smartGoBack(navigation)}
         hitSlop={HIT_SLOP}
         accessibilityRole="button"
         accessibilityLabel={t('common.done')}
@@ -585,10 +586,10 @@ const s = StyleSheet.create({
   permTitle: { fontSize: 20, fontFamily: fonts.uiBold, color: colors.text, textAlign: 'center' },
   permSub:   { fontSize: 14, fontFamily: fonts.ui,     color: colors.textMut, textAlign: 'center', lineHeight: 22 },
   permBtn:   { marginTop: 8, paddingHorizontal: 28, paddingVertical: 14, borderRadius: radii.xl, backgroundColor: colors.accent },
-  permBtnText: { fontSize: 15, fontFamily: fonts.uiBold, color: '#fff' },
+  permBtnText: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.onAccent },
 
   // Dim overlay for focus-box fallback
-  dimOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(14,12,26,0.5)' },
+  dimOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(21,22,26,0.5)' },
 
   // Focus-box (Expo Go fallback)
   focusBox: {
@@ -607,7 +608,7 @@ const s = StyleSheet.create({
   },
 
   // Flash (success)
-  flashOverlay: { ...StyleSheet.absoluteFill, backgroundColor: '#ec4899' },
+  flashOverlay: { ...StyleSheet.absoluteFill, backgroundColor: colors.accent },
 
   // No-match feedback
   noMatchOverlay: {
@@ -737,7 +738,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  manualAddText: { fontSize: 14, fontFamily: fonts.uiBold, color: '#fff' },
+  manualAddText: { fontSize: 14, fontFamily: fonts.uiBold, color: colors.onAccent },
 
   // Bottom row
   bottomRow: {

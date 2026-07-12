@@ -61,7 +61,7 @@ export function SetUpdateBanner() {
         style={({ pressed }) => [s.banner, pressed && pressedSurface]}
       >
         <View style={s.iconWrap}>
-          <Icon name="ghost" size={18} color={colors.ghost} stroke={1.8} />
+          <Icon name="cloud" size={18} color={colors.ghost} stroke={1.8} />
         </View>
         <Text style={s.msg} numberOfLines={2}>{message}</Text>
         <Pressable

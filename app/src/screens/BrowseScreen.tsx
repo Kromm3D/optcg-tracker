@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -27,6 +28,9 @@ import {
   setPrefix,
 } from '../lib/filters';
 import { sortCards, type SortKey } from '../lib/cardQuery';
+import { getPrice } from '../lib/prices';
+import { getPriceChangePct } from '../lib/priceHistory';
+import { adjust } from '../lib/collection';
 import { getSettings, setShowAlternateArt, subscribe as subSettings } from '../lib/settings';
 import { useCardGrid } from '../lib/useCardGrid';
 import { expandCards } from '../lib/cardDisplay';
@@ -44,7 +48,9 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [sort, setSort] = useState<SortState>({ key: 'code', dir: 'asc' });
   const [columns, setColumnsState] = useState(getSettings().columns);
-  const { cardWidth, gap, hPadding } = useCardGrid(columns);
+  // Grid más apretado: las pastillas (framed) ya separan visualmente las cartas,
+  // así que reducimos gap/padding respecto al resto de grids (estilo Collectr).
+  const { cardWidth, gap, hPadding } = useCardGrid(columns, { gap: 8, hPadding: 18 });
   const [, force] = useState(0);
 
   // Multi-select / bulk actions
@@ -116,8 +122,14 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
         sourceSet={showAlt && src && src !== cardSet ? src : undefined}
         selected={selectMode && !!selected[item.key]}
         compact={columns >= 3}
-        quickActions={!selectMode}
+        framed
         showFooter
+        // Estilo Collectr: precio + "+" compacto en el footer (sustituye al
+        // overlay central de quickActions). El "+" se oculta en modo selección.
+        price={getPrice(item.card, showAlt ? item.variant?.suffix ?? '' : '')}
+        priceChange={getPriceChangePct(item.card.code, showAlt ? item.variant?.suffix ?? '' : '')}
+        onAdd={selectMode ? undefined : () => adjust(item.card.code, item.variant?.suffix ?? '', +1)}
+        onRemove={selectMode ? undefined : () => adjust(item.card.code, item.variant?.suffix ?? '', -1)}
         onPress={() =>
           selectMode
             ? toggleSel(item.key, item.card.code, item.variant.suffix)
@@ -133,6 +145,16 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={s.searchWrap}>
         <View style={s.search}>
+          {/* Scan: la cámara vive ahora en la barra de búsqueda (antes era el
+              FAB central). Acento + glow para que siga siendo la acción estrella. */}
+          <Pressable
+            onPress={() => navigation.navigate('Scan')}
+            accessibilityRole="button"
+            accessibilityLabel={t('tab.scan')}
+            style={({ pressed }) => [s.scanBtn, pressed && pressedStyle]}
+          >
+            <Icon name="camera" size={20} color={colors.onAccent} stroke={2} />
+          </Pressable>
           <Icon name="search" size={19} color={colors.textMut} />
           <TextInput
             value={q}
@@ -163,9 +185,10 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
         >
           <Icon
             name="filter"
-            size={18}
+            size={16}
             color={fcount > 0 ? colors.accent : colors.text}
           />
+          <Text style={[s.filterBtnText, fcount > 0 && { color: colors.accent }]}>{t('filter.title')}</Text>
           {fcount > 0 ? (
             <Text style={s.filterBadge}>{fcount}</Text>
           ) : null}
@@ -177,13 +200,21 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
           accessibilityState={{ selected: selectMode }}
           style={({ pressed }) => [s.filterBtn, selectMode && s.filterBtnOn, pressed && pressedStyle]}
         >
-          <Icon name={selectMode ? 'close' : 'checkSquare'} size={18} color={selectMode ? colors.accent : colors.text} />
+          <Icon name={selectMode ? 'close' : 'checkSquare'} size={16} color={selectMode ? colors.accent : colors.text} />
+          <Text style={[s.filterBtnText, selectMode && { color: colors.accent }]}>
+            {selectMode ? t('common.done') : t('bulk.select')}
+          </Text>
         </Pressable>
       </View>
 
       <View style={s.sortRow}>
         <Text style={s.sortCount}>{t('browse.cardsCount', { n: list.length })}</Text>
-        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={s.sortScroll}
+          contentContainerStyle={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}
+        >
           <Pressable
             style={({ pressed }) => [s.sortBtn, showAlt && s.sortBtnOn, pressed && pressedStyle]}
             onPress={() => setShowAlternateArt(!showAlt)}
@@ -191,20 +222,21 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
             accessibilityLabel={t('browse.parallels')}
             accessibilityState={{ selected: showAlt }}
           >
+            <Icon name="sparkle" size={11} color={showAlt ? colors.accent : colors.textMut} />
             <Text style={[s.sortLabel, { color: showAlt ? colors.accent : colors.textMut }]}>
               {t('browse.parallels')}
             </Text>
           </Pressable>
           {(
             [
-              ['code', 'sort.code'],
-              ['set', 'sort.set'],
-              ['rarity', 'sort.rarity'],
-              ['cost', 'sort.cost'],
-              ['power', 'sort.power'],
-              ['owned', 'sort.owned'],
-            ] as [SortKey, TKey][]
-          ).map(([k, labelKey]) => {
+              ['code', 'sort.code', 'tag'],
+              ['set', 'sort.set', 'layers'],
+              ['rarity', 'sort.rarity', 'star'],
+              ['cost', 'sort.cost', undefined],
+              ['power', 'sort.power', 'bolt'],
+              ['owned', 'sort.owned', undefined],
+            ] as [SortKey, TKey, string | undefined][]
+          ).map(([k, labelKey, icon]) => {
             const active = sort.key === k;
             return (
               <Pressable
@@ -215,6 +247,7 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
                 accessibilityState={{ selected: active }}
                 style={({ pressed }) => [s.sortBtn, active ? s.sortBtnOn : null, pressed && pressedStyle]}
               >
+                {icon ? <Icon name={icon} size={11} color={active ? colors.accent : colors.textMut} /> : null}
                 <Text style={[s.sortLabel, { color: active ? colors.accent : colors.textMut }]}>
                   {t(labelKey)}
                 </Text>
@@ -229,7 +262,7 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
             );
           })}
           <ColumnsToggle />
-        </View>
+        </ScrollView>
       </View>
 
       <FlatList
@@ -239,7 +272,7 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
         numColumns={columns}
         extraData={extraData}
         columnWrapperStyle={{ gap, paddingHorizontal: hPadding }}
-        contentContainerStyle={{ paddingVertical: 8, paddingBottom: selectMode ? 180 : 110, gap: gap + 4 }}
+        contentContainerStyle={{ paddingVertical: 8, paddingBottom: selectMode ? 180 : 110, gap }}
         initialNumToRender={20}
         maxToRenderPerBatch={20}
         windowSize={5}
@@ -285,22 +318,39 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 14,
-    paddingHorizontal: 14,
+    paddingLeft: 5,
+    paddingRight: 14,
     height: 46,
+  },
+  scanBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.accent,
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
   },
   searchInput: { flex: 1, fontSize: 15, color: colors.text, fontFamily: fonts.ui },
   filterBtn: {
-    width: 46,
     height: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
     borderRadius: 14,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   filterBtnOn: { borderColor: colors.accent },
+  filterBtnText: { fontSize: 12, fontFamily: fonts.uiSemi, color: colors.text },
   filterBadge: {
     position: 'absolute',
     top: -4,
@@ -310,7 +360,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 4,
     borderRadius: 9,
     backgroundColor: colors.accent,
-    color: '#fff',
+    color: colors.onAccent,
     fontSize: 10,
     fontFamily: fonts.uiBold,
     textAlign: 'center',
@@ -320,11 +370,12 @@ const s = StyleSheet.create({
   sortRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 10,
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
-  sortCount: { fontSize: 13, color: colors.textMut, fontFamily: fonts.ui },
+  sortCount: { fontSize: 13, color: colors.textMut, fontFamily: fonts.ui, flexShrink: 0 },
+  sortScroll: { flex: 1 },
   sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 9, paddingVertical: 9, borderRadius: 9 },
   sortBtnOn: { backgroundColor: colors.accentDim },
   sortLabel: { fontSize: 12, fontFamily: fonts.uiSemi },

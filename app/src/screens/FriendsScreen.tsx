@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { FriendsScreenProps } from '../navigation';
+import { smartGoBack } from '../lib/nav';
 import { colors, fonts, radii, spacing, pressedStyle, pressedSurface, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
 import { useT } from '../lib/i18n';
@@ -67,7 +68,7 @@ export function FriendsScreen({ navigation }: FriendsScreenProps) {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
         <Pressable
-          onPress={() => navigation.goBack()}
+          onPress={() => smartGoBack(navigation)}
           hitSlop={HIT_SLOP}
           accessibilityRole="button"
           accessibilityLabel={t('common.done')}
@@ -221,7 +222,7 @@ const s = StyleSheet.create({
   },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 26, fontFamily: fonts.display, color: colors.text, letterSpacing: -0.4 },
-  scroll: { padding: spacing.lg, gap: 10, paddingBottom: 60 },
+  scroll: { padding: spacing.lg, gap: 10, paddingBottom: 110 },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -271,7 +272,7 @@ const s = StyleSheet.create({
     borderRadius: radii.md,
     backgroundColor: colors.accent,
   },
-  btnSmallText: { fontSize: 13, fontFamily: fonts.uiSemi, color: '#fff' },
+  btnSmallText: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.onAccent },
   btnGhost: { paddingHorizontal: 10, paddingVertical: 7 },
   btnGhostText: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.textMut },
   empty: { gap: 4, paddingVertical: 12 },

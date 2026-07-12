@@ -1,8 +1,13 @@
 // Punto de entrada. NavigationContainer con stack raiz + tabs (4).
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  DefaultTheme,
+  useNavigation,
+  createNavigationContainerRef,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
@@ -22,6 +27,7 @@ import { HomeScreen }       from './src/screens/HomeScreen';
 import { BrowseScreen }     from './src/screens/BrowseScreen';
 import { BinderScreen }     from './src/screens/BinderScreen';
 import { DecksScreen }      from './src/screens/DecksScreen';
+import { ProfileScreen }    from './src/screens/ProfileScreen';
 import { DetailScreen }     from './src/screens/DetailScreen';
 import { SetsScreen }       from './src/screens/SetsScreen';
 import { SetDetailScreen }  from './src/screens/SetDetailScreen';
@@ -38,6 +44,8 @@ import { ToastProvider }    from './src/components/Toast';
 import { colors, fonts, pressedStyle, HIT_SLOP } from './src/theme';
 import { useT }             from './src/lib/i18n';
 import { checkForUpdate, getPendingUpdate, subscribe as subRemoteIndex } from './src/lib/remoteIndex';
+import { initPriceHistory } from './src/lib/priceHistory';
+import { MAX_CONTENT_WIDTH } from './src/lib/layout';
 import type { TKey }        from './src/i18n/en';
 import type { RootStackParamList, TabParamList } from './src/navigation';
 
@@ -59,18 +67,34 @@ const NavTheme = {
 };
 
 const TAB_META: Record<keyof TabParamList, { labelKey: TKey; icon: string }> = {
-  Home:   { labelKey: 'tab.home',   icon: 'home'   },
-  Browse: { labelKey: 'tab.cards',  icon: 'grid'   },
-  Binder: { labelKey: 'tab.binder', icon: 'binder' },
-  Decks:  { labelKey: 'tab.decks',  icon: 'layers' },
+  Home:    { labelKey: 'tab.home',    icon: 'home'   },
+  Browse:  { labelKey: 'tab.cards',   icon: 'grid'   },
+  Binder:  { labelKey: 'tab.binder',  icon: 'binder' },
+  Decks:   { labelKey: 'tab.decks',   icon: 'layers' },
+  Profile: { labelKey: 'tab.profile', icon: 'user'   },
 };
+
+const MAIN_TABS: (keyof TabParamList)[] = ['Home', 'Browse', 'Binder', 'Decks', 'Profile'];
+
+// Pantallas en las que la barra flotante se oculta — modales a pantalla
+// completa (zoom de carta, cámara) donde el patrón habitual es no mostrar
+// navegación de fondo, no "escenas" normales del árbol de tabs.
+const HIDE_TAB_BAR_ON = new Set(['Detail', 'Scan']);
 
 type TabBarProps = {
-  state: { index: number; routes: Array<{ key: string; name: string }> };
-  navigation: { navigate: (name: string) => void };
+  activeTab: keyof TabParamList;
+  onNavigate: (name: keyof TabParamList) => void;
 };
 
-function TabBar({ state, navigation }: TabBarProps) {
+// Barra flotante renderizada UNA VEZ a nivel global (fuera del Tabs.Navigator,
+// ver TabsScreen más abajo) para que persista en cualquier pantalla del stack
+// raíz (Sets, SetDetail, DeckDetail, Settings...), no solo dentro de las tabs.
+// `activeTab` se deriva del estado de navegación global (ver App()).
+//
+// Estilo Collectr: 5 pestañas planas, la activa lleva una "píldora" (accentDim)
+// detrás del icono + etiqueta. Ya no hay FAB central — el escaneo vive ahora en
+// la barra de búsqueda (Browse/Binder), ver BrowseScreen/BinderScreen.
+function TabBar({ activeTab, onNavigate }: TabBarProps) {
   const t = useT();
   const [hasUpdate, setHasUpdate] = useState(!!getPendingUpdate());
   useEffect(() => subRemoteIndex(() => setHasUpdate(!!getPendingUpdate())), []);
@@ -78,30 +102,28 @@ function TabBar({ state, navigation }: TabBarProps) {
   return (
     <View style={s.tabBarWrap}>
       <View style={s.tabBar}>
-        {state.routes.map((route, index) => {
-          const focused = state.index === index;
-          const meta = TAB_META[route.name as keyof TabParamList];
+        {MAIN_TABS.map((name) => {
+          const focused = activeTab === name;
+          const meta = TAB_META[name];
           // El tile "Sets" vive dentro de Home — el punto avisa aunque el
           // usuario esté en otra tab, sin duplicar el aviso completo del banner.
-          const showDot = route.name === 'Home' && hasUpdate;
-          // Inject a spacer in the middle so the floating Scan FAB has room.
-          const insertSpacer = index === Math.floor(state.routes.length / 2);
+          const showDot = name === 'Home' && hasUpdate;
           return (
-            <React.Fragment key={route.key}>
-              {insertSpacer && <View style={s.tabSpacer} />}
-              <Pressable
-                onPress={() => navigation.navigate(route.name)}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: focused }}
-                accessibilityLabel={
-                  showDot ? `${t(meta.labelKey)}, ${t('setUpdate.badgeA11y')}` : t(meta.labelKey)
-                }
-                style={({ pressed }) => [s.tabBtn, pressed && pressedStyle]}
-              >
+            <Pressable
+              key={name}
+              onPress={() => onNavigate(name)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={
+                showDot ? `${t(meta.labelKey)}, ${t('setUpdate.badgeA11y')}` : t(meta.labelKey)
+              }
+              style={({ pressed }) => [s.tabBtn, pressed && pressedStyle]}
+            >
+              <View style={[s.tabInner, focused && s.tabInnerOn]}>
                 <View>
                   <Icon
                     name={meta.icon}
-                    size={22}
+                    size={21}
                     color={focused ? colors.accent : colors.textMut}
                     stroke={focused ? 2.2 : 1.8}
                   />
@@ -113,24 +135,15 @@ function TabBar({ state, navigation }: TabBarProps) {
                     { color: focused ? colors.accent : colors.textMut },
                     focused && { fontFamily: fonts.uiBold },
                   ]}
+                  numberOfLines={1}
                 >
                   {t(meta.labelKey)}
                 </Text>
-              </Pressable>
-            </React.Fragment>
+              </View>
+            </Pressable>
           );
         })}
       </View>
-
-      {/* Highlighted center Scan button */}
-      <Pressable
-        style={({ pressed }) => [s.scanFab, pressed && pressedStyle]}
-        onPress={() => navigation.navigate('Scan')}
-        accessibilityRole="button"
-        accessibilityLabel={t('tab.scan')}
-      >
-        <Icon name="scan" size={26} color={colors.onAccent} stroke={2.2} />
-      </Pressable>
     </View>
   );
 }
@@ -149,7 +162,8 @@ function Header({ titleKey }: { titleKey: TKey }) {
         hitSlop={HIT_SLOP}
         style={({ pressed }) => [s.headerBtn, pressed && pressedStyle]}
       >
-        <Icon name="gear" size={22} color={colors.textMut} stroke={1.8} />
+        <Icon name="gear" size={20} color={colors.textMut} stroke={1.8} />
+        <Text style={s.headerBtnLabel}>{t('settings.title')}</Text>
       </Pressable>
     </View>
   );
@@ -163,7 +177,7 @@ function LoadingSplash() {
   return (
     <View style={s.splash}>
       <View style={s.splashLogo}>
-        <Icon name="ghost" size={46} color={colors.accent} stroke={1.8} />
+        <Icon name="cloud" size={46} color={colors.accent} stroke={1.8} />
       </View>
       <Text style={s.splashWord}>
         HoroHoro<Text style={{ color: colors.accent }}>.tcg</Text>
@@ -175,10 +189,6 @@ function LoadingSplash() {
   );
 }
 
-function renderTabBar(props: TabBarProps) {
-  return <TabBar state={props.state} navigation={props.navigation} />;
-}
-
 const HOME_HEADER   = () => null; // HomeScreen has no external header — it's self-contained
 const BROWSE_HEADER = () => <Header titleKey="tab.cards" />;
 const BINDER_HEADER = () => <Header titleKey="binder.title" />;
@@ -187,7 +197,10 @@ const DECKS_HEADER  = () => <Header titleKey="decks.title" />;
 function TabsScreen() {
   return (
     <Tabs.Navigator
-      tabBar={renderTabBar}
+      // La barra se renderiza globalmente en App() (ver TabBar arriba) para
+      // persistir fuera de las 4 tabs también; la nativa del navigator se
+      // suprime aquí para no duplicarla.
+      tabBar={() => null}
       screenOptions={{
         headerStyle: { backgroundColor: colors.bg, borderBottomWidth: 0 },
         headerTitleStyle: { color: colors.text, fontFamily: fonts.display },
@@ -198,9 +211,12 @@ function TabsScreen() {
       <Tabs.Screen name="Browse" component={BrowseScreen} options={{ header: BROWSE_HEADER }} />
       <Tabs.Screen name="Binder" component={BinderScreen} options={{ header: BINDER_HEADER }} />
       <Tabs.Screen name="Decks"  component={DecksScreen}  options={{ header: DECKS_HEADER }} />
+      <Tabs.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
     </Tabs.Navigator>
   );
 }
+
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -212,19 +228,45 @@ export default function App() {
     Manrope_700Bold,
   });
 
+  // Tab activa "recordada": la ruta enfocada solo es 'Home'/'Browse'/'Binder'/
+  // 'Decks' mientras estamos dentro de Tabs. Al navegar a una pantalla del
+  // stack raíz (Sets, SetDetail, Settings...) la ruta enfocada cambia de
+  // nombre, pero la barra debe seguir resaltando la tab desde la que se entró
+  // — por eso se "recuerda" en vez de derivarse en cada render.
+  const [activeTab, setActiveTab] = useState<keyof TabParamList>('Home');
+  const [currentRoute, setCurrentRoute] = useState<string | undefined>('Home');
+
+  const syncFromNav = useCallback(() => {
+    const name = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : undefined;
+    setCurrentRoute(name);
+    if (name && (MAIN_TABS as string[]).includes(name)) {
+      setActiveTab(name as keyof TabParamList);
+    }
+  }, []);
+
   useEffect(() => {
-    if (fontsLoaded) checkForUpdate();
+    if (fontsLoaded) {
+      checkForUpdate();
+      void initPriceHistory();
+    }
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
     return <LoadingSplash />;
   }
 
+  const showTabBar = !currentRoute || !HIDE_TAB_BAR_ON.has(currentRoute);
+
   return (
     <SafeAreaProvider>
       <ToastProvider>
-      <NavigationContainer theme={NavTheme}>
+      <NavigationContainer ref={navigationRef} theme={NavTheme} onReady={syncFromNav} onStateChange={syncFromNav}>
         <StatusBar style="light" />
+        {/* Carcasa centrada: en web limita el ancho (MAX_CONTENT_WIDTH) en vez
+            de estirar la app de borde a borde; en nativo es un flex:1 normal. La
+            barra de tabs (absolute) se posiciona contra esta View, así que queda
+            dentro de la columna centrada. */}
+        <View style={s.appShell}>
         <Stack.Navigator
           screenOptions={{
             headerStyle: { backgroundColor: colors.bg },
@@ -243,6 +285,14 @@ export default function App() {
           <Stack.Screen name="Friends"        component={FriendsScreen}        options={{ headerShown: false }} />
           <Stack.Screen name="FriendProfile"  component={FriendProfileScreen}  options={{ headerShown: false }} />
         </Stack.Navigator>
+
+        {showTabBar && (
+          <TabBar
+            activeTab={activeTab}
+            onNavigate={(name) => navigationRef.navigate('Tabs', { screen: name } as never)}
+          />
+        )}
+        </View>
       </NavigationContainer>
       </ToastProvider>
     </SafeAreaProvider>
@@ -250,6 +300,15 @@ export default function App() {
 }
 
 const s = StyleSheet.create({
+  // Mobile-first: en web se centra en una columna; en nativo es flex:1 normal.
+  appShell: {
+    flex: 1,
+    width: '100%',
+    ...Platform.select({
+      web: { maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' },
+      default: {},
+    }),
+  },
   splash: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -299,7 +358,8 @@ const s = StyleSheet.create({
     color: colors.text,
     letterSpacing: -0.6,
   },
-  headerBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerBtn: { alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 40 },
+  headerBtnLabel: { fontSize: 9.5, fontFamily: fonts.uiSemi, color: colors.textMut },
   tabBarWrap: {
     position: 'absolute',
     bottom: 0,
@@ -310,16 +370,27 @@ const s = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   tabBar: {
-    marginHorizontal: 16,
-    height: 60,
+    marginHorizontal: 12,
+    height: 62,
     borderRadius: 22,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(28,23,38,0.94)',
+    paddingHorizontal: 4,
+    backgroundColor: colors.tabBarWash,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  tabBtn: { flex: 1, alignItems: 'center', gap: 4 },
+  tabBtn: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // Píldora interna que abraza el contenido (icono + etiqueta); sólo se pinta
+  // (accentDim) en la pestaña activa, estilo Collectr.
+  tabInner: {
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
+  },
+  tabInnerOn: { backgroundColor: colors.accentDim },
   tabDot: {
     position: 'absolute',
     top: -2,
@@ -332,23 +403,4 @@ const s = StyleSheet.create({
     borderColor: colors.bg,
   },
   tabLabel: { fontSize: 10.5, fontFamily: fonts.uiSemi },
-  tabSpacer: { width: 64 },
-  scanFab: {
-    position: 'absolute',
-    top: -18,
-    alignSelf: 'center',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.bg,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
 });

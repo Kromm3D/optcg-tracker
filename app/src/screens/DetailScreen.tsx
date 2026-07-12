@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CachedImage } from '../components/CachedImage';
 import type { DetailScreenProps } from '../navigation';
+import { smartGoBack } from '../lib/nav';
 import { CARDS } from '../data/loadIndex';
 import { colors, fonts, colorOf, pressedStyle, HIT_SLOP } from '../theme';
 import { useT } from '../lib/i18n';
@@ -90,7 +91,7 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
       {/* Close + heart */}
       <View style={[s.topBar, { paddingTop: insets.top + 12 }]}>
         <Pressable
-          onPress={() => navigation.goBack()}
+          onPress={() => smartGoBack(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t('common.done')}
           style={({ pressed }) => [s.topBtn, pressed && pressedStyle]}
@@ -432,7 +433,7 @@ const s = StyleSheet.create({
   cmText: {
     fontSize: 14,
     fontFamily: fonts.uiBold,
-    color: '#fff',
+    color: colors.onAccent,
   },
   sectionTitle: {
     fontSize: 14,

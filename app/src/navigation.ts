@@ -25,6 +25,7 @@ export type TabParamList = {
   /** `tab` preselects a Binder sub-tab (Home "Wishlist" tile → wishlist). */
   Binder: { tab?: 'owned' | 'wishlist' | 'trade' } | undefined;
   Decks: undefined;
+  Profile: undefined;
 };
 
 export type HomeScreenProps = CompositeScreenProps<
@@ -44,6 +45,11 @@ export type BinderScreenProps = CompositeScreenProps<
 
 export type DecksScreenProps = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Decks'>,
+  NativeStackScreenProps<RootStackParamList>
+>;
+
+export type ProfileScreenProps = CompositeScreenProps<
+  BottomTabScreenProps<TabParamList, 'Profile'>,
   NativeStackScreenProps<RootStackParamList>
 >;
 

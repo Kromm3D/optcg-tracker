@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DeckDetailScreenProps } from '../navigation';
+import { smartGoBack } from '../lib/nav';
 import { colors, fonts, radii, spacing, pressedStyle } from '../theme';
 import { Icon } from '../components/Icon';
 import { DeckCardPile } from '../components/DeckCardPile';
@@ -145,7 +146,7 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
       {/* Header */}
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
         <Pressable
-          onPress={() => navigation.goBack()}
+          onPress={() => smartGoBack(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t('common.done')}
           style={({ pressed }) => [s.backBtn, pressed && pressedStyle]}
@@ -421,7 +422,7 @@ const s = StyleSheet.create({
   // Rename modal
   modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(14,12,26,0.85)',
+    backgroundColor: 'rgba(21,22,26,0.85)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -466,5 +467,5 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalConfirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: '#fff' },
+  modalConfirmText: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.onAccent },
 });

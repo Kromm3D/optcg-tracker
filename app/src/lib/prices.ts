@@ -142,3 +142,29 @@ export function rarityLabel(rarity: string): string {
 
 /** Rareza holografica - true para las raridades premium. */
 export const HOLO_RARITIES = new Set(['SR', 'SEC', 'SP', 'TR', 'L']);
+
+// ---------------------------------------------------------------------------
+// Soporte para deltas de precio (lib/priceHistory.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * Precio REAL (trend, o low) para una clave exacta — sin el fallback por rareza
+ * de getPrice(). Devuelve null si esa carta no tiene precio real cargado. Se usa
+ * para calcular variaciones (% cambio): comparar estimaciones no tendría sentido.
+ */
+export function realTrend(code: string, suffix: string = ''): number | null {
+  const e = PRICE_MAP[`${code}${suffix}`] ?? PRICE_MAP[code];
+  if (!e) return null;
+  return e.trend ?? e.low ?? null;
+}
+
+/** Snapshot { claveVariante -> precio real } de TODAS las entradas con precio
+ *  real cargado. La base para el delta semanal en priceHistory.ts. */
+export function snapshotRealPrices(): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const k of Object.keys(PRICE_MAP)) {
+    const p = PRICE_MAP[k].trend ?? PRICE_MAP[k].low ?? null;
+    if (p != null) out[k] = p;
+  }
+  return out;
+}

@@ -21,7 +21,8 @@ interface Props {
 export function Button({ title, onPress, variant = 'primary', icon, disabled, loading, style }: Props) {
   const isPrimary = variant === 'primary';
   const isDanger = variant === 'danger';
-  // Primario = rosa claro → texto ciruela oscuro (onAccent). Danger = rojo → blanco.
+  // Primario = relleno accent → texto onAccent (tinta que ya viene resuelta
+  // por tema en theme.ts). Danger = relleno down → blanco siempre.
   const fg = isPrimary ? colors.onAccent : isDanger ? '#fff' : variant === 'secondary' ? colors.text : colors.textMut;
   return (
     <Touchable

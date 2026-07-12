@@ -9,6 +9,7 @@ export const es: Record<TKey, string> = {
   'tab.binder': 'Binder',
   'tab.decks': 'Mazos',
   'tab.scan': 'Escanear',
+  'tab.profile': 'Perfil',
 
   // Home
   'home.collection': 'Colección',
@@ -187,6 +188,11 @@ export const es: Record<TKey, string> = {
 
   // Settings
   'settings.title': 'Ajustes',
+  'settings.appearance': 'Tema',
+  'settings.appearanceDesc': 'Elige el ambiente en el que se basa el aspecto de la app.',
+  'settings.regularForm': 'Día Fantasma',
+  'settings.thundercloud': 'Noche Hollow',
+  'settings.themeRestartNotice': 'Guardado — reinicia la app para ver el nuevo aspecto.',
   'settings.language': 'Idioma',
   'settings.english': 'English',
   'settings.spanish': 'Español',
@@ -215,10 +221,14 @@ export const es: Record<TKey, string> = {
   'bulk.added': 'Añadidas {n} cartas a {target}.',
   'bulk.chooseIndividually': 'Elegir individualmente',
 
-  // Set-level bulk wishlist
-  'setwl.addMissing': 'Añadir faltantes a wishlist',
+  // Set-level bulk add (wishlist o colección)
+  'setwl.addMissing': 'Añadir cartas faltantes',
+  'setwl.addMissingShort': 'Faltantes',
   'setwl.title': 'Añadir cartas faltantes',
   'setwl.missingCount': '{n} cartas faltantes en este set',
+  'setwl.destination': 'Añadir a',
+  'setwl.destWishlist': 'Wishlist',
+  'setwl.destCollection': 'Mi colección',
   'setwl.printing': 'Impresión',
   'setwl.normal': 'Normal',
   'setwl.parallel': 'Parallel',
@@ -226,11 +236,15 @@ export const es: Record<TKey, string> = {
   'setwl.perRarity': 'Copias por rareza',
   'setwl.none': 'No falta nada — ¡las tienes todas!',
   'setwl.added': 'Añadidas {n} entradas a la wishlist.',
+  'setwl.addedToCollection': 'Añadidas {n} entradas a tu colección.',
 
   // Browse
   'browse.searchPlaceholder': 'yellow luffy, red OP01-001…',
   'browse.cardsCount': '{n} cartas',
   'browse.parallels': 'Parallels',
+
+  // Card tile
+  'card.quantity': 'Cantidad: {n}',
 
   // Card detail
   'detail.cost': 'Coste',
@@ -290,10 +304,22 @@ export const es: Record<TKey, string> = {
   'common.loading': 'Cargando…',
   'common.loadingDb': 'Sincronizando la base de datos, espera unos segundos…',
   'common.delete': 'Eliminar',
+  'common.columns': 'Columnas',
 
   // Decks (delete)
   'decks.deleteTitle': 'Eliminar mazo',
   'decks.deleteConfirm': '¿Eliminar "{name}"? Esto no se puede deshacer.',
+
+  // Profile (tab hub)
+  'profile.title': 'Perfil',
+  'profile.guest': 'Invitado',
+  'profile.guestDesc': 'Inicia sesión para respaldar y sincronizar tu colección.',
+  'profile.account': 'Cuenta y sincronización',
+  'profile.accountDesc': 'Inicio de sesión, copia en la nube y privacidad',
+  'profile.friends': 'Amigos',
+  'profile.friendsDesc': 'Encuentra jugadores y mira sus binders',
+  'profile.settings': 'Ajustes',
+  'profile.settingsDesc': 'Tema, idioma y opciones de la app',
 
   // Account / cloud sync
   'account.title': 'Cuenta',

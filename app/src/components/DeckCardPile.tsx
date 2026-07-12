@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   fallbackText: { color: colors.textDim, fontSize: 10 },
   dim: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(14,12,26,0.65)',
+    backgroundColor: 'rgba(21,22,26,0.65)',
   },
   badge: {
     position: 'absolute',

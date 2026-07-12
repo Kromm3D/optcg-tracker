@@ -269,7 +269,7 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
 }
 
 const s = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(14,12,26,0.75)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(21,22,26,0.75)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: 24,

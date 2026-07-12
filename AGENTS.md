@@ -3,7 +3,7 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-06-25 (TR-rarity bucket fix, sort-by-set = release date, bulk-mode UX, Decks banner restyle)
+**Last updated:** 2026-07-13 (**First real native Android install** — found and fixed a device-only crash (B-11, entry point never registered) that no amount of web-preview testing could have caught; app now confirmed running standalone on a physical phone. Precedes: Supabase backend brought online + verified end-to-end. Typecheck-green.)
 **Current branch:** `main`
 **App version:** 0.1.0 (pre-release)
 
@@ -11,38 +11,728 @@
 
 ## Current uncommitted state (read before committing)
 
-The working tree has a large set of **uncommitted** changes that span several themes.
-Typecheck is **green** (`npm run typecheck` clean as of this refresh). Nothing is
-committed yet — review before staging.
+Everything from the previous refresh (scanner removal, price pipeline, vault
+value, Sets restyle, set-data fix, TR-rarity/sort/bulk/Decks-banner fixes) is
+now **committed** (4 commits, pushed to `origin/main`). The working tree below
+is **only** today's session — see the three dated entries further down for
+full detail. Typecheck is **green**. Nothing in this batch is committed yet —
+review before staging (the rebrand + theme system especially — between them
+they touch nearly every screen's colors; worth a real device look, in both
+forms, before locking in).
 
-1. **On-device scanner removed** — ONNX/embeddings/phash/OCR/vision-camera libs,
-   models (`*.onnx`), hashes/embeddings JSON, the onnxruntime patch, and the
-   `train_embeddings.py` / `build_embeddings.py` scripts are all deleted.
-   `ScanScreen` is now a placeholder with manual code lookup. See "Card Scanner —
-   REMOVED" below. Rebuild plan = cloud-AI scanner (QoL §12).
-2. **Real price pipeline added** — replaces mock prices (see B-03 resolved).
-   New/untracked: `scripts/build_prices.py` (cloudscraper Cardmarket scraper),
-   `scripts/scrape_browser_console.js` + `scripts/import_browser_prices.py`
-   (manual DevTools-console fallback for when Cloudflare blocks the scraper),
-   `data/prices.json` + `app/src/data/prices.json`.
-3. **Vault value over time (new feature)** — see the dated entry below. New
-   files: `app/src/lib/valueHistory.ts`, `app/src/components/Sparkline.tsx`,
-   `app/src/components/VaultValueCard.tsx`. Edited: `HomeScreen.tsx`,
-   `settings.ts`, `i18n/{en,es}.ts`.
-4. **Sets screen restyle (new feature)** — see the dated entry below. New file:
-   `app/src/components/SetRow.tsx`. Edited: `SetsScreen.tsx`, `SetBanner.tsx`.
-5. **Set name/date data bug fix** — see the dated entry below. Edited:
-   `lib/setMeta.ts` only.
-6. **TR-rarity fix, sort-by-set, bulk-mode UX, Decks banner restyle** — see the
-   dated entry below. New file: `app/src/components/DeckRow.tsx`. Edited:
-   `lib/setsStats.ts`, `theme.ts`, `components/SetWishlistSheet.tsx`,
-   `lib/cardQuery.ts`, `components/Icon.tsx`, `screens/BrowseScreen.tsx`,
-   `screens/BinderScreen.tsx`, `screens/DecksScreen.tsx`.
+1. **Persistent global tab bar + universal back button** — new
+   `app/src/lib/nav.ts` (`smartGoBack`). Edited `App.tsx` (tab bar moved out of
+   `Tabs.Navigator` to a global overlay driven by a `navigationRef`) and wired
+   `smartGoBack` into all 9 screens that have a back button.
+2. **Rarity completion counts moved inside the SetDetail banner** — edited
+   `components/SetBanner.tsx` (new optional `rarities` prop, taller capsule
+   with a second row) and `screens/SetDetailScreen.tsx` (removed the old
+   separate rarity strip).
+3. **Set-level bulk-add now supports Collection, not just Wishlist** — renamed
+   `components/SetWishlistSheet.tsx` → `components/SetBulkAddSheet.tsx` (new
+   file, old one deleted) with a Wishlist/My collection destination toggle.
+4. **Icon + visible-text labels** on previously icon-only buttons: header
+   Settings gear (`App.tsx`), Browse's Filter/Select buttons, SetDetail's
+   Parallels/Missing/Select pills. Binder's Select button was tried with a
+   label too but **reverted to icon-only** — that row already overflowed at
+   375px width before adding text (see dated entry).
+5. **Sparkle icon on "Parallels" toggles** — new `sparkle` path in
+   `components/Icon.tsx`, applied in `BrowseScreen.tsx` and
+   `SetDetailScreen.tsx`.
+6. **Full rebrand: Perona/ghost theme → Zeus thundercloud** — see the dated
+   entry below. Edited `theme.ts` (every color token), `DESIGN.md` + `PRODUCT.md`
+   (identity narrative), `Icon.tsx` (`ghost` icon path → `cloud`, redrawn
+   shape), and 4 mascot-icon call sites + 14 files with hardcoded scrim/backdrop
+   colors derived from the old palette.
+7. **Light/dark theme: Zeus's Regular (light) and Thundercloud (dark) forms,
+   switchable in Settings, restart-to-apply** — see the dated entry below. New:
+   `app/index.js` (custom entry point), `lib/themeMode.ts`. Edited: `theme.ts`
+   (split into two full palettes), `package.json` (`main` field),
+   `SettingsScreen.tsx` (the picker UI), `DESIGN.md` (Regular palette + 3 new
+   Named Rules), and ~13 files that had `color: '#fff'` hardcoded on an
+   `accent`-filled button instead of `colors.onAccent` (a latent bug the
+   theme system's contrast requirements exposed — harmless in the old
+   single-theme app, would have looked wrong in Regular mode).
 
-**Housekeeping:** `venv_optcg/` and `data/browser_dump.json` are now gitignored —
+**Housekeeping:** `venv_optcg/` and `data/browser_dump.json` are gitignored —
 do not stage them. **Follow-ups still pending** from the scanner removal: run
 `npm install` in `app/` to prune dropped packages from the lockfile, then
 `npx expo prebuild --clean` before the next native build.
+
+---
+
+### First real native Android install — found + fixed entry-point crash (2026-07-13, device-verified on physical phone)
+User wants the app installable on their own Android phone to demo to colleagues. This
+was **the first time this codebase's `npx expo run:android` native path was exercised
+since the theme-mode feature (2026-06-26) was added** — everything before this session
+had only been typecheck-green + web-verified, never device-verified (see the many
+"NOT yet device-reviewed" tags on recent entries). That gap turned out to be hiding a
+real crash. See **B-11** in Known Bugs for the root cause and fix
+(`app/index.js` registering the root component behind an `await`, which native's
+`AppRegistry.runApplication` doesn't wait for — web never hit this because its entry
+point is different).
+
+**Build/tooling findings, worth keeping for next time:**
+- **A committed `app/android/` + `debug.keystore` already existed** from earlier
+  sessions (June); `app.json` hasn't touched native config since, so `npx expo
+  prebuild --clean` was **not** needed — a plain `gradlew assembleDebug` was enough.
+  Toolchain (JDK 17 at `C:\Program Files\Java\jdk-17`, Android SDK 36, build-tools)
+  was already correctly installed; only `JAVA_HOME` needed setting per-invocation.
+- **`AGENTS.md`'s old "APK stays ~40MB" claim is stale** (written 2026-06-02, before
+  the OpenCV/vision-camera/worklets-core scanner deps existed). A **default 4-ABI
+  build is enormous**: debug 340MB, the June-12 4-ABI release was 262MB. Scoping to
+  the device's actual arch with `-PreactNativeArchitectures=arm64-v8a` (covers
+  virtually every Android phone from the last ~7 years) cuts this drastically:
+  **debug 91MB, release 70MB**. No `splits.abi` block exists in `build.gradle` — this
+  gradle-property flag is the quick way to get a single-arch build without editing
+  Gradle config. Worth adding a real `splits.abi` config later if multi-arch
+  distribution (Play Store) is ever needed.
+- **`build.gradle` has a deliberate CameraX version pin** (lines ~155-169, forces the
+  whole `androidx.camera:*` family to `1.5.0-alpha03`) working around a real conflict
+  between `expo-camera`'s CameraX 1.6.0 and `react-native-vision-camera`'s need for
+  `Camera2CameraInfoImpl` (removed in 1.6.0). Don't "clean up" this pin without
+  testing the camera/scanner — it's load-bearing, not leftover cruft.
+- **Debug builds need Metro live** (`npx expo start --android`, plus `adb reverse
+  tcp:8081 tcp:8081` if only USB-connected, no shared Wi-Fi) — fine for iterating,
+  but fragile for a demo (laptop must stay on, Metro must stay up). **Release builds
+  embed the JS bundle** and were confirmed to run with `adb reverse` removed and
+  Metro killed — that's the artifact to actually hand to/show colleagues, not debug.
+- **A stale Supabase session from an old June debug install surfaced as a benign
+  `AuthApiError: Invalid Refresh Token: Already Used`** toast on first relaunch (the
+  refresh token had long since rotated). Not fatal — supabase-js clears the invalid
+  session itself and the error didn't recur on the next launch. No fix needed, but
+  good to recognize this class of error is expected/harmless when reusing test builds
+  across sessions.
+- **Verified end-to-end on a real device**: Xiaomi `duchamp_global`, Android 16,
+  `arm64-v8a`, installed via `adb install`, launched via `adb shell am start`, Home
+  screen renders correctly (Hollow Night theme, collection/vault tiles, 5-tab nav),
+  no crash, no console errors, fully standalone (Metro killed, `adb reverse` removed).
+
+### Supabase backend brought online + verified E2E (2026-07-12, verified live via app + SQL editor)
+User asked to "link Supabase to the app". Discovered the entire client integration
+**already existed** and was typecheck-green — no code was written this session:
+`lib/supabase.ts` (client, session in AsyncStorage, graceful null when unconfigured),
+`lib/auth.ts` (signUp/signIn/signOut + profile store), `lib/sync.ts` (local-first
+LWW reconcile-on-login + debounced mirror push for collection/settings/wishlists/decks,
+imported for side-effect at `App.tsx:41`), `lib/friends.ts` (search/requests/RLS-gated
+friend reads), and `supabase/migrations/0001_init.sql` (9 tables + enums + `handle_new_user`
+trigger + `are_friends`/`can_view`/`vis_of` + full per-resource RLS). `config.ts` already
+held the correct `SUPABASE_URL`/`SUPABASE_ANON_KEY` (publishable `sb_publishable_…` key).
+
+**Root cause of "it doesn't work":** the project was **auto-paused** (Supabase Free tier
+pauses after ~1 week idle and *removes the DNS record* → `hphdhozwuvbhduqrwdxn.supabase.co`
+returned NXDOMAIN, which looked like bad credentials). **Fix = Resume project** in the
+dashboard (free; data restored from backup, incl. the already-applied schema). Takes a
+few min to warm up: DNS → Cloudflare 521 → PGRST002 "schema cache retrying" → 200.
+
+**Verified end-to-end (web preview `horohorotcg-web` :8399, user signed up as `eloi-luffy`):**
+signUp returned a session immediately (Auth → "Confirm email" is **OFF**, as chosen for
+testing); the trigger created the `profiles` row (username) + `privacy_settings` defaults;
+"Synced" state + reconcile fired on login; adding a card pushed to `collection_items`
+(EB01-001 count 2 etc., fresh `updated_at`); RLS confirmed (anon key reads nothing, the
+authenticated app syncs). Server counts via SQL editor: 3 users / 3 profiles / 3 privacy rows.
+
+**Gotchas for next session:** (1) Free tier will re-pause when idle — just Resume again, or
+go Pro. (2) The anon/publishable key **cannot** read tables from curl (RLS is `to authenticated`);
+verify server rows via the dashboard SQL editor (runs as `postgres`, bypasses RLS), not REST.
+(3) `config.ts` comment still says the key is a "JWT anónima" but the value is the newer
+`sb_publishable_…` format — works fine with supabase-js v2, just a stale comment. Nothing
+committed (per Rule 3); this session made no file changes beyond this diary entry.
+
+### Brand revamp: Perona / Negative Hollows (revert from Zeus) (2026-06-28, typecheck-green, web-verified via DOM)
+User missed the original HoroHoro identity and asked to revamp it (planned with
+/impeccable + /frontend-design). The Zeus thundercloud theme was never committed,
+so the original Perona palette was recoverable from `git show HEAD:app/src/theme.ts`.
+
+**Direction (confirmed via AskUserQuestion):** two themes (Hollow Night + Ghost
+Day), and a **static** (non-animated) holographic foil.
+
+**What shipped:**
+- **`theme.ts` palette** — DARK = "Hollow Night": Perona pink `#ff6fb5` (accent),
+  spectral Negative-Hollow cyan `#9fe3e8` (ghost = progress/collection), gothic
+  base `#131019`/`#1c1726`/`#261f33`, lavender text `#f6f0fa`. LIGHT = "Ghost
+  Day": pale lavender base, pink deepened to rose `#c0357a` + cyan to teal
+  `#0f8390` for text-on-light legibility (ink-flips to white). The pink/cyan
+  *roles* are constant; only values shift per theme.
+- **Holographic foil** ("Horo Horo = holographic" pun): new `FOIL_STOPS`/`onFoil`
+  in theme + `components/FoilBadge.tsx` (react-native-svg linear gradient pink→
+  lilac→cyan→pink). Used in `CardThumb` to render holo rarities (`HOT_RARITIES`)
+  as an iridescent chip instead of plain "· SR" text. Ban-safe (gradient on a
+  badge surface, not gradient text) and *meaningful* (it literally is holo rarity).
+- **Ghost motif** — redrew the `cloud` icon (kept the legacy key) into a
+  Negative-Hollow ghost (domed head + wavy bottom + dot eyes); splash + completion
+  pick it up. `colors.ghost`/`cloud` finally match their names again.
+- **Settings labels** — `settings.appearance` "Zeus's form"→"Theme",
+  thundercloud→"Hollow Night", regularForm→"Ghost Day" (keys kept, values + es.ts).
+- **Docs** — PRODUCT.md brand personality + DESIGN.md (frontmatter colors, §1
+  North Star "The Negative Hollow", §2 color names, Named Rules, two-theme block,
+  do/don'ts) rewritten Zeus→Perona.
+
+**Verified (DOM, screenshot tool down):** gothic surfaces `rgb(19,16,25)/(28,23,38)/
+(38,31,51)` live, Perona pink `rgb(255,111,181)` + spectral cyan `rgb(159,227,232)`
+present, **16 foil badges** rendering with the iridescent stops on Browse holo
+cards, no console errors. The splash ghost + Ghost Day light theme not eyeballed
+(splash only at boot; light theme needs the Settings toggle + restart) — verify on
+device. Nothing committed.
+
+### Collectr-style restyle: flat tab bar, Profile tab, in-field scan, price tiles (2026-06-28, typecheck-green, web-verified via DOM)
+Inspired by a Collectr app screenshot the user shared. Planned with `/impeccable`
+(shape): two rounds of AskUserQuestion locked the direction before any code.
+
+**What shipped (5 files + 1 new screen):**
+- **Flat 5-tab pill bottom bar** (`App.tsx`). Tabs are now `Home · Cards ·
+  Binder · Decks · Profile`. The floating center **Scan FAB was removed** along
+  with its spacer/notch logic; the active tab now carries an `accentDim` pill
+  (`tabInner`/`tabInnerOn`) behind icon+label. `TabBar` lost its `onScan` prop.
+- **New `Profile` tab** (`screens/ProfileScreen.tsx`, registered in `App.tsx`,
+  `navigation.ts` `TabParamList` + `ProfileScreenProps`). A hub: identity card
+  (Guest / signed-in username → Account) + rows to Account, Friends (gated on
+  backend+signed-in, mirroring AccountScreen), and Settings. **Header gear was
+  kept** (user's call — two paths to Settings).
+- **Scan moved into search** (user's call: kill FAB). Browse search field gained
+  an accent camera button at its left (`BrowseScreen.tsx`, `scanBtn` + new
+  `camera` icon in `Icon.tsx`). Binder has **no search field**, so its camera
+  lives in the action row's add cluster (owned tab only, `BinderScreen.tsx`).
+- **Browse price tiles** (`CardThumb.tsx`). New `price?`/`onAdd?` props render a
+  footer price row: `formatPrice()` left, a compact `+` right (accent-filled
+  when `effectiveOwned===0`, quiet surface pill once owned). Browse switched off
+  `quickActions` (the old center +/- overlay) to use this. Count-bubble still
+  signals owned qty, so the row stays single-height. Price = `lib/prices.ts`
+  `getPrice`; **no change-% delta** (no price-history store yet — see QoL).
+  Nested-button a11y guard updated to also suppress the outer role when `onAdd`
+  is set (avoids `<button>`-in-`<button>` on web).
+
+**Verification.** Typecheck green. `preview_screenshot` was **down again**
+(consistent 30s timeouts), so verified structurally via `preview_eval` DOM
+queries on the running web build: 5 tabs ordered + active `accentDim` pill;
+Browse camera (38×38 accent, camera path present) + price strings on tiles +
+add button flips hot→plain and spawns a `×1` bubble on add; Profile hub text +
+gated rows; Binder action-row scan button (30×30 accent); cross-screen state
+(adding in Browse showed `1 unique` in Binder). No console errors. **Not yet
+device-reviewed, not committed** (awaiting user review per Rule 3).
+
+**Follow-up same day — framed tiles.** Per a second Collectr screenshot, Browse
+tiles now sit in a rounded `surface` pill with a hairline border (`framed` prop
+on `CardThumb`), each card visually separated from its neighbours; the
+count-bubble renders outside the pill to keep its corner "bleed". `useCardGrid`
+gained optional `{ gap, hPadding }` overrides so Browse can run a tighter grid
+(gap 8 / hPad 12) without touching Binder/SetDetail. Compact (≥3 col) uses a
+smaller frame (radius 12 / pad 5). Typecheck green; DOM-verified (17 framed
+surface tiles with border + radius + padding). Frame is **Browse-only** for now
+— could extend to Binder/Sets if wanted.
+
+**Follow-up same day — Collectr tile layout + real %-change.** Per a third
+screenshot: Browse art **inset to ~82%** (centred, breathing room), **quantity
+moved bottom-left** (`×N`, accent/dim — top-right bubble suppressed in this
+mode), **price + %-change bottom-right**, and the `+` is now an **overlay on the
+art's corner** (was an inline row button). New `priceMode`/`priceChange` props on
+`CardThumb`; `imgFramed` (82% + center), `statRow`/`qty`/`priceWrap`/`pct`/
+`addOverlay` styles. **Built the deferred price-history store** (`lib/
+priceHistory.ts`, AsyncStorage key `optcg.priceHistory.v1`, init from `App.tsx`):
+it snapshots the current price release and, when `prices.json`'s `generated`
+changes (a new weekly release), the prior snapshot becomes the delta reference.
+`getPriceChangePct(code,suffix)` returns null until there's a prior release, so
+the tile shows muted `0.0%` today and real green/red %s after the next price
+refresh. New `realTrend`/`snapshotRealPrices` exports in `lib/prices.ts`.
+DOM-verified: art ratio ~0.82 of content, `×N` bottom-left, price+`0.0%`
+bottom-right, accent `+` overlay on art corner, no console errors. (This retires
+the "price change-% delta" spawn-task chip — done, not deferred.)
+
+**Follow-up same day — Collectr tile v2 + applied to Sets.** Per a fourth
+screenshot round: the framed price tile is now also the **regular view mode for
+Set-detail** (`SetDetailScreen` switched off `quickActions` → `framed` + price +
+`onAdd`, tighter grid like Browse). Tile changes in `CardThumb`: art **inset to
+~80%** with **reserved stack space** (ghost-stack caps at 4; pill reserves
+`STACK_RESERVE` as `marginBottom` so stacks no longer bleed onto neighbours and
+there's guaranteed art↔text air); **more top padding**; **no icons over the art**
+(multi-art indicator suppressed in priceMode); quantity now reads **`Quantity: N`**
+(`card.quantity` i18n, en+es) on its own line; the **`+` moved to bottom-left** of
+the pill with **hold-to-add** — +1 immediately, then every 500 ms, a ~1.8 s pause
+at the playset (4), then a faster cadence (`PLAYSET`/`ADD_STEP_MS`/`ADD_FAST_MS`/
+`PLAYSET_PAUSE_MS`, recursive setTimeout). DOM-verified on Browse: art ratio
+~0.82, no icons on art, `Quantity:` line, `+` bottom-left, price+`0.0%`
+bottom-right; hold reached 4 → paused → resumed faster → stopped on release
+(cadence reads ~1 s in preview because background tabs clamp timers; real device
+= 500 ms). Set-detail not click-through-verified in the headless preview (couldn't
+drive Sets→SetDetail nav; screenshot tool still down) but shares the identical,
+verified render path + typechecks.
+
+**Follow-up same day — tile v3: price-by-name, − N + stepper, pill everywhere.**
+Per a fifth round: (1) **price moved up next to the name** (right side, with %
+stacked under it) — `nameRow`/`priceCol` in `CardThumb`; (2) quantity is now a
+**`− N +` stepper** (replaces the "Quantity: N" line + single +): `−` uses a
+**negative colour** (red `down` border+icon), disabled/dim at 0, hold-to-repeat
+that floors at 0 (`onRemove` + `startRemoveHold`); `+` unchanged (accent, playset
+pause). (3) **Pill is now universal across all card grids** — added `framed`
++ priceMode to **BinderScreen** (Collection via `adjust`, Trade via
+`setTradeOverride`, both through the existing `handleAdjustCard`), tighter grid to
+match. `card.quantity` i18n key now unused (left in place). DOM-verified at mobile
+375px: Browse tile = name+`€3.50`/`0.0%` top, `EB01-006 · SR`, `−  0  +` (minus
+border `rgb(229,75,107)`, plus accent), 0 icons on art; `+` 0→1→2, `−` 2→1→0 then
+floors (minus opacity 0.4 at 0); Binder tile identical with live count (added 2 in
+Browse → `1 unique · 2 units` in Binder). No console errors. Set-detail again not
+click-through-verified (headless nav) but shares the path + typechecks.
+
+**Follow-up same day — UI audit (/impeccable audit + /frontend-design) + 3 fixes.**
+Audit health 17/20 (anti-patterns PASS — distinctive, not AI-slop; weak dimension
+was responsive). Fixed per user: (1) **card art corner radius 14→8** in
+`CardThumb` (`imgMain`/`ghost`/`selOverlay`) — 14 clipped the printed card now
+that the art is inset ~80%; (2) **removed the redundant `{n} cards` count** from
+`SetDetailScreen` grid controls (the SetBanner already shows owned/total up top);
+(3) **gutters unified to 18** across Browse/Sets/Binder grids (`useCardGrid` now
+`{ gap: 8, hPadding: 18 }`, matching header/search/sort so cards align with the
+chrome) and added a **web max-width shell**: new `lib/layout.ts` `MAX_CONTENT_WIDTH`
+= 480, applied in `App.tsx` (`appShell`, web-only `maxWidth`+`alignSelf:center`)
+and respected by `useCardGrid` (measures cards against the capped column, not the
+window). DOM-verified at a 698px window: shell centres to a 480 column (≈109px
+each side), tab bar centred (456 wide), search + tiles aligned at the 18px gutter,
+art radius computes to 8px, no console errors. Native unaffected (Platform.OS web
+gate). Remaining responsive note: the app is phone-first; the web cap is a
+preview/responsiveness nicety, not a true desktop layout.
+
+**Decisions deferred (open):** scan still not globally reachable (Browse + Binder
+owned tab only); pill/price/stepper covers **Browse + Set-detail + Binder**
+(Collection & Trade) — Wishlist/Deck grids still use their own components; the
+%-change reads `0.0%` until the next weekly `prices.json` release gives a prior
+snapshot (by design — see priceHistory.ts).
+
+### Binder tab icons, sort-filter icons, Columns label (2026-06-26, typecheck-green, structurally-verified — see caveat)
+**The Zeus-face SVG from the previous entry was scrapped** ("it's awful") — no
+replacement requested, just removed `app/assets/zeus-face.svg`. Lesson:
+illustrated character art is a fundamentally different skill from icon-path
+geometry; iterating coordinates blind (even carefully) isn't a substitute for
+actually being good at figure drawing. Don't attempt another illustrated
+mascot asset without much tighter iteration loops, ideally with screenshot
+verification working (it wasn't this session — see caveat below).
+
+- **Three new icons** in `Icon.tsx`: `archive` (lid + body + handle line,
+  matches the standard "archive box" convention — cross-checked structurally
+  against Feather's archive.svg proportions), `cardHeart` (card outline with
+  a small heart deliberately bleeding off the top-right corner — an
+  intentional echo of `CardThumb`'s existing "count-bubble bleeds off the
+  corner" pattern, not a mistake), and a redrawn `swap` (two mirrored
+  chevron-arrows, 180°-rotationally symmetric by construction) replacing the
+  old uneven one.
+- **Binder's 3 tabs (Collection/Wishlist/Trade) now carry icons** —
+  `SegmentedControl` gained an optional `icon` field (backward compatible;
+  `FriendProfileScreen`'s usage doesn't pass one and is unaffected) rendering
+  before the label, colored `onAccent` when the segment is active.
+- **Sort filters now carry icons**: code→`tag`, set→`layers`, power→`bolt`,
+  rarity→`star` (the four the user named), applied in both `BrowseScreen` and
+  `BinderScreen`. `cost`/`owned` in `BrowseScreen` deliberately left
+  text-only — not requested, and no obviously-right icon for either.
+- **`ColumnsToggle` now self-labels** (grid icon + "Columns" before the
+  2/3/4/5 pills) — changed once, in the shared component, so all 3 call
+  sites (`BrowseScreen`, `BinderScreen`, `SetDetailScreen`) picked it up
+  automatically.
+- **Found and fixed 2 real, pre-existing toolbar-overflow bugs** while
+  making room for the new labels. `BrowseScreen`'s sort row (Parallels + 6
+  sort keys + ColumnsToggle) measured at **662px of content** clipped into a
+  **375px-wide `overflow: hidden` container** — i.e. "Owned" was already
+  unreachable on a real phone *before* today's icons made it worse, just
+  less so. Same shape of bug in `BinderScreen`'s action row. Neither was
+  caught earlier because earlier checks measured individual button widths,
+  not the full row's `scrollWidth` against its container — the right
+  diagnostic is comparing a row's total content width to its rendered
+  container width via `getComputedStyle(...).overflowX` + `scrollWidth`, not
+  eyeballing whether any single label looks long.
+  - **Fix, applied to all 3 control rows** (`BrowseScreen`'s sort row,
+    `BinderScreen`'s action row, `SetDetailScreen`'s grid-controls row):
+    wrapped the button cluster in a horizontal `ScrollView` (`flex: 1`,
+    sibling to a fixed-width count label), so content can be arbitrarily
+    wide and just scrolls instead of clipping. Verified structurally post-fix:
+    each row's scrollable ancestor now reports `overflowX: auto` with a
+    bounded `width` smaller than its `scrollWidth` (e.g. Browse:
+    width 263 / scrollWidth 662) — content is reachable by scroll, not lost.
+- **`preview_screenshot` was down for most of this session** (consistent
+  ~30s timeouts surviving a server restart, viewport resize, and reload —
+  `preview_eval`/DOM queries kept working throughout, which is how the
+  overflow bugs above were actually found and confirmed-fixed without any
+  visual). It recovered before the end of the session: confirmed visually
+  that `archive`/`cardHeart`/`swap` all read cleanly on Binder's 3 tabs,
+  `tag`/`layers`/`bolt`/`star` read cleanly on the sort filters in both
+  Browse and Binder, and that scrolling each fixed control row actually
+  reveals the previously-unreachable Columns/Select/Owned controls as
+  intended. Visually verified, not just structurally inferred.
+
+---
+
+### gear/binder icon redraws + standalone Zeus-face SVG asset (2026-06-26, typecheck-green, web-verified)
+Follow-up to the icon pass in the entry below: user looked again and flagged
+`gear` (Settings) and `binder` (Binder tab) specifically as "a bit off" —
+both were icons I'd checked at their real usage size (20-22px) and judged
+fine, but at a larger render they're visibly uneven. Lesson: small-size
+checks alone aren't enough for icons with fine structure (gear teeth,
+notched silhouettes) — also render large to catch asymmetry that's
+invisible at icon scale but still *feels* subtly wrong to the eye even when
+the user can't articulate why.
+- **`gear`**: the old path was 12 hand-typed teeth/notches with uneven
+  spacing and depth — looked lumpy/bumpy rather than a crisp cog. Replaced
+  with a **programmatically generated** 8-tooth gear (trigonometry in a
+  `preview_eval` script: even angular spacing guaranteed by construction,
+  not by hand-tuning numbers) — see the `gearPath()` generator used to
+  produce the final coordinates, now hardcoded as the path string (no
+  runtime generation in the app itself, just used once to derive clean
+  numbers). Verified symmetric from 20px to 160px.
+- **`binder`**: old path was a bookmark with an uneven double-notch bottom
+  and a stray disconnected horizontal line near the top that didn't read as
+  purposeful. Replaced with a standard single-notch bookmark silhouette
+  (`M5 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v17l-7-5-7 5Z`), rounded top corners
+  to match the rest of the icon set's soft aesthetic. Compared 3 candidate
+  notch/corner variants live before picking this one.
+- **New `app/assets/zeus-face.svg`**: standalone illustrated SVG (200×200,
+  filled shapes + outline, not a 24px stroke icon like the rest of
+  `Icon.tsx`) of Zeus's Regular-form face, built to match a reference photo
+  the user provided (a marshmallow die with Zeus's face painted on it):
+  white round face, red/white/yellow cap with a button on top, one neutral +
+  one raised eyebrow (the sly/asymmetric expression from the reference),
+  circle eyes with dot pupils, pink cheek blush, a small wavy "w" smile.
+  Iterated live in the browser (inject SVG into the running preview,
+  screenshot, adjust coordinates, repeat) rather than guessing coordinates
+  blind — caught and fixed an off-center cap and an ugly pointed seam where
+  the brim met the dome before finalizing. **Not wired into the app anywhere
+  yet** — delivered as a standalone asset only; ask the user before using it
+  as e.g. a splash replacement or avatar, since they didn't specify a use site.
+- **Verified**: typecheck clean; reloaded the live preview after the icon
+  fixes — gear reads as a clean symmetric cog in the header, binder reads as
+  a clean bookmark in the tab bar and the Home "Collection" tile, both at
+  their real rendered sizes, not just in isolation.
+
+---
+
+### Correction: Thundercloud's accent is purple lightning, not red + 2 icon redraws (2026-06-26, typecheck-green, web-verified)
+User feedback on the light/dark theme work below: "I explicitly asked for a
+yellow or purple color instead of a red" for Thundercloud — a real miss, not
+a preference nitpick. **What went wrong:** the original ask (the rebrand,
+earlier the same day) was "mimic Zeus, cap colors are red/white/yellow." When
+the *second* ask layered light/dark theming on top ("Regular vs Thundercloud,
+rays are purple in canon but I'd like yellow or a mix"), I treated that
+purple/yellow question as being about the *secondary* progress accent only,
+and kept the *primary* brand accent as red in both themes — i.e., I built two
+backgrounds (light/dark) for one brand color, instead of two genuinely
+different brand identities for two genuinely different forms. The user's
+question was about Thundercloud's defining color, full stop, and the answer
+should have been "purple is Thundercloud's whole identity," not "red stays,
+here's how yellow/purple could season it."
+- **Fix**: `theme.ts`'s `DARK` (Thundercloud) `accent` changed `#f0452c`
+  (orange-red) → `#a64dff` (electric violet — the lightning), with
+  `onAccent`/`accentDim`/`accentGlow`/`badge` recomputed to match. `ghost`
+  (gold) **unchanged** — it's the cap brim, visible in both forms, and stays
+  the connective progress/collection thread across themes. `LIGHT` (Regular)
+  is **unchanged** — red is correctly Regular's identity (the cap, on a white
+  cloud where the brim/cap *is* the color story). Picked violet over a
+  softer/more canon-pink-leaning purple to keep clean separation from
+  `OPTCG_COLORS.Purple` (#9b5de5) — same anti-collision reasoning as the
+  red/yellow separation from the original rebrand.
+- **Lesson for future re-theming work**: when a character/property has
+  multiple visually distinct forms, ask "does each form get its own
+  identity color, or one identity color restyled per background" *before*
+  picking hex values — the user's literal phrasing ("Thundercloud" as a named
+  form, lightning explicitly called out) was the tell that they meant the
+  former, not the latter.
+- **Icon pass**: user separately flagged "some icons can be vastly improved."
+  Checked actual usage first (`grep` for `Icon name=` across the app,
+  including ternary-bound names) to avoid polishing icons nobody sees (e.g.
+  `bolt`, `cart`, `tag`, `swap`, `bell`, `star` are all defined in `Icon.tsx`
+  but never rendered anywhere — left untouched, not worth the effort).
+  Rendered the actually-used set in the live web preview at real sizes (12–
+  104px) to judge by eye, not by reading path data. Two clear misses, both
+  redrawn and re-verified at size:
+  - **`cloud`** (the mascot — splash, Sets "materialized" texture, Settings
+    form-picker) was lopsided/blobby, didn't read as a cloud at a glance.
+    Iterated 3 candidate paths live in the preview before picking the
+    cleanest, then confirmed it holds up from 12px to 104px.
+  - **`checkSquare`** (bulk-select toggle) had a cramped, off-center
+    checkmark. Enlarged and re-centered it within the box.
+  - `gear`, `binder`, `sparkle` checked and left as-is — read clearly at
+    their real usage sizes, not actually weak.
+- **Verified**: reloaded the web preview after the accent fix — Thundercloud
+  now reads purple/gold throughout (Home tiles, Settings, progress %), Regular
+  confirmed still red/gold and unaffected, switched back to Thundercloud
+  (default) afterward. `DESIGN.md` (Overview, Colors, Components, Do's/Don'ts)
+  and `PRODUCT.md` (Brand Personality, Design Principles, Accessibility — the
+  last one had a now-stale "Dark theme only, no light theme planned" line
+  from before today's work, caught and fixed in this same pass) rewritten
+  throughout to stop saying "red" as if it were theme-universal.
+- **Pending user**: re-review Thundercloud in person — purple is a much
+  bigger swing on "does this feel like Zeus" than the lightness-only red I
+  shipped first.
+
+---
+
+### Light/dark theme: Zeus's Regular and Thundercloud forms (2026-06-26, typecheck-green, web-verified, NOT yet device-reviewed)
+Follow-up to the same day's rebrand: user wants to alternate the app's look
+based on Zeus's two canon forms — Regular (white cloud, daytime) and
+Thundercloud (black storm cloud, lightning). Picked **yellow as the
+persistent progress/collection accent in both forms** (not the reference
+image's purple lightning) when asked — keeps a set's progress ring reading
+the same color whether you're in Regular or Thundercloud, which matters more
+for usability than canon-accuracy; purple was offered as a future "rare glow
+accent" idea, not built.
+
+- **The real engineering question, surfaced before building anything**: this
+  app's styles are `StyleSheet.create({...colors...})` calls at **module
+  scope** in ~40+ files — evaluated once, at first import, never again. A
+  live/instant theme toggle would need every one of those screens refactored
+  to consume colors reactively (a context/hook + styles computed per-render)
+  — a large, invasive change. Asked the user: live-and-large, or
+  restart-to-apply-and-small? They picked **restart-to-apply**.
+- **Restart-to-apply turned out to have its own hidden trap**, found during
+  implementation, not before: even on a full app restart, `theme.ts`'s
+  `colors` object is still resolved at module-evaluation time, and
+  AsyncStorage reads are async — by the time a persisted preference loads,
+  every screen's `StyleSheet.create` has *already* run with whatever was
+  available synchronously (i.e., a hardcoded default), every single restart.
+  ES `import` statements are hoisted and eager; gating *rendering* behind a
+  loading screen (the obvious first instinct) doesn't help because it doesn't
+  gate *importing* — `App.tsx`'s top-level `import { HomeScreen } from
+  './screens/HomeScreen'` already ran before any component-level gating logic
+  could execute.
+  - **Fix: a custom entry point that defers the `require()`, not just the
+    render.** New `app/index.js` (replaces `expo/AppEntry.js` via
+    `package.json`'s `main` field) does: `await` the persisted theme mode from
+    AsyncStorage → stash it on `globalThis.__INITIAL_THEME_MODE__` → **only
+    then** `require('./App')` (CommonJS, deferred — not a static top-level
+    `import`, which would defeat the whole point by hoisting). Since `App.tsx`
+    and every screen it imports are only evaluated *after* the await
+    resolves, their `StyleSheet.create` calls see the correct `colors` from
+    their very first evaluation. `theme.ts` reads
+    `globalThis.__INITIAL_THEME_MODE__` once, synchronously, to pick `LIGHT`
+    vs `DARK`. Verified by literally reloading the web preview after switching
+    modes — the new theme applied immediately on the very next load, no flash
+    of the old one.
+  - New `lib/themeMode.ts`: tiny dedicated AsyncStorage key
+    (`optcg.themeMode.v1`, deliberately separate from `settings.ts`'s schema —
+    it must be readable before `App.tsx`/`theme.ts` exist, so it can't depend
+    on anything settings-shaped). `getStoredThemeMode()` / `setThemeMode()`.
+- **`theme.ts`** restructured: `DARK` (Thundercloud, = the rebrand from
+  earlier today, unchanged) and a new `LIGHT` (Regular) object, picked via the
+  global flag above. **Regular's `accent`/`ghost`/`up`/`down` are NOT the same
+  hex as Thundercloud's** — they're deliberately darkened. Checked by hand:
+  Thundercloud's bright red/gold, used as direct text-on-white, would fail
+  ~4.5:1 (gold especially — bright yellow text on white is barely readable at
+  any contrast ratio). Darkening them fixed text-on-bg contrast, but flipped a
+  *second* problem: dark-ink-on-now-darker-fill buttons dropped to ~3.9:1
+  (fails). Resolved by flipping Regular's button ink to **white**-on-fill
+  (computed ~4.7:1+) — documented as "The Ink-Flip Rule" in DESIGN.md, a
+  contrast-driven exception, not a violation of the existing "dark ink on
+  accent" convention (which only ever held for Thundercloud's specific bright
+  fill values).
+- **New `onScrim` export** (`#f2f3f5`, fixed, not part of either theme
+  object). Found a real bug while testing Regular mode visually (not visible
+  in Thundercloud, where it accidentally worked): `SetBanner`'s back-button
+  circle and `DeckRow`'s "⋯" menu circle sit on a backdrop that's *always*
+  dark (`rgba(21,22,26,~0.55)`, for legibility over busy key art, independent
+  of theme) — but their icons used `colors.text`, which flips dark in Regular
+  mode. Dark icon on dark circle = invisible. Fixed both to use `onScrim`
+  instead. **This is exactly the kind of bug that only a real-mode test
+  catches** — reasoning about hex values on paper said nothing was wrong,
+  because `colors.text` "should" contrast with its surroundings; it just
+  doesn't when the surroundings are a separate fixed-color element, not `bg`.
+- **Audited every hardcoded `color: '#fff'` in the codebase** while in there
+  (13 occurrences across `AccountScreen`, `BinderScreen` ×2, `BrowseScreen`,
+  `DeckDetailScreen`, `DecksScreen` ×2, `DetailScreen`, `FriendProfileScreen`,
+  `FriendsScreen`, `ScanScreen` ×3, `WishlistDetailScreen`). All but one were
+  text on an `accent`-filled button/badge that should have read
+  `colors.onAccent` — a latent inconsistency that happened to look fine in
+  the old single-theme app (white text on bright Perona pink/Thundercloud red
+  both pass contrast well enough) but would have looked *visually
+  inconsistent* in Regular mode (white-on-red there is correct per the
+  Ink-Flip Rule, so these accidentally still pass contrast — but they weren't
+  *deriving* the right answer, they were hardcoded to it by luck). Fixed all
+  to `colors.onAccent`. The one exception (`CardThumb.tsx`'s `sourceSetText`)
+  sits on a fixed dark image-overlay badge, not an accent fill — correctly
+  left as fixed white, same reasoning as `onScrim`.
+- **Settings UI**: new "Zeus's form" section (placed above Language, since
+  it's the most prominent app-wide preference) with two icon+label pills
+  (`cloud` icon, reused from the rebrand). Picking a different mode than the
+  currently-active one immediately persists it and shows a toast: "Saved —
+  restart the app to see the new look." A `pendingMode !== themeMode` check
+  shows the same notice as static text too, in case the user navigates away
+  from the toast before reading it.
+- **Verified in web preview** (page reload = the same cold-boot timing this
+  feature depends on, so this is a faithful test, not a simulation): switched
+  to Regular, reloaded, light theme applied immediately on Home/Cards/Sets/
+  SetDetail with no flash of Thundercloud; the tab bar's floating wash
+  (`tabBarWash`, a new per-theme token — it's a translucent value that can't
+  derive from a solid `surface2`) correctly went from dark to light; the
+  back-button contrast bug above was caught and fixed in this same pass;
+  switched back to Thundercloud and confirmed it still works after the fix.
+- **Pending user**: device review in both forms — this is the first time the
+  app has had more than one theme, and the restart-to-apply UX (toast +
+  static notice, no automatic reload) hasn't been felt on a real device yet.
+
+---
+
+### Full rebrand: Perona/ghost theme → Zeus thundercloud (2026-06-26, typecheck-green, web-verified, NOT yet device-reviewed)
+User-requested rebrand via `/impeccable`: "mimic Zeus's style and personality
+... black/gray BG, white cloud, and the colors on the cap." Zeus is Big Mom's
+giant thundercloud minion — white puffy body, a red/white candy-stripe party
+hat with a yellow brim. Asked one clarifying question before touching code
+(mascot icon: redraw as a cloud, or keep the ghost shape just recolored?) —
+user picked **redraw as a cloud**, so this is a full identity swap, not just a
+hex-value swap.
+
+- **Color strategy.** Kept the existing system's structure (storm-neutral base
+  + exactly two semantic accents, same token *keys* as before) and remapped
+  the hues: brand/primary-action accent → **cap red** (`#f0452c`), progress/
+  collection accent → **brim gold** (`#f6c343`), all text/surfaces → **cloud
+  white/gray** neutrals. This was a deliberate choice to preserve the proven
+  "Two-Color Rule" structure rather than redesign the system's shape — the
+  user asked for *Zeus's colors*, not a different design philosophy.
+- **Collision avoidance (important, easy to get wrong on a re-skin like
+  this).** The new brand red/gold are close in hue family to two of the
+  OPTCG's own 6 card-data colors (`optcg-red` #e63946, `optcg-yellow`
+  #f4a261) — a real risk, since the system's own rule says card-data colors
+  must never be confused with UI brand colors. Resolved by deliberately
+  choosing brand `accent` more *orange* than `optcg-red`, and brand `ghost`
+  more *golden/saturated* than `optcg-yellow` (which is actually a peach).
+  Also separated `down` (#e54b6b, rose-leaning) from the new `accent`
+  (#f0452c, orange-leaning) for the same reason — they'd have collided since
+  the old `accent` was pink, not red, and never competed with `down` before.
+- **`theme.ts`** — every color in the `colors` object changed value (bg/
+  surface/surface2/border/text/textMut/textDim/accent*/onAccent/ghost*/
+  onGhost/badge/ring/down). `up` stayed `#4ec98b` (unrelated semantic, no
+  collision). `OPTCG_COLORS` (the 6 card-data colors) **untouched** — those
+  are the game's own identity, not the app's brand.
+- **Mascot icon redrawn, not just recolored.** `components/Icon.tsx`'s `ghost`
+  icon (a literal ghost silhouette + 2 eye dots) replaced with a `cloud` key
+  (puffy cloud silhouette, Feather-style arcs, same 2-eye-dot abstraction
+  level for visual continuity with the rest of the icon set). Updated all 4
+  call sites: `App.tsx` splash logo, `SetUpdateBanner.tsx`, and
+  `SetsScreen.tsx`'s two "materialized" ghost-watermark/dot icons.
+  **Deliberately did NOT rename the `colors.ghost` token key** (used in ~7
+  files for the progress/collection semantic) — renaming it everywhere is a
+  refactor the user didn't ask for and risked introducing bugs for zero
+  visible benefit; documented the now-stale name in DESIGN.md's "Legacy Token
+  Rule" instead so future sessions aren't confused by `colors.ghost` meaning
+  gold, not cyan.
+- **Hardcoded scrim/backdrop sweep.** Several components had backdrop/dim
+  colors as raw `rgba(...)` literals derived from the *old* bg hex
+  (`rgba(14,12,26,*)`, `rgba(19,16,25,*)`) instead of referencing a token —
+  these don't auto-update when `theme.ts` changes. Found via a targeted grep
+  for the old hex fragments (not deterministic without it — `theme.ts` alone
+  wouldn't have caught these). Re-derived all 14 from the *new* bg
+  (`#15161a` → `rgba(21,22,26,*)`, preserving each file's original alpha):
+  `BinderScreen.tsx`, `DeckDetailScreen.tsx`, `DecksScreen.tsx`,
+  `WishlistDetailScreen.tsx`, `ScanScreen.tsx`, `BulkTargetSheet.tsx`,
+  `CardThumb.tsx` (×2), `DeckCardPile.tsx`, `DeckRow.tsx`, `SetBanner.tsx`,
+  `SetBulkAddSheet.tsx`, `VariantPickerSheet.tsx`, `WishlistPickerModal.tsx`.
+  Also caught one in `App.tsx`'s floating tab bar (`rgba(28,23,38,0.94)`,
+  visibly purple-tinted in the first screenshot) → `rgba(30,32,36,0.94)`.
+- **`DESIGN.md`** rewritten in full: new creative north star ("The
+  Thunderhead" replaces "The Negative Hollow"), renamed color swatches (Cap
+  Red, Spark Gold, Storm Void, Cloud White, Faded/Dim Cloud, Ember/Charge
+  Ink), updated Named Rules (Two-Spark Rule replaces Two-Ghost Rule; added a
+  Legacy Token Rule explaining the `colors.ghost`/`cloud`-icon naming
+  holdover), updated component descriptions (buttons, card thumbnails,
+  progress rings/orbs, navigation) to reference the new colors. Typography,
+  spacing, radii, elevation shape — all **unchanged**, this was a color/
+  identity rebrand, not a structural one.
+- **`PRODUCT.md`** — updated "Brand Personality" and "Design Principles" to
+  describe Zeus/thundercloud instead of Perona/ghosts, with a one-line note
+  pointing back to this diary entry for the full rationale.
+- **Contrast checked by hand** (no automated tool in this stack): text/bg
+  ~16:1, textMut/bg ~6.7:1, textDim/bg ~4.1:1 (matches the old system's
+  documented ~4:1 floor), onAccent/accent ~4.9:1, onGhost/ghost ~11.2:1 — all
+  clear AA for their respective text sizes.
+- **Verified in web preview**: Home (hero stats, vault value, tile grid, tab
+  bar), Browse/Cards (search row, sort row, card thumbnails), Sets (family
+  card, progress rings, rarity strip, "materialized" cloud icon), SetDetail
+  (rarity-in-banner, Parallels/Missing/Select pills), and the
+  `SetBulkAddSheet` destination toggle — all read cleanly in the new palette,
+  no leftover purple/pink/cyan visible anywhere.
+- **Pending user**: device review — this is the single biggest visual change
+  to ship this app has had; confirm the red/gold feel matches the Zeus
+  reference on a real screen before treating it as final. Also worth a skim
+  of `DESIGN.md`'s renamed swatches in case any naming should change.
+
+---
+
+### Persistent tab bar, universal back, rarity-in-banner, collection bulk-add, icon labels, sparkle icon (2026-06-26, typecheck-green, web-verified)
+Five independent user-requested changes, all auto-actioned. The first two were
+flagged to the user as architectural decisions before starting (tab bar on
+modals? lightweight overlay vs. full nested-stack refactor?) — user picked
+"pushed screens only" + "lightweight global overlay" for both.
+
+- **Persistent bottom tab bar on every non-modal screen.** Previously the
+  floating tab bar only existed inside `Tabs.Navigator` (Home/Browse/Binder/
+  Decks) — any root-stack screen (Sets, SetDetail, DeckDetail, Settings,
+  WishlistDetail, Account, Friends, FriendProfile) hid it entirely, since
+  React Navigation's tab bar unmounts once you leave the tab navigator.
+  Rewired in `App.tsx`: the `TabBar` component is now rendered **once**, as a
+  sibling of `<Stack.Navigator>` inside `<NavigationContainer>`, driven by a
+  module-level `navigationRef` (`createNavigationContainerRef`). `activeTab`
+  is "remembered" state — it only updates when the focused route is actually
+  one of the 4 main tabs, so it keeps highlighting (e.g.) Home while you're
+  three screens deep into SetDetail. `Tabs.Navigator`'s own built-in tab bar is
+  suppressed (`tabBar={() => null}`) to avoid a duplicate. The bar hides only
+  on `Detail` and `Scan` (`HIDE_TAB_BAR_ON` set in `App.tsx`) — full-screen
+  modals, the one case where hiding background nav is the established
+  convention, per explicit user choice.
+  - **Bottom padding audit**: every screen that previously assumed no
+    persistent bar at the bottom needed more breathing room.
+    `SetDetailScreen`'s grid bumped `paddingBottom` 30→110. `SettingsScreen`,
+    `AccountScreen`, `FriendsScreen`, `FriendProfileScreen` bumped their
+    `scroll` style 60→110 (matching the convention `WishlistDetailScreen`/
+    `SetsScreen`/`DeckDetailScreen` already used). Verified live: the
+    "Download all" button on Settings, and the last card row on SetDetail's
+    grid, both now clear the floating bar.
+- **Universal "smart back".** New `lib/nav.ts` → `smartGoBack(navigation)`:
+  `goBack()` if there's history, else `navigate('Tabs', {screen:'Home'})`.
+  Wired into all 9 screens that had a bare `navigation.goBack()` (DeckDetail,
+  WishlistDetail, SetDetail, Settings, Account, Friends, FriendProfile, Detail,
+  Scan) — a safety net for the (currently theoretical, no deep-linking yet)
+  case of landing on one of these with no back history. Audited first: every
+  one of these screens **already had** a visible back arrow, so this was a
+  behavior hardening, not a missing-affordance fix. `Sets` relies on the
+  native stack header's auto-generated back chevron — already fine, untouched.
+- **Rarity completion counts moved inside the SetDetail banner.**
+  `components/SetBanner.tsx` gained an optional `rarities?: RarityBucket[]`
+  prop; when present, the capsule grows from 132→172px and a second row (a
+  horizontal-scroll rarity strip, same `owned/total` + label cells the old
+  standalone row used) renders below the title/progress row, inside the same
+  masked-art capsule. `SetDetailScreen.tsx` now passes `rarities={rarities}`
+  and the old separate `<View style={s.progressRow}>` block (+ its now-dead
+  styles) was deleted — a set should read as one visual unit, not a banner
+  plus a disconnected strip below it.
+- **Set-level bulk-add now targets the real collection, not just a wishlist.**
+  Previously `SetWishlistSheet` only ever wrote to a chosen wishlist. Renamed
+  → `components/SetBulkAddSheet.tsx` (old file deleted) and added a
+  Wishlist/"My collection" destination toggle at the top. Collection path uses
+  `lib/collection.ts`'s `adjust(code, suffix, +qty)` (additive, same semantics
+  as wishlist's `addCard`) instead of `wishlists.ts`'s `addCard`; the wishlist
+  picker section only renders when "Wishlist" is selected, and the Confirm
+  button no longer requires picking a wishlist when targeting the collection.
+  Added a toast on apply (`setwl.added` / `setwl.addedToCollection`) — the
+  sheet previously had a translated-but-unused "added" string; now it's wired.
+- **Icon-only buttons gained visible text labels** (user: icons should say
+  what they do, not just carry an a11y label nobody reads). Converted to
+  icon+label pills/pairs: header Settings gear (`App.tsx`, label below the
+  icon), Browse's Filter and Select buttons (`BrowseScreen.tsx`), SetDetail's
+  Parallels/Missing/Select pills (`SetDetailScreen.tsx`, also converted from
+  bare circular icon buttons to the same pill style as Parallels for
+  consistency). **Binder's Select button was attempted the same way and
+  reverted** — that meta-row (count text + share + filter + select + 4-way
+  column toggle) already overflowed off-screen at 375px width *before* adding
+  text; verified via screenshot, backed out to keep it icon-only rather than
+  ship a regression. `ColumnsToggle`'s 2/3/4/5 buttons were left alone — they're
+  numbers, not icons, already self-explanatory.
+- **Sparkle icon for "Parallels" toggles.** New `sparkle` path in
+  `components/Icon.tsx` (4-point flash + 2 small sparks). Applied in
+  `BrowseScreen.tsx` and `SetDetailScreen.tsx`'s Parallels chips, tinted
+  accent when active.
+- **Verified in web preview**: persistent bar confirmed visible+correctly-
+  highlighted on Home, Sets, SetDetail, and Settings (reached via the header
+  gear from the Cards tab — "Cards" stayed highlighted on the bar while on
+  Settings, confirming the "remembered active tab" logic). Rarity-in-banner
+  and the destination toggle (Wishlist ⇄ My collection, confirm button
+  enabling/disabling correctly) confirmed via screenshot at both desktop and
+  375px mobile width. Binder's overflow-at-mobile-width regression caught and
+  fixed before finishing.
+- **Pending user**: device review (the persistent tab bar is the biggest
+  behavioral change in the app this session — confirm it feels right on a
+  real device, not just web preview).
 
 ---
 
@@ -1184,6 +1874,34 @@ plan). Static data (card index, prices, images) is never sent to Supabase.
 
 ## Known Bugs
 
+### ~~B-11 — Native Android crash: "App entry point named 'main' was not registered"~~ — RESOLVED (2026-07-13)
+- **File:** `app/index.js`
+- **Symptom:** Fresh native install (both debug and release) crashed to a red "App
+  entry not found" screen instead of rendering `Home`. Never seen in the web preview.
+- **Root cause:** `index.js` (the theme-mode-aware custom entry point, added
+  2026-06-26 for the light/dark theme feature) called `registerRootComponent(App)`
+  **inside an `async () => {...}` IIFE, after `await AsyncStorage.getItem(...)`**, so
+  that `theme.ts`'s `globalThis.__INITIAL_THEME_MODE__` read (module-eval time) would
+  see the right mode before any screen's `StyleSheet.create` ran, avoiding a
+  wrong-theme flash. On native, React Native's bridge calls
+  `AppRegistry.runApplication("main", …)` right after the JS bundle finishes
+  evaluating — it does **not** wait for a component registered later via an async
+  callback. By the time the `await` resolved and `registerRootComponent` finally ran,
+  native had already tried (and failed) to look up `"main"`. Web never hit this
+  because its entry/mount path doesn't have that synchronous-registration contract —
+  which is exactly why this shipped unnoticed: **the theme-mode feature (and several
+  others since) had only ever been typecheck-green + web-verified, never run on a
+  real native build until this session's first `npx expo run:android`.**
+- **Fix:** `registerRootComponent` now runs synchronously and immediately, pointing at
+  a small `Root` component that itself does the async `AsyncStorage` read (via
+  `useEffect`) and returns `null` until it resolves — satisfying native's timing
+  requirement while still deferring `require('./App')` (and thus every screen's
+  `StyleSheet.create`) until `__INITIAL_THEME_MODE__` is set, preserving the original
+  no-flash intent.
+- **Verified on device:** Xiaomi `duchamp_global` (Android 16, arm64-v8a) — both a
+  live-reloaded debug build and a fully standalone release build (Metro killed, `adb
+  reverse` removed) now boot straight to `Home` with no crash.
+
 ### ~~B-10 — Web build (`npm start` → web) rendered a blank page~~ — RESOLVED (2026-06-07)
 - **Symptom:** Running the web target showed a blank page; no error overlay, no
   console error. React never mounted (`__REACT_DEVTOOLS_GLOBAL_HOOK__.renderers`
@@ -1317,6 +2035,18 @@ plan). Static data (card index, prices, images) is never sent to Supabase.
 ---
 
 ## QoL / Future Improvements
+
+### ~~Price change-% delta on tiles~~ — done (2026-06-28)
+Implemented as `lib/priceHistory.ts`: snapshots each `prices.json` release and
+diffs the current price against the previous release (≈ weekly delta), shown
+green/red on Browse tiles. Reads `0.0%` until the next price release provides a
+prior snapshot. Future: per-variant (not just base-code) history; a "since you
+started tracking" cost-basis mode for the Portfolio/Binder view.
+
+### Global scan reachability (deferred from the 2026-06-28 Collectr restyle)
+Killing the Scan FAB means scan is only reachable where a search field / action
+row exists (Browse, Binder owned tab). If users miss scanning from Home/Decks,
+options: add the camera to more surfaces, or a small persistent scan affordance.
 
 ### ~~1. Real Cardmarket price integration~~ — resuelto (2026-06-06, Opción A)
 Ver implementación en B-03 arriba. Mejoras posibles a futuro: Opción B (proxy backend)
