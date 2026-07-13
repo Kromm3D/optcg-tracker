@@ -3,7 +3,7 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-07-13 (**First real native Android install** — found and fixed a device-only crash (B-11, entry point never registered) that no amount of web-preview testing could have caught; app now confirmed running standalone on a physical phone. Precedes: Supabase backend brought online + verified end-to-end. Typecheck-green.)
+**Last updated:** 2026-07-13 (**First real on-device scanner test.** Found + fixed 2 real bugs never caught before (B-12 area threshold, B-13 PNG decoder); found + diagnosed but NOT yet fixed a 3rd, deeper one (B-14 corner-localization precision) that's the actual current blocker to working identification. Also discussed monetization direction (see below) and confirmed the first real native Android install (B-11, entry-point crash). Typecheck-green.)
 **Current branch:** `main`
 **App version:** 0.1.0 (pre-release)
 
@@ -60,6 +60,56 @@ do not stage them. **Follow-ups still pending** from the scanner removal: run
 `npx expo prebuild --clean` before the next native build.
 
 ---
+
+### First real on-device scanner test — 2 bugs fixed, 1 diagnosed (2026-07-13, device-verified)
+Followed the Android install session (below) with the actual point of having a phone in
+hand: pointed the on-device scanner (Stage-1 detect+rectify + Stage-2 pHash identify,
+see "Card Scanner v2" in Implemented Features) at real cards for the first time ever.
+Everything here was previously typecheck-green/web-verified only — none of it had ever
+run against a real camera + real cards. See **B-12/B-13/B-14** in Known Bugs for full
+root-cause detail; summary:
+
+- **B-12 (FIXED)** — Stage-1's area-rejection floor (8% of frame) was calibrated blind
+  and rejected genuine card quads; real in-hand scans topped out at 7.3-8.0%. Lowered
+  to 4%. Verified: went from 0 stable detections in ~2000 logged frames to consistently
+  detecting a plain (non-foil) card, incl. through a sleeve.
+- **B-13 (FIXED)** — Stage-2's hand-rolled DEFLATE/PNG decoder (`lib/phash.ts`, ~150
+  lines reimplementing Huffman) threw `invalid huffman` on real 16×16 camera-derived
+  PNGs — traced to a genuine implementation bug (confirmed against Node's `zlib` on a
+  captured payload; the decoder's own comment admitted it was only ever exercised
+  against untested 8×8 fixtures despite the real HASH_SIZE being 16). Replaced with
+  `fflate`'s `unzlibSync` (~8KB, audited, zero deps) — this is the *right* fix, not a
+  patch: don't hand-roll DEFLATE. Verified: 0 decode errors afterward.
+- **B-14 (DIAGNOSED, NOT FIXED)** — even with B-12/B-13 fixed, identification still
+  never matches the right card. Root-caused via a rigorous offline pipeline (saved the
+  captured 16×16 PNG, ran the *exact* Python reference hash algorithm from
+  `build_card_database.py` against it, compared to the true stored hash — ruling out a
+  BGR/RGB channel-swap hypothesis along the way) down to: the rectified crop itself is
+  garbage — visually confirmed as vertical color-banding, the classic symptom of
+  `warpPerspective` stretching a thin/near-degenerate quad instead of the real card
+  face. The detected quad passes the aggregate area+aspect sanity checks but its 4
+  individual corners aren't localized precisely enough (480×640 detection buffer is
+  low-res for this) for a clean perspective warp. **This is the actual current
+  blocker** — not a threshold, a real corner-precision problem. Next step floated but
+  not attempted: raise `RES_W`/`RES_H` in `NativeScanCamera.tsx` and/or add sub-pixel
+  corner refinement.
+
+**Methodology note worth repeating** — all three bugs were found by *instrumenting and
+reading real device logs*, not by guessing: temporary `[SCANDBG]`-tagged `console.log`s
+in `cardDetect.ts`/`cardMatch.ts`/`phash.ts`/`ScanScreen.tsx` (all removed again before
+this commit — search for `SCANDBG` if this pattern needs reviving) plus `adb logcat`,
+`adb exec-out screencap`, and for B-13/B-14 specifically, pulling the actual failing
+payload off-device and reproducing it in plain Node/Python for byte-level and pixel-level
+comparison against ground truth. This is a good template for any future "why doesn't the
+scanner work" session — screen-staring and parameter-guessing would not have found B-13
+or B-14.
+
+**Also this session:** discussed monetization direction (free app, mixed one-time +
+subscription — see PRODUCT.md-adjacent notes / ask the user or check assistant memory
+`monetization-plan`) and confirmed the app's first real native Android install. Nothing
+in this scanner diagnostic session was committed speculatively — B-12/B-13 are real,
+verified fixes; B-14 is intentionally left as a documented, reproducible bug for next
+session rather than a rushed patch.
 
 ### First real native Android install — found + fixed entry-point crash (2026-07-13, device-verified on physical phone)
 User wants the app installable on their own Android phone to demo to colleagues. This
@@ -1873,6 +1923,77 @@ plan). Static data (card index, prices, images) is never sent to Supabase.
   offline can be resurrected if B logs in and pushes first. Acceptable for v1.
 
 ## Known Bugs
+
+### B-14 — Scanner: rectified crop is unusable (corner-localization precision)
+- **Files:** `app/src/lib/cardDetect.ts` (`detectCardQuad`, `rectifyCardCrop`),
+  `app/src/screens/NativeScanCamera.tsx` (`RES_W`/`RES_H` = 480×640).
+- **Symptom:** Even after B-12 (area threshold), Stage-2 identification never returns
+  the correct card — distances stay 200-260/768, well above the 150 match floor, and
+  consistently land on the *same wrong* candidates across many frames (not random
+  noise). Visually confirmed by decoding a captured rectified crop: instead of the
+  card's illustration, it shows vertical color-banding — no recognizable image at all.
+- **Root cause:** `detectCardQuad`'s 4-point quad passes the aggregate area (≥4%) and
+  aspect (~0.72±0.18) checks, but its **individual corner coordinates aren't precise
+  enough** for a clean `warpPerspective`. A quad that's the right size/shape in
+  aggregate but has even one poorly-localized corner produces a sheared/degenerate
+  transform — textbook symptom is exactly the vertical banding observed. Detection
+  runs on a 480×640 downscaled frame (`RES_W`/`RES_H` in `NativeScanCamera.tsx`),
+  which may simply be too low-resolution for `approxPolyDP` to place corners
+  precisely enough at normal card-in-frame sizes.
+- **How this was diagnosed (not guessed):** captured the actual 16×16 pre-hash PNG the
+  device produced, decoded it locally, and — critically — computed its real hash with
+  the *exact* Python algorithm from `build_card_database.py` (not just eyeballing) and
+  compared against the true stored hash for the card being scanned. Also tested and
+  **ruled out** a BGR/RGB channel-swap hypothesis (swapping R/B changed the distance by
+  only 2/768 — noise, not the cause) before landing on the corner-precision theory via
+  direct visual inspection of the upscaled crop next to the reference art.
+- **Not fixed yet.** Candidate next steps (untried): raise the detection buffer
+  resolution; add sub-pixel corner refinement (e.g. `cv2.cornerSubPix`-equivalent) after
+  `approxPolyDP`; or tighten `0.02 * peri` epsilon in `approxPolyDP` for a closer-fitting
+  polygon. Any fix here **must** be re-verified on a real device with a real card —
+  this bug is invisible to typecheck and to the web preview entirely.
+
+### ~~B-13 — Scanner: hand-rolled DEFLATE/PNG decoder threw "invalid huffman" on real camera PNGs~~ — RESOLVED (2026-07-13)
+- **File:** `app/src/lib/phash.ts`.
+- **Symptom:** `computeAhash()` threw `Error: invalid huffman` (or `unexpected EOF`) on
+  every real, camera-derived 16×16 PNG once Stage-1 detection started working (B-12).
+- **Root cause:** `phash.ts` had a ~150-line hand-rolled DEFLATE/PNG decoder whose own
+  comment admitted it "only handles the tiny 8×8 RGBA/RGB PNGs" — but `HASH_SIZE` is
+  16, and it had apparently never actually been exercised against a real 16×16 payload
+  before this session. Confirmed via reproduction: extracted the exact failing base64
+  PNG from device logs, verified the PNG itself was 100% valid (Node's built-in `zlib`
+  inflated it cleanly, all chunk CRCs matched), then traced our decoder's own dynamic-
+  Huffman-table construction step-by-step and found it produced a code-length table
+  with Kraft sum ≈0.27 instead of the required 1.0 — i.e. a genuinely broken table, not
+  a data problem. The bug is somewhere in the bit-level Huffman reconstruction; not
+  worth hunting further by hand once a battle-tested alternative exists.
+- **Fix:** deleted the entire hand-rolled decoder (`decompressDeflate`, `inflateRaw`,
+  `_deflate` — none used elsewhere; `onnx.ts`, the file that supposedly reused
+  `_deflate`, doesn't exist in this codebase) and replaced it with `fflate`'s
+  `unzlibSync` (new dependency, ~8KB, zero deps, pure JS — no native rebuild needed).
+  `decodePng`'s chunk-walking + row-unfiltering logic is unchanged; only the
+  decompression step changed.
+- **Verified on device:** 0 decode errors across a full scan session afterward (was 25
+  errors/session before).
+
+### ~~B-12 — Scanner: Stage-1 area threshold rejected genuine card quads~~ — RESOLVED (2026-07-13)
+- **File:** `app/src/lib/cardDetect.ts` (`isCardQuad`).
+- **Symptom:** On-device, `quad detected=true` fired essentially never (0-3 times per
+  ~1000 detection frames) even with a card held steady in frame.
+- **Root cause:** `isCardQuad`'s minimum-area floor (`area < frameArea * 0.08`, i.e. the
+  quad must cover ≥8% of the 480×640 resized frame) was set blind — the module's own
+  comment already flagged it "Never device-tested — recalibrate if... good scans miss."
+  Real in-hand scans topped out at 7.3-8.0% even held close, never actually reaching 8%.
+- **Fix:** extracted the magic number to `AREA_MIN_FRACTION` and lowered it to 0.04,
+  with headroom for normal (not just close-up) holding distance.
+- **Verified on device:** went from 0 stable detections to consistently detecting a
+  plain (non-foil) card, including through a card sleeve — sleeving is **not** a
+  blocker for Stage-1 detection (see B-14 for what's actually still broken).
+- **Note:** a **holographic/foil** card was also tested and did *not* detect reliably —
+  glare/glitter texture generates too much Canny edge noise for this classical-CV
+  approach. Not yet root-caused separately from B-14; may turn out to be the same
+  corner-precision issue or may need dedicated handling (e.g. polarizing capture
+  timing, HDR, or accepting foil cards need the manual code-entry fallback).
 
 ### ~~B-11 — Native Android crash: "App entry point named 'main' was not registered"~~ — RESOLVED (2026-07-13)
 - **File:** `app/index.js`

@@ -106,10 +106,17 @@ export function quadArea(q: Quad): number {
  * Validate a quad looks like a card: convex-ish, big enough, ~5:7 aspect.
  * `frameArea` is the area of the (resized) frame the contour came from.
  */
+// Min fraction of the (resized) frame the quad must occupy. Device-calibrated
+// 2026-07-13: real in-hand scans topped out at 7.3-8.0% (the old 0.08 floor),
+// consistently rejecting genuine card quads as "too small" — never device-
+// tested before this session. Lowered with headroom for normal holding
+// distance (not just close-up).
+const AREA_MIN_FRACTION = 0.04;
+
 export function isCardQuad(q: Quad, frameArea: number): boolean {
   'worklet';
   const area = quadArea(q);
-  if (area < frameArea * 0.08) return false; // too small / spurious
+  if (area < frameArea * AREA_MIN_FRACTION) return false; // too small / spurious
   const w = (dist(q[0], q[1]) + dist(q[3], q[2])) / 2; // avg top/bottom edge
   const h = (dist(q[0], q[3]) + dist(q[1], q[2])) / 2; // avg left/right edge
   if (w === 0 || h === 0) return false;
