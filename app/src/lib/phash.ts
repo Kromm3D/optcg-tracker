@@ -193,9 +193,14 @@ export interface CropRect { originX: number; originY: number; width: number; hei
  * optional pixel `crop`) so only the illustration is hashed.
  * Pass `crop` to first restrict to a sub-region (in the image's pixel coords) —
  * used by the focus-box fallback; omit it when the URI is already a rectified card.
+ * Pass `rotate` (degrees, clockwise) to correct for orientation — the native
+ * detect+rectify pipeline (lib/cardDetect.ts) doesn't know which of the quad's 4
+ * corners is the card's actual "top", so the rectified crop can come out rotated
+ * 90°/180°/270° depending on how the card/phone were held. See B-14 in AGENTS.md;
+ * callers should try all 4 rotations via matchTopK rather than assume 0°.
  * Matches Python: build_card_database.build_hashes (rgb_average_hash, size=16).
  */
-export async function computeAhash(imageUri: string, crop?: CropRect): Promise<string> {
+export async function computeAhash(imageUri: string, crop?: CropRect, rotate = 0): Promise<string> {
   const [fx, fy, fw, fh] = ART_CROP;
 
   let workingUri = imageUri;
@@ -218,6 +223,19 @@ export async function computeAhash(imageUri: string, crop?: CropRect): Promise<s
     // rectifyCardCrop. Use the known constants to avoid an extra round-trip.
     workingW = RECTIFIED_W;
     workingH = RECTIFIED_H;
+  }
+
+  if (rotate) {
+    const rotated = await ImageManipulator.manipulateAsync(
+      workingUri,
+      [{ rotate }],
+      { format: ImageManipulator.SaveFormat.PNG },
+    );
+    workingUri = rotated.uri;
+    // 90°/270° swap the bounding box; expo-image-manipulator reports the
+    // post-rotation size, so trust it rather than re-deriving from rotate%180.
+    workingW = rotated.width;
+    workingH = rotated.height;
   }
 
   // Crop to the artwork region, then downscale to HASH_SIZE.

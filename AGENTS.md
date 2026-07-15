@@ -3,7 +3,7 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-07-13 (**First real on-device scanner test.** Found + fixed 2 real bugs never caught before (B-12 area threshold, B-13 PNG decoder); found + diagnosed but NOT yet fixed a 3rd, deeper one (B-14 corner-localization precision) that's the actual current blocker to working identification. Also discussed monetization direction (see below) and confirmed the first real native Android install (B-11, entry-point crash). Typecheck-green.)
+**Last updated:** 2026-07-15 (**B-14 root-caused and partially fixed** — the scanner's rectified crop isn't corner-precision-broken as first hypothesized (that fix was tried, disproved, and reverted); it's an **orientation** bug: the rectified card can come out rotated 90°/180°/270°, and the fixed ART_CROP band then crops the wrong region entirely. Fixed by trying all 4 rotations and keeping the best match; device-verified to correctly recover the true card (OP09-088) when previously it never did. Threshold recalibrated from a real measured data point. **Not fully solved**: wrong-orientation noise can coincidentally outscore the true match, so the top-ranked candidate isn't always correct yet — documented as remaining work. Typecheck-green.)
 **Current branch:** `main`
 **App version:** 0.1.0 (pre-release)
 
@@ -1924,34 +1924,63 @@ plan). Static data (card index, prices, images) is never sent to Supabase.
 
 ## Known Bugs
 
-### B-14 — Scanner: rectified crop is unusable (corner-localization precision)
-- **Files:** `app/src/lib/cardDetect.ts` (`detectCardQuad`, `rectifyCardCrop`),
-  `app/src/screens/NativeScanCamera.tsx` (`RES_W`/`RES_H` = 480×640).
-- **Symptom:** Even after B-12 (area threshold), Stage-2 identification never returns
-  the correct card — distances stay 200-260/768, well above the 150 match floor, and
-  consistently land on the *same wrong* candidates across many frames (not random
-  noise). Visually confirmed by decoding a captured rectified crop: instead of the
-  card's illustration, it shows vertical color-banding — no recognizable image at all.
-- **Root cause:** `detectCardQuad`'s 4-point quad passes the aggregate area (≥4%) and
-  aspect (~0.72±0.18) checks, but its **individual corner coordinates aren't precise
-  enough** for a clean `warpPerspective`. A quad that's the right size/shape in
-  aggregate but has even one poorly-localized corner produces a sheared/degenerate
-  transform — textbook symptom is exactly the vertical banding observed. Detection
-  runs on a 480×640 downscaled frame (`RES_W`/`RES_H` in `NativeScanCamera.tsx`),
-  which may simply be too low-resolution for `approxPolyDP` to place corners
-  precisely enough at normal card-in-frame sizes.
-- **How this was diagnosed (not guessed):** captured the actual 16×16 pre-hash PNG the
-  device produced, decoded it locally, and — critically — computed its real hash with
-  the *exact* Python algorithm from `build_card_database.py` (not just eyeballing) and
-  compared against the true stored hash for the card being scanned. Also tested and
-  **ruled out** a BGR/RGB channel-swap hypothesis (swapping R/B changed the distance by
-  only 2/768 — noise, not the cause) before landing on the corner-precision theory via
-  direct visual inspection of the upscaled crop next to the reference art.
-- **Not fixed yet.** Candidate next steps (untried): raise the detection buffer
-  resolution; add sub-pixel corner refinement (e.g. `cv2.cornerSubPix`-equivalent) after
-  `approxPolyDP`; or tighten `0.02 * peri` epsilon in `approxPolyDP` for a closer-fitting
-  polygon. Any fix here **must** be re-verified on a real device with a real card —
-  this bug is invisible to typecheck and to the web preview entirely.
+### B-14 — Scanner: rectified crop comes out rotated → wrong region hashed — PARTIALLY FIXED (2026-07-15)
+- **Files:** `app/src/lib/phash.ts` (`computeAhash` gained a `rotate` param),
+  `app/src/lib/cardMatch.ts` (`matchTopK` tries 4 rotations, `AHASH_MAX_DISTANCE`).
+- **Symptom:** Stage-2 identification never returned the correct card — distances
+  stayed 200-260/768, well above the (never-device-tested) 150 match floor, landing on
+  the *same wrong* candidates across many frames (not random noise). The 16×16 pre-hash
+  crop, decoded and viewed directly, showed vertical color-banding instead of the
+  card's illustration — no recognizable image at all.
+- **First hypothesis (tried, disproved, reverted): corner-localization precision.**
+  Suspected `detectCardQuad`'s corners weren't precise enough for a clean
+  `warpPerspective`, and tried raising the detection buffer resolution (480×640 →
+  720×960) + tightening `approxPolyDP`'s epsilon (0.02→0.015). **Device-retested: no
+  improvement** — distances barely moved. Both changes were reverted rather than kept
+  as unverified/unnecessary compute cost (2.25× Canny/contours per frame for nothing).
+  **Lesson for next time:** don't skip the cheapest diagnostic — dumping and looking at
+  the actual intermediate image — in favor of a plausible-sounding theory.
+- **Real root cause, found by dumping the RAW `rectifyCardCrop` output (350×490,
+  *before* any `expo-image-manipulator` crop/resize) and viewing it directly**: the
+  rectify/warp step itself is fine — clean, sharp, correctly perspective-corrected —
+  but the card comes out **rotated ~90°** from upright. `detectCardQuad`'s
+  `orderCorners` has no way to know which of the quad's 4 corners is the card's actual
+  printed "top" (it's a screen-relative sum/diff heuristic, not orientation-aware), so
+  the fixed `ART_CROP` band (assumes the top 5-43% by height is the illustration) crops
+  a meaningless thin strip of border/background instead when the content is sideways —
+  exactly explaining the banding.
+- **Fix:** `computeAhash(imageUri, crop?, rotate?)` now accepts a rotation (via
+  `ImageManipulator`'s `rotate` action) applied before the art-crop. `matchTopK`, on the
+  native path only (no `crop`), tries `[0, 90, 180, 270]° and keeps each card's
+  best (lowest-distance) result across all 4. **Device-verified**: with the correct
+  rotation, the top-2 database matches were `OP09-088` and `OP09-088_r1` — the actual
+  scanned card and its own variant, tied at distance 223 (previously the true card
+  never appeared in the top-5 at all).
+- **`AHASH_MAX_DISTANCE` recalibrated 150→235** from that real measurement (223) with
+  small headroom, still under the ~262 different-card baseline — the old value was
+  itself never device-tested (its own comment admitted this) and would have rejected
+  even the correct match.
+- **NOT fully solved — real remaining problem, not guessed, measured:** a *wrong*
+  rotation's hash can coincidentally score *better* against some unrelated card
+  (measured 206-209) than the *correct* rotation scores against the *true* card (223).
+  Tried and **ruled out** a rank1-vs-rank2 margin/confidence heuristic to auto-detect
+  "real match" vs "noise" — in the one test session, the noise rotation actually had
+  the *largest* margin (38) while the real match's margin was smallest (0, because the
+  card's own two variants tied for 1st/2nd — itself a positive signal worth revisiting
+  with more data). **One data point isn't enough to safely generalize a selection rule**
+  — a real fix needs either more real-world samples to find a reliable discriminator,
+  or (more promising, untried) requiring the *same* candidate to win across several
+  *consecutive* AUTO-mode frames before accepting it — noise should vary frame-to-frame
+  while a genuine match should be stable. Also untested: whether the wrong-orientation
+  problem is worse/different for **foil/holographic cards** (B-12's note) — only tested
+  with a matte card this session.
+- **How all of this was diagnosed** (repeatable methodology for next time): temporary
+  `[SCANDBG]`-tagged logs (removed again — grep for `SCANDBG` if reviving), chunked
+  base64 dumps of intermediate images pulled off-device via `adb logcat` (logcat
+  truncates ~4KB/line; also needed `adb logcat -G 16M` once to stop the ring buffer
+  rotating out early chunks), reassembled and viewed with small Python/Node scripts in
+  the scratchpad, and — critically — compared against ground truth using the *exact*
+  Python hashing algorithm from `build_card_database.py`, not eyeballing or guessing.
 
 ### ~~B-13 — Scanner: hand-rolled DEFLATE/PNG decoder threw "invalid huffman" on real camera PNGs~~ — RESOLVED (2026-07-13)
 - **File:** `app/src/lib/phash.ts`.
@@ -2156,6 +2185,16 @@ plan). Static data (card index, prices, images) is never sent to Supabase.
 ---
 
 ## QoL / Future Improvements
+
+### Scanner: frame-to-frame consistency voting (follow-up to B-14)
+B-14's rotation fix is device-verified but not fully robust — see the "NOT fully
+solved" note in Known Bugs. The most promising untried idea: AUTO mode already
+processes a new frame every ~1.5s continuously; require the *same* top candidate to
+win across 2-3 *consecutive* frames before auto-adding it, instead of trusting the
+first result. A genuine match should be stable frame-to-frame; a coincidental
+noise-vs-wrong-card match should not be. Needs on-device testing with several
+different cards (incl. a foil one — B-12 already flagged foil detection as separately
+unreliable) before trusting it, same as everything else in the scanner pipeline.
 
 ### ~~Price change-% delta on tiles~~ — done (2026-06-28)
 Implemented as `lib/priceHistory.ts`: snapshots each `prices.json` release and
