@@ -194,10 +194,11 @@ export interface CropRect { originX: number; originY: number; width: number; hei
  * Pass `crop` to first restrict to a sub-region (in the image's pixel coords) —
  * used by the focus-box fallback; omit it when the URI is already a rectified card.
  * Pass `rotate` (degrees, clockwise) to correct for orientation — the native
- * detect+rectify pipeline (lib/cardDetect.ts) doesn't know which of the quad's 4
- * corners is the card's actual "top", so the rectified crop can come out rotated
- * 90°/180°/270° depending on how the card/phone were held. See B-14 in AGENTS.md;
- * callers should try all 4 rotations via matchTopK rather than assume 0°.
+ * detect+rectify pipeline (lib/cardDetect.ts) doesn't know which of the quad's
+ * corners is the card's actual "top", so the rectified crop can come out upside
+ * down depending on how the card/phone were held. cardDetect.orientCardQuad()
+ * resolves 90°/270° before the warp, so callers only need 0°/180° via matchTopK
+ * rather than assume 0°. See B-14 in AGENTS.md.
  * Matches Python: build_card_database.build_hashes (rgb_average_hash, size=16).
  */
 export async function computeAhash(imageUri: string, crop?: CropRect, rotate = 0): Promise<string> {

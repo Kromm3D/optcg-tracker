@@ -17,19 +17,27 @@ import { computeAhash, findTopKMatches, HASH_BITS, type CropRect } from './phash
 import { PHASHES } from '../data/loadIndex';
 
 // 768-bit RGB hash (3 × 16×16) over the cropped ARTWORK (all 768 bits informative).
-// Off-device discrimination: median nearest-neighbour distance between different
-// cards is ~262 bits; only ~1 % of pairs are closer than 100 bits.
 //
-// Device-calibrated 2026-07-15 (see B-14 in AGENTS.md): the old 150 floor was
-// never device-tested and was too strict — a confirmed-correct real-camera
-// match (rotation-corrected, good lighting) landed at distance 223. Raised to
-// 235 (small headroom above that one measurement, still comfortably under the
-// ~262 different-card separation). NOTE: this does not fully solve false
-// positives — a "wrong" rectified-crop orientation can coincidentally score
-// ~206-209 against some unrelated card, i.e. *better* than a real match's 223,
-// so raising this floor alone doesn't guarantee the top-ranked candidate is
-// correct. See B-14's "remaining work" note for the discrimination problem
-// this doesn't yet solve (frame-to-frame consistency is the likely fix).
+// Discrimination, re-measured 2026-07-16 over the full 4571-hash DB
+// (scripts/eval_scanner.py). The previous figures here ("~262 median, ~1 % of
+// pairs closer than 100 bits") were wrong: they counted a card's own parallel
+// variants — which share the artwork — as "different cards". Scored properly, by
+// base code:
+//   • nearest DIFFERENT card: min 118, p1 149, median 243 bits
+//   • 0 % of cards have another card closer than 100 bits
+//
+// Device-calibrated 2026-07-15: a confirmed-correct real-camera match landed at
+// distance 223, so the floor is 235 (headroom above that one measurement).
+// Treat 235 as a *ranking* aid, not a trustworthy accept/reject gate: 38.5 % of
+// cards have some other card within 235 bits.
+//
+// Why a real match is as far out as 223: not a bug. A camera photo differs from
+// the official scan in colour balance, gamma, sleeve glare and sensor noise —
+// simulated end-to-end that costs ~148 bits on its own (still 97 % top-1). Add
+// framing error and it stacks into the marginal zone. Framing is the only lever
+// that matters (real photo alone 97 %; real photo + 8 % framing error → 24 %),
+// and it CANNOT be recovered here: searching more variants adds noise as fast as
+// signal (3 → 5 crop scales measured *worse*, 50 % → 39 %). See B-14 in AGENTS.md.
 export const AHASH_MAX_DISTANCE = 235;
 
 /** Min normalised score for a candidate to count (mirror of the distance floor). */
@@ -41,26 +49,39 @@ export function parseKey(key: string): { code: string; suffix: string } {
   return i === -1 ? { code: key, suffix: '' } : { code: key.slice(0, i), suffix: key.slice(i) };
 }
 
-/** Rotations (degrees, clockwise) tried on the native rectified crop — see B-14:
- * detect+rectify doesn't know which quad corner is the card's actual "top", so
- * the crop can come out rotated. Cheap to try all 4 since hashing is fast. */
-const NATIVE_ROTATIONS = [0, 90, 180, 270];
+/**
+ * Rotations (degrees, clockwise) tried on the native rectified crop.
+ *
+ * Was [0, 90, 180, 270]. Now 2, because cardDetect.orientCardQuad() resolves the
+ * 90°/270° ambiguity geometrically *before* the warp (it re-rolls the corner
+ * labels when the quad reads landscape), leaving only "is the card upside down?".
+ *
+ * This is a deliberate 2x cut in Stage-2 work, and it also *helps* accuracy:
+ * every extra variant hashed is another chance for an unrelated card to win by
+ * coincidence. Measured — scripts/eval_multicrop.py showed going 3 → 5 crop
+ * scales made things WORSE (50% → 39%), i.e. searching more variants adds noise
+ * as fast as signal. scripts/eval_rotation.py confirms 2 rotations hold 100%
+ * top-1 across 0-90° of hand rotation (true distance 16 → 9 bits vs the 4-rot path).
+ */
+const NATIVE_ROTATIONS = [0, 180];
 
 /**
  * Return the top-K matches with a normalised [0,1] confidence score
  * (1 − hamming/HASH_BITS), filtered to the AHASH_MAX_DISTANCE floor so that
  * non-cards / blank frames yield nothing. Feeds the scan confirmation sheet.
  *
- * On the native path (no `crop`), tries all 4 orientations of the rectified
- * crop and keeps each card's best (lowest-distance) result across rotations —
- * device-verified to correctly recover the true card when the rectified crop
- * comes out sideways (B-14). NOT fully robust yet, though: a wrong-orientation
- * crop can coincidentally score *better* against some unrelated card than the
- * true match scores against the real one (measured ~206-209 vs 223 in one
- * session), so this can still surface the wrong top-ranked candidate — see the
- * AHASH_MAX_DISTANCE comment and B-14 in AGENTS.md. The focus-box fallback
- * (`crop` given) is already a fixed on-screen region the user aligned
- * visually, so it's tried at 0° only.
+ * On the native path (no `crop`), tries the 2 remaining orientations (0°/180°)
+ * of the rectified crop and keeps each card's best (lowest-distance) result —
+ * cardDetect.orientCardQuad() already resolves 90°/270° geometrically before the
+ * warp, so only "is the card upside down?" is left. See NATIVE_ROTATIONS above.
+ * The focus-box fallback (`crop` given) is a fixed on-screen region the user
+ * aligned visually, so it's tried at 0° only.
+ *
+ * ⚠ This does NOT make the top-ranked candidate reliable on a real device, and
+ * fewer rotations is not the fix for that — see B-14 in AGENTS.md: the real
+ * constraint is Stage-1's framing accuracy (a real photo alone matches at ~97%,
+ * but a real photo + 8% framing error collapses to 24%, and no amount of Stage-2
+ * searching recovers it).
  *
  * @param imageUri  rectified crop (native path) or full photo (focus-box path)
  * @param crop      pixel sub-region to hash; omit when the URI is already cropped

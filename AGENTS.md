@@ -61,6 +61,207 @@ do not stage them. **Follow-ups still pending** from the scanner removal: run
 
 ---
 
+### NEGATIVE RESULT: corner precision is NOT the B-14 bottleneck — do not "raise RES + add sub-pixel refinement" (2026-07-16, measured)
+Set out to implement the long-standing B-14 next-step hypothesis (raise
+`RES_W`/`RES_H`, add sub-pixel corner refinement). **Measured it first, and the
+measurement killed it.** New `scripts/eval_corners.py` isolates exactly one
+question — how much corner error does `approxPolyDP` introduce, and does
+line-fit refinement fix it — by rasterizing a *known* quad outline (what Canny
+actually hands us) with realistic rounded corners (3mm/63mm = 4.8%), no scene,
+no thresholds, no confounds. Results vs. the **4-5% error budget** that
+`eval_scanner.py` established:
+
+| case (480x640, card 131px = the current worst case) | raw | refined |
+|---|---|---|
+| sharp corners | 0.96% | 0.91% |
+| **rounded corners (real cards)** | **1.19%** | **0.87%** |
+| 960x1280 (2x res), rounded | 1.20% | 0.44% |
+
+- **approxPolyDP already localizes corners to ~1.2%, i.e. 4x INSIDE budget.** My
+  premise (that `epsilon = 0.02*peri` ≈ 9px ≈ 7% of card height ⇒ 7% corner error)
+  was **wrong**: epsilon is a *tolerance for discarding* points, not the corner's
+  displacement — a rectangle's true vertices survive it intact.
+- Raising resolution (0.96→0.46 sharp) and line-fit refinement (1.19→0.87) both
+  *work*, but they optimize a quantity with 4x margin already. **Neither can fix
+  B-14.** Not implemented — adding native/worklet complexity for no product gain
+  is a real cost in a module whose every past change cost a device-debug session.
+- **Tightening epsilon is actively HARMFUL**: at `0.005*peri` only **4-33%** of
+  cards still yield exactly 4 vertices, i.e. most cards get rejected outright.
+  Leave it at 0.02.
+- `fast-opencv@0.4.8` **does not expose `cornerSubPix`** (only HoughLinesP,
+  approxPolyDP, contourArea, convexHull, goodFeaturesToTrack, minAreaRect) — the
+  textbook refinement isn't even available; the line-fit substitute in
+  `eval_corners.py::refine_quad` is pure geometry and would port to a worklet if
+  ever needed.
+
+**So where IS B-14?** Corner *precision* has margin; the failure must be a
+*systematic* framing/format error. Two hypotheses, both needing device
+instrumentation (the methodology that actually found B-12/B-13/B-14 — see below):
+1. **"Vertical color-banding" is the classic symptom of a buffer stride/channel
+   mismatch**, not of an imprecise quad. `resize(frame,{pixelFormat:'bgr'})` →
+   `OpenCV.frameBufferToMat(h,w,3,data)` with `Camera pixelFormat="yuv"` is
+   exactly where a padded/misinterpreted buffer would produce that. Worth dumping
+   the raw resized buffer on device before touching geometry again.
+2. **Wrong-edge lock / aspect distortion.** `resize(frame → 480x640)` is a
+   *non-uniform stretch* if the camera hands us a 16:9 frame (a 3:4 buffer from a
+   9:16 frame squashes the card's 5:7 aspect to ~1.0 → `isCardQuad` rejects it, or
+   the crop is distorted). Verify the device's actual frame dimensions. Related:
+   the card's outer white border may give a weaker Canny edge than the inner art
+   frame, letting the detector lock onto a quad inset ~5-8% — precisely the
+   framing error that drops matching to 35%. (This one surfaced in a synthetic-
+   scene simulator that proved too low-fidelity to trust and was **deleted** rather
+   than left in the repo as a misleading tool — treat it as an untested hypothesis.)
+
+### B-14 SOLVED as a diagnosis: it is a signal-MARGIN problem, not a bug. Stage-1 framing is the only lever left (2026-07-16, measured)
+Ran five hypotheses to ground and **killed all five** — four of them without a
+device, by reading `node_modules` source and measuring. Recording them so no
+future session re-runs this:
+
+| # | Hypothesis | Verdict | Evidence |
+|---|---|---|---|
+| 1 | Corner precision (`approxPolyDP` epsilon) | **REFUTED** | ~1.2% error vs a 4-5% budget (`eval_corners.py`) |
+| 2 | Buffer stride/padding → "vertical color-banding" | **REFUTED** | resize-plugin 3.2.0 emits tightly-packed `[B,G,R]` uint8 |
+| 3 | Non-uniform resize squashing the 5:7 aspect | **REFUTED** | plugin README: it **center-crops** to the target aspect, "instead of being stretched" |
+| 4 | Resampling mismatch (device scaler vs PIL LANCZOS) | **REFUTED** | worst case (NEAREST) = 132 bits, top-1 still **100%** (`eval_resample.py`); BILINEAR only ~28 bits |
+| 5 | Landscape quad squashed by the portrait warp | **REFUTED (real, but harmless)** | `isCardQuad`'s `min/max` aspect test *is* symmetric and the quad *does* read 1.396 past 46°, but ART_CROP is fractional + the hash force-resizes to 16×16, so a whole-card anisotropic scale normalises away: distance 9 → 16, top-1 100% (`eval_rotation.py`) |
+
+**The actual diagnosis.** Every offline test lands at ~10 bits; the device measured
+**223** on a *correct* match. That gap was the whole mystery, and the cause is
+mundane: **all offline tests used the reference image as the query** — the very
+image the hash came from. A real camera photo of a physical card differs from the
+official scan in colour balance, gamma, sleeve glare, sensor noise and focus. New
+`PHOTO_REAL` degradation in `eval_scanner.py` stacks all of that: **148 bits, still
+97% top-1**. The device's 223 sits between `persp_strong` (204 → 90%) and
+`crop_jit_8%` (261 → **39%**) — i.e. squarely in the **marginal zone** where the
+768-bit RGB average hash stops separating reliably (different cards: median 243,
+min 118). **There is no single broken thing. B-14 is the descriptor's ceiling
+being reached once real-photo noise and framing error stack up.**
+
+**The one lever that matters: framing.** Everything else is tolerated at 97-100%
+(light, blur, resolution, mild perspective, even the full PHOTO_REAL stack). Only
+framing is a cliff — and it compounds brutally: `PHOTO_REAL` alone = 97%, but
+**PHOTO_REAL + 8% framing error = 24%**. Get Stage-1's framing under ~4% and the
+scanner works in the real world; leave it at 8% and nothing downstream can save it.
+
+**And you cannot fix it in Stage-2 — measured.** `eval_multicrop.py` tried making
+the matcher framing-tolerant by hashing several ART_CROP scales: 1 → 3 → 5 scales
+gave 43% → 50% → **39%** on the 8% case. It gets *worse*. **Every extra variant
+searched adds as much noise as signal** — the same effect as the 4-rotation
+coincidence noise B-14 described. Do not "just search harder"; it is a dead end.
+
+**Shipped from this (typecheck-green, uncommitted):** `cardDetect.orientCardQuad()`
+re-rolls the corner labels when the quad reads landscape, which resolves 90°/270°
+*geometrically before the warp* — so `cardMatch.NATIVE_ROTATIONS` drops **[0,90,180,270]
+→ [0,180]**. That is **2x less Stage-2 work** and half the coincidence surface, at
+equal accuracy (100% top-1 across 0-90°, true distance 16 → 9). This serves the
+"fast" goal; it does **not** fix B-14.
+
+**Next step (needs the device, cannot be done offline).** The only surviving
+explanation for the device's framing error is *where the detected quad actually
+lands*: if Canny locks onto the card's inner art frame rather than its outer
+white border, the quad is inset ~5-8% — precisely the fatal band. The SCANDBG
+`rectify quad=` log below prints the real corners; compare them against the card
+on screen. If they are inset, the fix is in Stage-1 edge selection (e.g. morphological
+close to bridge the outer border's broken edges, or picking the outermost of nested
+quads) — **not** in more hash tuning.
+
+**Strategic note for "works in ANY environment".** Even with perfect framing,
+PHOTO_REAL sits at 148/768 bits against a 243-median separation. That margin is
+thin by construction. The 2026-07-16 research (assistant memory `scanner-research`)
+found the industry uses CNN/CLIP embeddings precisely because average hashes are
+brittle on real photos. If framing gets fixed and accuracy is still marginal in
+sleeves/binders, the answer is a better descriptor, not more of this.
+
+### SCANDBG instrumentation — built, then REMOVED before commit (2026-07-16; revive from this recipe if needed)
+Built `[SCANDBG]` logging to run the B-14 device session, then **removed it again
+before committing** (same discipline as the 2026-07-13 session — `grep -rn SCANDBG`
+finds nothing now; this entry is the recipe to rebuild it). It was never actually
+device-run: four of the five hypotheses fell to offline measurement and source
+reading first (see the table above), and the two the instrumentation targeted (H1
+stride, H2 aspect) were **both refuted from `node_modules` source** before a phone
+was ever needed — so shipping the debug code would have been dead weight.
+
+**If reviving** (the one open question — where the detected quad actually lands —
+still needs it), rebuild these four logs; each was aimed at a specific hypothesis
+so the session can't end ambiguous:
+
+1. **`[SCANDBG] frame=...`** (`NativeScanCamera.tsx`, 1-in-30 frames) — the camera's
+   real `frame.width x height` + aspect, and `resized.len` vs the expected
+   `RES_W*RES_H*3` = **921600**.
+   → `len` mismatch **proves H1** (padded/misinterpreted buffer = the real cause of
+     "vertical color-banding"). `frame` aspect ≠ 0.75 **proves H2** (non-uniform
+     resize into the 3:4 detection buffer).
+2. **`[SCANDBG] detect ...`** (`cardDetect.detectCardQuad`) — contour count, how many
+   4-gons were found, the biggest one's `areaFrac` + `aspect`, and the per-reason
+   reject counts (`rejArea` / `rejAspect`).
+   → `bestAnyAspect` ~1.0 instead of ~0.716 is the H2 tell (card squashed square).
+     High `rejAspect` with `accepted=no` means cards are being thrown out, not missed.
+3. **`[SCANDBG] rectify quad=...`** (`cardDetect.rectifyCardCrop`) — the actual 4
+   corners being warped from, their `w`/`h`, the `w/h` ratio (should read ~0.716),
+   and the output PNG's base64 length.
+   → settles the diary's "thin/near-degenerate quad" claim directly: a degenerate
+     quad collapses an edge toward 0; a tiny `pngB64len` means the crop is flat
+     garbage rather than real pixels.
+4. **`[SCANDBG] match ...`** (`cardMatch.matchTopK`) — best hamming distance + top-3.
+   Self-interpreting via the offline calibration: **≤200 = crop-looks-GOOD**,
+   **≥340 = crop-looks-GARBAGE** (that's the rot90-equivalent noise floor measured
+   in `eval_scanner.py`), between = marginal. Also **the silent `catch {}` now logs**
+   — it was swallowing real errors and returning `[]`, indistinguishable from
+   "no match".
+
+**Run it:**
+```bash
+cd app && npx expo run:android          # SCANDBG needs the native build
+adb logcat -c && adb logcat -s ReactNativeJS:V | grep SCANDBG
+```
+Point at a real card; capture ~20s of log with the card both steady and moving.
+**Read in this order:** `frame` len/aspect → `detect` aspect + reject reason →
+`rectify` quad sanity → `match` distance verdict. Given H1/H2 are already refuted,
+the log that actually matters now is **`rectify quad=`**: compare those corners to
+where the card really is on screen. If they sit ~5-8 % inside the card's outer
+border, Canny is locking onto the inner art frame and *that* is the framing error
+that kills the match. **Remove the SCANDBG blocks again before committing any fix.**
+
+### Offline scanner-accuracy harness + B-14 re-diagnosed as Stage-1, not Stage-2 (2026-07-16, measured on 4571-card DB)
+Built `scripts/eval_scanner.py` — an **offline** evaluation harness for the pHash
+matcher (Stage-2). It imports the *production* hash functions from
+`build_card_database.py` (bit-for-bit parity with the shipped `hashes.json`),
+so it measures exactly what the app does. It has three parts: (A) discrimination
+of the precomputed DB, (B) rehash-the-real-image-under-degradation + search, (C)
+the B-14 orientation scenario. All scoring is **by base code** (a parallel `_p1`
+of the right card counts as a hit — the user disambiguates the variant visually,
+per CLAUDE.md §2), which is the metric that actually matters and which my first
+draft got wrong (it counted same-art parallels as "different-card collisions").
+
+**Headline findings (sample 250-300, stable across seeds 7/42):**
+- **Stage-2 matching is essentially solved for a clean, correctly-oriented crop.**
+  Base-code top-1 is **100%** under brightness ±, low contrast, blur, downscale,
+  and mild (6%) perspective. Different *cards* never collide (nearest cross-base
+  neighbour min **118 bits**, median 243 of 768) — the "~1% < 100 bits" figure in
+  cardMatch.ts was conflating same-card parallels (same art) with real collisions.
+- **The failure mode is crop FRAMING, and it's a cliff.** Symmetric crop error
+  (mis-scaled rectify): 4%→98.7%, **8%→34.7%, 12%→6%**. So Stage-1 must land the
+  ART_CROP band within **~4-5%** of card dimensions or matching falls off a cliff.
+  This is the quantified requirement B-14 was missing.
+- **B-14 rotation: matchTopK's 4-rotation strategy fully works — on a clean crop
+  (100% recovery).** A single wrong orientation is catastrophic (0% — a wrong card
+  always wins), confirming the raw bug, but trying all 4 rotations recovers 100%.
+  On a *realistic* crop (6% perspective + unknown orientation) recovery is **94.8%**.
+  → **The residual B-14 failure is Stage-1 crop quality, not Stage-2 matching and
+  not the rotation logic.** This partially corrects the earlier diary framing that
+  matchTopK is "not fully robust yet against orientation" — orientation is handled;
+  bad rectified crops are the real bottleneck. Matches the 2026-07-13 "corner
+  precision / raise RES_W·RES_H" hypothesis, now with numbers behind it.
+
+**Next-step implication:** invest in Stage-1 corner precision (higher detection
+resolution / sub-pixel refinement) rather than more Stage-2 hash tuning; the
+matcher already tolerates every non-framing degradation. The AHASH_MAX_DISTANCE
+= 235 accept floor is also loose vs. discrimination (38.5% of cards have *some*
+other card within 235 bits) — fine for ranking, but worth tightening if used as
+an accept/reject gate. Run: `python scripts/eval_scanner.py` (adds `pillow numpy`;
+the system python has them, the venv lacks `imagehash` but the harness doesn't
+need it). No app/TS code changed this session — harness only, typecheck N/A.
+
 ### First real on-device scanner test — 2 bugs fixed, 1 diagnosed (2026-07-13, device-verified)
 Followed the Android install session (below) with the actual point of having a phone in
 hand: pointed the on-device scanner (Stage-1 detect+rectify + Stage-2 pHash identify,

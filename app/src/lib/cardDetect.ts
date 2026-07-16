@@ -113,6 +113,35 @@ export function quadArea(q: Quad): number {
 // distance (not just close-up).
 const AREA_MIN_FRACTION = 0.04;
 
+/**
+ * Re-roll the corner assignment so the card's SHORT side always becomes the
+ * rectified canvas' width.
+ *
+ * Why: `orderCorners` labels corners by screen position (sums/diffs), not by the
+ * card's own "top". Past ~45° of hand rotation the roles swap and the quad reads
+ * landscape (w/h ≈ 1.40 instead of 0.716) — and `isCardQuad` happily accepts it,
+ * because its `min/max` aspect test is symmetric. `rectifyCardCrop` then warps
+ * that landscape quad onto the portrait RECTIFIED_W×RECTIFIED_H canvas.
+ *
+ * Measured (scripts/eval_rotation.py, true corners, 40 cards × 8 angles): the
+ * squash is NOT fatal — ART_CROP is fractional and the hash force-resizes to
+ * 16×16, so a whole-card anisotropic scale normalises away (distance 9 → 16 bits,
+ * top-1 stays 100%). So this is not a correctness fix.
+ *
+ * It is a SPEED fix: with the quad correctly oriented, the only ambiguity left is
+ * 180° (card upside down), so `matchTopK` needs 2 rotations instead of 4 — half
+ * the hashing work, and half the chances for an unrelated card to win by
+ * coincidence (the ~206-209 noise described in B-14). Verified at 100% top-1
+ * across 0-90° with 2 rotations, distance 16 → 9.
+ */
+export function orientCardQuad(q: Quad): Quad {
+  'worklet';
+  const w = (dist(q[0], q[1]) + dist(q[3], q[2])) / 2;
+  const h = (dist(q[0], q[3]) + dist(q[1], q[2])) / 2;
+  // Landscape → rotate the labels one step so the short side becomes the width.
+  return w > h ? [q[1], q[2], q[3], q[0]] : q;
+}
+
 export function isCardQuad(q: Quad, frameArea: number): boolean {
   'worklet';
   const area = quadArea(q);
@@ -217,8 +246,12 @@ export type RectifyFn = (
  * signatures have drifted across fast-opencv releases — verify against the
  * installed version on the first on-device build. See docs/scanner-native-handoff.md.
  */
-export const rectifyCardCrop: RectifyFn = (resized, quad) => {
+export const rectifyCardCrop: RectifyFn = (resized, rawQuad) => {
   'worklet';
+  // Orient BEFORE warping so the card's short side maps to the canvas width.
+  // Applied here rather than in detectCardQuad so the latter keeps returning
+  // screen-ordered corners, which is what the overlay's corner brackets expect.
+  const quad = orientCardQuad(rawQuad);
   const src = OpenCV.frameBufferToMat(resized.height, resized.width, 3, resized.data);
 
   // getPerspectiveTransform requires Point2fVector (float), not PointVector (int).
