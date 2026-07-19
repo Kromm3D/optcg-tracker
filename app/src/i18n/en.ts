@@ -145,6 +145,13 @@ export const en = {
   'deck.copy': 'Copy',
   'deck.copied': 'Deck code copied.',
   'deck.share': 'Share',
+  'deck.stats': 'Deck stats',
+  'deck.costCurve': 'Cost curve',
+  'deck.colors': 'Colors',
+  'deck.typeLeader': 'Leader',
+  'deck.typeCharacter': 'Characters',
+  'deck.typeEvent': 'Events',
+  'deck.typeStage': 'Stages',
 
   // Scan
   'scan.permTitle': 'Camera access needed',

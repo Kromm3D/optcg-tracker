@@ -2404,6 +2404,18 @@ green/red on Browse tiles. Reads `0.0%` until the next price release provides a
 prior snapshot. Future: per-variant (not just base-code) history; a "since you
 started tracking" cost-basis mode for the Portfolio/Binder view.
 
+### Deck statistics panel — done (2026-07-16, web-verified)
+New `components/DeckStats.tsx`, rendered as the `ListHeaderComponent` of the
+DeckDetail grid. Fully local (no network). Shows: leader identity, non-leader
+type counts (Characters/Events/Stages, qty-weighted), a **cost curve** (buckets
+0–7, 7 = "7+", bar heights scaled to the max bucket), and a **color
+distribution** stacked bar + legend (multicolor cards count toward each colour),
+using `OPTCG_COLORS`/`colorOf`. i18n `deck.stats`/`costCurve`/`colors`/`type*`
+(en+es). Not in the original QoL list — added under the user's open-ended
+delegation as a high-value, self-contained deck-builder feature. **Web-verified**
+on a 10-card Zoro deck: 10 Characters / 0 Events / 0 Stages, cost curve bars
+`[4,48,26,48,4,4,4,4]` (cost 1×4, 2×2, 3×4 → heights scale correctly), Red 10.
+
 ### Global scan reachability (deferred from the 2026-06-28 Collectr restyle)
 Killing the Scan FAB means scan is only reachable where a search field / action
 row exists (Browse, Binder owned tab). If users miss scanning from Home/Decks,

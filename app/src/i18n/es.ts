@@ -146,6 +146,13 @@ export const es: Record<TKey, string> = {
   'deck.copy': 'Copiar',
   'deck.copied': 'Código del mazo copiado.',
   'deck.share': 'Compartir',
+  'deck.stats': 'Estadísticas del mazo',
+  'deck.costCurve': 'Curva de coste',
+  'deck.colors': 'Colores',
+  'deck.typeLeader': 'Líder',
+  'deck.typeCharacter': 'Personajes',
+  'deck.typeEvent': 'Eventos',
+  'deck.typeStage': 'Escenarios',
 
   // Scan
   'scan.permTitle': 'Se necesita acceso a la cámara',

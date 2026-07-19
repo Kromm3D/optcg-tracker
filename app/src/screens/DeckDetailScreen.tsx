@@ -20,6 +20,7 @@ import { smartGoBack } from '../lib/nav';
 import { colors, fonts, radii, spacing, pressedStyle } from '../theme';
 import { Icon } from '../components/Icon';
 import { DeckCardPile } from '../components/DeckCardPile';
+import { DeckStats } from '../components/DeckStats';
 import { AddCardsModal } from '../components/AddCardsModal';
 import { AppModal } from '../components/AppModal';
 import { Button } from '../components/Button';
@@ -245,6 +246,9 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
           numColumns={COLUMNS}
           columnWrapperStyle={{ gap: CARD_GAP }}
           contentContainerStyle={s.grid}
+          ListHeaderComponent={
+            <DeckStats items={deckItems.map(({ dc, card }) => ({ card, qty: dc.qty }))} />
+          }
           initialNumToRender={18}
           maxToRenderPerBatch={18}
           windowSize={5}
