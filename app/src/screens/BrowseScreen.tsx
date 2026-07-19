@@ -10,8 +10,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import type { BrowseScreenProps } from '../navigation';
 import { CARD_LIST } from '../data/loadIndex';
+import { consumeBrowseSearch } from '../lib/browseIntent';
 import { colors, fonts, pressedStyle, HIT_SLOP } from '../theme';
 import { useT } from '../lib/i18n';
 import type { TKey } from '../i18n/en';
@@ -83,6 +85,18 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
     const id = setTimeout(() => setDebouncedQ(q), 180);
     return () => clearTimeout(id);
   }, [q]);
+
+  // Al recibir foco, aplica una búsqueda pendiente dejada por otra pantalla
+  // (p.ej. tocar un rasgo en DetailScreen). setDebouncedQ inmediato = sin espera.
+  useFocusEffect(
+    useCallback(() => {
+      const pending = consumeBrowseSearch();
+      if (pending !== null) {
+        setQ(pending);
+        setDebouncedQ(pending);
+      }
+    }, []),
+  );
 
   const showAlt = getSettings().showAlternateArt;
 

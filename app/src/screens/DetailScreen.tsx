@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CachedImage } from '../components/CachedImage';
 import type { DetailScreenProps } from '../navigation';
 import { smartGoBack } from '../lib/nav';
+import { setBrowseSearch } from '../lib/browseIntent';
 import { CARDS } from '../data/loadIndex';
 import { colors, fonts, colorOf, pressedStyle, HIT_SLOP } from '../theme';
 import { useT } from '../lib/i18n';
@@ -202,6 +203,36 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
             </View>
           ) : null}
         </View>
+
+        {/* Rasgos / familia — pulsables: llevan a Browse filtrado por el rasgo.
+            El campo family puede venir como "Pirate/Whitebeard Pirates". */}
+        {card.family ? (
+          <View style={s.traitRow}>
+            <Text style={s.traitLabel}>{t('detail.traits')}</Text>
+            <View style={s.chipRow}>
+              {card.family.split('/').map((raw) => {
+                const trait = raw.trim();
+                if (!trait) return null;
+                return (
+                  <Pressable
+                    key={trait}
+                    onPress={() => {
+                      setBrowseSearch(trait);
+                      navigation.navigate('Tabs', { screen: 'Browse' });
+                    }}
+                    hitSlop={HIT_SLOP}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('detail.traitSearch', { trait })}
+                    style={({ pressed }) => [s.traitChip, pressed && pressedStyle]}
+                  >
+                    <Text style={s.traitText}>{trait}</Text>
+                    <Icon name="search" size={12} color={colors.accent} />
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
       </View>
 
       {/* Effect text */}
@@ -401,6 +432,30 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontFamily: fonts.uiSemi,
     color: colors.textMut,
+  },
+  traitRow: { marginTop: 12, gap: 6 },
+  traitLabel: {
+    fontSize: 11,
+    fontFamily: fonts.uiSemi,
+    color: colors.textDim,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  traitChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 99,
+    borderWidth: 1,
+    borderColor: colors.accent + '55',
+    backgroundColor: colors.accentDim,
+  },
+  traitText: {
+    fontSize: 12,
+    fontFamily: fonts.uiSemi,
+    color: colors.accent,
   },
   panel: {
     marginTop: 18,

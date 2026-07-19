@@ -266,6 +266,8 @@ export const en = {
   'detail.power': 'Power',
   'detail.counter': 'Counter',
   'detail.effect': 'Effect',
+  'detail.traits': 'Traits',
+  'detail.traitSearch': 'Find cards with trait {trait}',
   'detail.variants': 'Variants',
   'detail.priceCardmarket': 'View price on Cardmarket',
   'detail.notFound': 'Card not found',

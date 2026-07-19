@@ -1,12 +1,13 @@
 // Tipos de navegacion. Stack raiz: Tabs + Detail + SetDetail + DeckDetail.
 // Tabs: Home, Browse, Binder, Decks.
 
-import type { CompositeScreenProps } from '@react-navigation/native';
+import type { CompositeScreenProps, NavigatorScreenParams } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 export type RootStackParamList = {
-  Tabs: undefined;
+  // Anidado: permite navigate('Tabs', { screen: 'Browse' }) desde el stack raíz.
+  Tabs: NavigatorScreenParams<TabParamList> | undefined;
   Detail: { code: string; suffix?: string };
   Sets: undefined;
   SetDetail: { setCode: string };

@@ -2404,6 +2404,21 @@ green/red on Browse tiles. Reads `0.0%` until the next price release provides a
 prior snapshot. Future: per-variant (not just base-code) history; a "since you
 started tracking" cost-basis mode for the Portfolio/Binder view.
 
+### Tappable card traits → filtered Browse (2026-07-16, web-verified)
+DetailScreen now shows the card's traits/family (previously not displayed at
+all — a real info gap). `card.family` ("Supernovas/Straw Hat Crew") is split on
+`/` into individual accent chips, each tappable. Tapping sets a cross-tab intent
+(`lib/browseIntent.ts` — a tiny module-level "pending search" store, needed
+because BrowseScreen holds its query in local `useState`, not a shared store)
+then `navigate('Tabs', { screen: 'Browse' })`. BrowseScreen consumes it via
+`useFocusEffect` and applies it as the search. `navigation.ts`: `Tabs` retyped
+`NavigatorScreenParams<TabParamList>` so nested navigation typechecks. i18n
+`detail.traits`/`detail.traitSearch` (en+es). **Web-verified end-to-end**: opened
+OP01-001 → "TRAITS: Supernovas · Straw Hat Crew" chips → tapped "Straw Hat Crew"
+→ landed on Browse with search "Straw Hat Crew", list filtered 2634 → 411.
+(411 is high because the search haystack also matches effect text — acceptable
+fuzzy behaviour; the user sees the term and can refine.)
+
 ### Deck completion bar — done (2026-07-16, web-verified)
 `DeckStats` gained a completion row: owned-vs-required copies (per-card capped, so
 owning 6 of a 4-of doesn't inflate) as `have/needed · %` plus a `colors.ghost`

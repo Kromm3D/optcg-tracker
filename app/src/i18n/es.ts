@@ -267,6 +267,8 @@ export const es: Record<TKey, string> = {
   'detail.power': 'Poder',
   'detail.counter': 'Counter',
   'detail.effect': 'Efecto',
+  'detail.traits': 'Rasgos',
+  'detail.traitSearch': 'Buscar cartas con el rasgo {trait}',
   'detail.variants': 'Variantes',
   'detail.priceCardmarket': 'Ver precio en Cardmarket',
   'detail.notFound': 'Carta no encontrada',
