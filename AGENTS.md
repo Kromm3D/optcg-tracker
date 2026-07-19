@@ -2418,9 +2418,22 @@ quantities across wishlists and across a card's variants. The Trade tab reuses t
 existing `getFriendCollection`/`getFriendWishlists` fetchers + local
 `getOwnedFor`/`getCachedWishlists`. i18n `friend.trade`/`friend.noTrades`/… (en+es).
 **Verified**: pure logic 4/4 in a Node harness (give/receive/aggregation/empty);
-typecheck green. **NOT verified end-to-end** — the friend-data path needs a
-signed-in Supabase session with a friend who shared data, i.e. a real device +
-live backend (this session's next step).
+typecheck green. **DEVICE-VERIFIED END-TO-END (2026-07-16, Xiaomi duchamp_global,
+debug build + live Supabase)**: friend "Test"'s Collection loaded via RLS (11
+unique/30), their Wishlist correctly showed "Not shared" (→ give-side empty by
+design). Trade tab initially "No trade matches" (genuinely no overlap). Then
+added Izo EB01-002 to my wishlist (Test owns 3) → Trade immediately showed
+**"Test has · you want · 1"** with Izo, **"has 3 · you want 1"** — exact
+quantities on both sides. Confirmed the empty state was real, not a false-empty.
+Test wishlist removed afterward to restore account state.
+
+**Device-session mechanics that worked** (repeat for next device test): only
+TS/JS changed all session → no native rebuild; the 2026-07-13 debug APK
+(`com.kromm.horohorotcg`) + Metro (`npx expo start --port 8081`) + `adb reverse
+tcp:8081 tcp:8081` served the new bundle live. **`adb devices` was empty until
+`adb kill-server && adb start-server`** (stuck daemon — not a cable issue).
+Xiaomi blocks `adb shell input` until "USB debugging (Security settings)" is
+enabled in developer options. `adb exec-out screencap` works regardless.
 
 ### Wishlist "cost to complete" (2026-07-16, web-verified)
 `WishlistDetailScreen` header now shows the estimated cost of the copies still
