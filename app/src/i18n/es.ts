@@ -147,6 +147,7 @@ export const es: Record<TKey, string> = {
   'deck.copied': 'Código del mazo copiado.',
   'deck.share': 'Compartir',
   'deck.stats': 'Estadísticas del mazo',
+  'deck.completion': 'En propiedad',
   'deck.costCurve': 'Curva de coste',
   'deck.colors': 'Colores',
   'deck.typeLeader': 'Líder',

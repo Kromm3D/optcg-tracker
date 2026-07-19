@@ -2404,6 +2404,14 @@ green/red on Browse tiles. Reads `0.0%` until the next price release provides a
 prior snapshot. Future: per-variant (not just base-code) history; a "since you
 started tracking" cost-basis mode for the Portfolio/Binder view.
 
+### Deck completion bar — done (2026-07-16, web-verified)
+`DeckStats` gained a completion row: owned-vs-required copies (per-card capped, so
+owning 6 of a 4-of doesn't inflate) as `have/needed · %` plus a `colors.ghost`
+progress fill. `DeckDetailScreen` passes `owned: getOwnedFor(code)` per item; the
+row hides when no owned data is present. i18n `deck.completion` (en+es).
+**Web-verified**: seeded 3× OP01-016 (deck needs 4) → row read "3/11 · 27%",
+progress fill 107.7px on an 8px track (partial fill correct).
+
 ### Deck statistics panel — done (2026-07-16, web-verified)
 New `components/DeckStats.tsx`, rendered as the `ListHeaderComponent` of the
 DeckDetail grid. Fully local (no network). Shows: leader identity, non-leader

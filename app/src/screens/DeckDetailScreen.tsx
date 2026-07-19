@@ -247,7 +247,13 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
           columnWrapperStyle={{ gap: CARD_GAP }}
           contentContainerStyle={s.grid}
           ListHeaderComponent={
-            <DeckStats items={deckItems.map(({ dc, card }) => ({ card, qty: dc.qty }))} />
+            <DeckStats
+              items={deckItems.map(({ dc, card }) => ({
+                card,
+                qty: dc.qty,
+                owned: getOwnedFor(dc.code),
+              }))}
+            />
           }
           initialNumToRender={18}
           maxToRenderPerBatch={18}

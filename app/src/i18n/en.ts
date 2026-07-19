@@ -146,6 +146,7 @@ export const en = {
   'deck.copied': 'Deck code copied.',
   'deck.share': 'Share',
   'deck.stats': 'Deck stats',
+  'deck.completion': 'Owned',
   'deck.costCurve': 'Cost curve',
   'deck.colors': 'Colors',
   'deck.typeLeader': 'Leader',

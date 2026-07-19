@@ -8,7 +8,7 @@ import type { Card } from '../types';
 import { colors, fonts, radii, spacing, OPTCG_COLORS, COLOR_KEYS, colorOf } from '../theme';
 import { useT } from '../lib/i18n';
 
-export type DeckStatItem = { card: Card; qty: number };
+export type DeckStatItem = { card: Card; qty: number; owned?: number };
 
 const MAX_COST = 7; // el último bucket agrupa "7+"
 
@@ -47,7 +47,21 @@ export function DeckStats({ items }: { items: DeckStatItem[] }) {
 
     const leader = items.find((i) => i.card.type === 'Leader')?.card;
 
-    return { totalCards, typeCounts, curve, curveMax, colorCounts, colorTotal, leader };
+    // Completado: copias en propiedad frente a las requeridas, capadas por carta
+    // (tener 6 de una carta que el mazo pide x4 cuenta como 4, no infla el total).
+    let needed = 0;
+    let have = 0;
+    for (const { qty, owned } of items) {
+      needed += qty;
+      have += Math.min(qty, owned ?? 0);
+    }
+    const hasOwnedData = items.some((i) => i.owned !== undefined);
+    const completionPct = needed > 0 ? Math.round((have / needed) * 100) : 0;
+
+    return {
+      totalCards, typeCounts, curve, curveMax, colorCounts, colorTotal, leader,
+      needed, have, completionPct, hasOwnedData,
+    };
   }, [items]);
 
   if (stats.totalCards === 0) return null;
@@ -63,6 +77,21 @@ export function DeckStats({ items }: { items: DeckStatItem[] }) {
           </Text>
         ) : null}
       </View>
+
+      {/* Completado: cartas en propiedad vs. requeridas */}
+      {stats.hasOwnedData ? (
+        <View style={s.completion}>
+          <View style={s.completionHead}>
+            <Text style={s.sectionLabel}>{t('deck.completion')}</Text>
+            <Text style={s.completionNums}>
+              {stats.have}/{stats.needed} · {stats.completionPct}%
+            </Text>
+          </View>
+          <View style={s.progressTrack}>
+            <View style={[s.progressFill, { width: `${stats.completionPct}%` }]} />
+          </View>
+        </View>
+      ) : null}
 
       {/* Conteo por tipo */}
       <View style={s.typeRow}>
@@ -145,6 +174,25 @@ const s = StyleSheet.create({
   },
   title: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.text },
   leader: { flex: 1, fontSize: 12, fontFamily: fonts.ui, color: colors.textMut, textAlign: 'right' },
+
+  completion: { gap: 6 },
+  completionHead: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+  },
+  completionNums: { fontSize: 12, fontFamily: fonts.uiSemi, color: colors.ghost },
+  progressTrack: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: colors.surface2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: colors.ghost,
+  },
 
   typeRow: { flexDirection: 'row', gap: 8 },
   typeChip: {
