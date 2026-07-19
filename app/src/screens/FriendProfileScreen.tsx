@@ -4,7 +4,7 @@
 // shared" placeholder. Card metadata is resolved locally from the bundled index
 // (CARDS), so only the friend's (code, suffix, count) tuples come over the wire.
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -24,10 +24,13 @@ import { useT } from '../lib/i18n';
 import { CARDS } from '../data/loadIndex';
 import { resolveImageUris } from '../lib/images';
 import { getFriendCollection, getFriendDecks, getFriendWishlists } from '../lib/friends';
+import { getCachedWishlists } from '../lib/wishlists';
+import { getOwnedFor } from '../lib/ownedAggregate';
+import { matchGiveToFriend, matchReceiveFromFriend, type TradeMatch } from '../lib/tradeMatch';
 import type { Deck } from '../lib/decks';
 import type { CollectionItem, Wishlist } from '../types';
 
-type Tab = 'collection' | 'wishlist' | 'decks';
+type Tab = 'collection' | 'wishlist' | 'decks' | 'trade';
 
 export function FriendProfileScreen({ route, navigation }: FriendProfileScreenProps) {
   const { userId, username } = route.params;
@@ -43,12 +46,19 @@ export function FriendProfileScreen({ route, navigation }: FriendProfileScreenPr
     if (tab === 'collection' && collection === null) void getFriendCollection(userId).then(setCollection);
     if (tab === 'wishlist' && wishlists === null) void getFriendWishlists(userId).then(setWishlists);
     if (tab === 'decks' && decks === null) void getFriendDecks(userId).then(setDecks);
+    // Trade cruza AMBOS lados: la wishlist del amigo × mi colección, y mi
+    // wishlist × la colección del amigo. Reusa los fetchers ya existentes.
+    if (tab === 'trade') {
+      if (collection === null) void getFriendCollection(userId).then(setCollection);
+      if (wishlists === null) void getFriendWishlists(userId).then(setWishlists);
+    }
   }, [tab, userId, collection, wishlists, decks]);
 
-  const TABS: Array<{ key: Tab; labelKey: 'friend.collection' | 'friend.wishlist' | 'friend.decks' }> = [
+  const TABS: Array<{ key: Tab; labelKey: 'friend.collection' | 'friend.wishlist' | 'friend.decks' | 'friend.trade' }> = [
     { key: 'collection', labelKey: 'friend.collection' },
     { key: 'wishlist', labelKey: 'friend.wishlist' },
     { key: 'decks', labelKey: 'friend.decks' },
+    { key: 'trade', labelKey: 'friend.trade' },
   ];
 
   return (
@@ -78,6 +88,9 @@ export function FriendProfileScreen({ route, navigation }: FriendProfileScreenPr
         {tab === 'collection' && <CollectionView items={collection} />}
         {tab === 'wishlist' && <WishlistView wishlists={wishlists} />}
         {tab === 'decks' && <DecksView decks={decks} />}
+        {tab === 'trade' && (
+          <TradeView friendCollection={collection} friendWishlists={wishlists} username={username} />
+        )}
       </ScrollView>
     </View>
   );
@@ -176,6 +189,93 @@ function DecksView({ decks }: { decks: Deck[] | null }) {
   );
 }
 
+function TradeView({
+  friendCollection,
+  friendWishlists,
+  username,
+}: {
+  friendCollection: CollectionItem[] | null;
+  friendWishlists: Wishlist[] | null;
+  username: string;
+}) {
+  const t = useT();
+  // Ambos lados deben haber cargado (o resuelto a []); null = aún cargando.
+  const give = useMemo<TradeMatch[] | null>(
+    () => (friendWishlists === null ? null : matchGiveToFriend(friendWishlists, getOwnedFor)),
+    [friendWishlists],
+  );
+  const receive = useMemo<TradeMatch[] | null>(
+    () => (friendCollection === null ? null : matchReceiveFromFriend(getCachedWishlists(), friendCollection)),
+    [friendCollection],
+  );
+
+  if (give === null || receive === null) return <Loading />;
+
+  if (give.length === 0 && receive.length === 0) {
+    return (
+      <View style={s.empty}>
+        <Icon name="swap" size={28} color={colors.textDim} />
+        <Text style={s.emptyTitle}>{t('friend.noTrades')}</Text>
+        <Text style={s.desc}>{t('friend.noTradesDesc')}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ gap: 20 }}>
+      <TradeSection
+        title={t('friend.youHaveTheyWant', { name: username })}
+        matches={give}
+        needLabelKey="friend.tradeTheyNeed"
+        haveLabelKey="friend.tradeYouHave"
+      />
+      <TradeSection
+        title={t('friend.theyHaveYouWant', { name: username })}
+        matches={receive}
+        needLabelKey="friend.tradeYouNeed"
+        haveLabelKey="friend.tradeTheyHave"
+      />
+    </View>
+  );
+}
+
+function TradeSection({
+  title,
+  matches,
+  needLabelKey,
+  haveLabelKey,
+}: {
+  title: string;
+  matches: TradeMatch[];
+  needLabelKey: 'friend.tradeTheyNeed' | 'friend.tradeYouNeed';
+  haveLabelKey: 'friend.tradeYouHave' | 'friend.tradeTheyHave';
+}) {
+  const t = useT();
+  if (matches.length === 0) return null;
+  return (
+    <View style={{ gap: 10 }}>
+      <Text style={s.tradeHead}>{title} · {matches.length}</Text>
+      <View style={s.grid}>
+        {matches.map((m) => {
+          const card = CARDS[m.code];
+          const variant = card?.variants[0];
+          if (!variant) return null;
+          const { uri, fallback } = resolveImageUris(variant);
+          return (
+            <View key={m.code} style={s.tradeCell}>
+              <CachedImage uri={uri} fallbackUri={fallback} style={s.tradeImg} placeholderBg={colors.surface2} />
+              <Text style={s.tradeCode} numberOfLines={1}>{m.code}</Text>
+              <Text style={s.tradeMeta} numberOfLines={1}>
+                {t(haveLabelKey, { n: m.have })} · {t(needLabelKey, { n: m.need })}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
   header: {
     flexDirection: 'row',
@@ -205,6 +305,11 @@ const s = StyleSheet.create({
     paddingHorizontal: 5,
   },
   countText: { fontSize: 12, fontFamily: fonts.uiBold, color: colors.onAccent },
+  tradeHead: { fontSize: 14, fontFamily: fonts.uiBold, color: colors.text },
+  tradeCell: { width: '31%' },
+  tradeImg: { width: '100%', aspectRatio: 5 / 7, borderRadius: radii.md },
+  tradeCode: { fontSize: 10, fontFamily: fonts.uiSemi, color: colors.textMut, marginTop: 4 },
+  tradeMeta: { fontSize: 10, fontFamily: fonts.ui, color: colors.textDim, marginTop: 1 },
   listRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -399,4 +399,13 @@ export const es: Record<TKey, string> = {
   'friend.uniqueCards': 'cartas únicas',
   'friend.wishCount': '{n} cartas buscadas',
   'friend.deckCount': '{n} cartas',
+  'friend.trade': 'Trade',
+  'friend.noTrades': 'Sin trades posibles',
+  'friend.noTradesDesc': 'Aún no hay coincidencias entre vuestras wishlists y colecciones.',
+  'friend.youHaveTheyWant': 'Tú tienes · {name} quiere',
+  'friend.theyHaveYouWant': '{name} tiene · tú quieres',
+  'friend.tradeTheyNeed': 'quiere {n}',
+  'friend.tradeYouHave': 'tienes {n}',
+  'friend.tradeYouNeed': 'quieres {n}',
+  'friend.tradeTheyHave': 'tiene {n}',
 };

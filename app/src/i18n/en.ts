@@ -398,6 +398,15 @@ export const en = {
   'friend.uniqueCards': 'unique cards',
   'friend.wishCount': '{n} cards wanted',
   'friend.deckCount': '{n} cards',
+  'friend.trade': 'Trade',
+  'friend.noTrades': 'No trade matches',
+  'friend.noTradesDesc': 'Nothing overlaps between your wishlists and collections yet.',
+  'friend.youHaveTheyWant': 'You have · {name} wants',
+  'friend.theyHaveYouWant': '{name} has · you want',
+  'friend.tradeTheyNeed': 'wants {n}',
+  'friend.tradeYouHave': 'you have {n}',
+  'friend.tradeYouNeed': 'you want {n}',
+  'friend.tradeTheyHave': 'has {n}',
 };
 
 export type TKey = keyof typeof en;

@@ -2404,6 +2404,24 @@ green/red on Browse tiles. Reads `0.0%` until the next price release provides a
 prior snapshot. Future: per-variant (not just base-code) history; a "since you
 started tracking" cost-basis mode for the Portfolio/Binder view.
 
+### Friend trade matching (2026-07-16, logic-verified; UI needs device+backend)
+The friends **binder** (view a friend's collection/wishlist/decks) already existed
+and is wired (Profile→Friends→FriendProfile, RLS-gated fetchers in `lib/friends.ts`).
+The genuinely missing social piece — flagged in QoL + assistant memory
+`friends-social-plan` — is **trade matching**, added now: a 4th "Trade" tab on
+`FriendProfileScreen` cross-references wishlists ↔ collections both ways:
+- **"You have · {name} wants"** — friend's wishlist ∩ my collection (cards I can give).
+- **"{name} has · you want"** — my wishlist ∩ friend's collection (cards they can give).
+New pure lib `lib/tradeMatch.ts` (`matchGiveToFriend` / `matchReceiveFromFriend`),
+matched by **base code** (a trade is about the card, not the exact art), aggregating
+quantities across wishlists and across a card's variants. The Trade tab reuses the
+existing `getFriendCollection`/`getFriendWishlists` fetchers + local
+`getOwnedFor`/`getCachedWishlists`. i18n `friend.trade`/`friend.noTrades`/… (en+es).
+**Verified**: pure logic 4/4 in a Node harness (give/receive/aggregation/empty);
+typecheck green. **NOT verified end-to-end** — the friend-data path needs a
+signed-in Supabase session with a friend who shared data, i.e. a real device +
+live backend (this session's next step).
+
 ### Wishlist "cost to complete" (2026-07-16, web-verified)
 `WishlistDetailScreen` header now shows the estimated cost of the copies still
 missing: `Σ max(0, needed − owned) × getPrice(card, suffix)` — remaining copies
