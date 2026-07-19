@@ -91,6 +91,7 @@ export const en = {
   // Wishlist detail
   'wl.entries': 'entries',
   'wl.copiesNeeded': 'needed',
+  'wl.toComplete': '≈ {price} to complete',
   'wl.owned': 'owned',
   'wl.addCards': 'Add Cards',
   'wl.rename': 'Rename Wishlist',

@@ -2404,6 +2404,16 @@ green/red on Browse tiles. Reads `0.0%` until the next price release provides a
 prior snapshot. Future: per-variant (not just base-code) history; a "since you
 started tracking" cost-basis mode for the Portfolio/Binder view.
 
+### Wishlist "cost to complete" (2026-07-16, web-verified)
+`WishlistDetailScreen` header now shows the estimated cost of the copies still
+missing: `Σ max(0, needed − owned) × getPrice(card, suffix)` — remaining copies
+only (not total needed), priced per the wishlist's specific variant, capped so a
+card you already own contributes nothing. Shown as "≈ €X to complete" in accent,
+hidden when 0. i18n `wl.toComplete` (en+es). **Web-verified**: wishlist with
+OP01-016 needed 2 (owned 3 → fully covered, 0 cost) + OP01-025 needed 2 (owned 0)
+→ header read "2/4 needed · ≈ €7.00 to complete" (= 2 × €3.50, the owned card
+correctly excluded), proving the remaining-and-capped logic.
+
 ### Tappable card traits → filtered Browse (2026-07-16, web-verified)
 DetailScreen now shows the card's traits/family (previously not displayed at
 all — a real info gap). `card.family` ("Supernovas/Straw Hat Crew") is split on

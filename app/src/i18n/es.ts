@@ -92,6 +92,7 @@ export const es: Record<TKey, string> = {
   // Wishlist detail
   'wl.entries': 'entradas',
   'wl.copiesNeeded': 'necesitadas',
+  'wl.toComplete': '≈ {price} para completar',
   'wl.owned': 'poseídas',
   'wl.addCards': 'Añadir Cartas',
   'wl.rename': 'Renombrar Wishlist',

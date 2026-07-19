@@ -29,6 +29,7 @@ import { CARDS, CARD_LIST } from '../data/loadIndex';
 import { fuzzyFilter } from '../lib/filters';
 import { resolveImageUris } from '../lib/images';
 import { getOwnedFor, subscribe as subOwned } from '../lib/ownedAggregate';
+import { getPrice } from '../lib/prices';
 import { getDefaultWishlistSuffix } from '../lib/settings';
 import {
   getWishlist,
@@ -121,6 +122,12 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
 
   const totalNeeded = entries.reduce((acc, e) => acc + e.wc.needed, 0);
   const totalOwned = entries.reduce((acc, e) => acc + Math.min(getOwnedFor(e.wc.code), e.wc.needed), 0);
+  // Coste estimado de las copias que aún faltan (needed − owned, nunca negativo),
+  // a precio de la variante concreta de la wishlist. Es lo que costaría acabarla.
+  const costToComplete = entries.reduce((acc, e) => {
+    const remaining = Math.max(0, e.wc.needed - getOwnedFor(e.wc.code));
+    return acc + remaining * getPrice(e.card, e.wc.suffix);
+  }, 0);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -144,6 +151,11 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
           <Text style={s.headerTitle} numberOfLines={1}>{wishlist.name}</Text>
           <Text style={s.headerSub}>
             {entries.length} {t('wl.entries')} · {totalOwned}/{totalNeeded} {t('wl.copiesNeeded')}
+            {costToComplete > 0.005 ? (
+              <Text style={s.headerCost}>
+                {'  ·  '}{t('wl.toComplete', { price: `€${costToComplete.toFixed(2)}` })}
+              </Text>
+            ) : null}
           </Text>
         </Pressable>
         <Pressable
@@ -339,6 +351,7 @@ const s = StyleSheet.create({
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 22, fontFamily: fonts.display, color: colors.text, letterSpacing: -0.3 },
   headerSub: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut, marginTop: 2 },
+  headerCost: { fontFamily: fonts.uiSemi, color: colors.accent },
   addBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: colors.accent,
