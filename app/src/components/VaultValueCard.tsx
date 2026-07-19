@@ -166,6 +166,9 @@ export function VaultValueCard({ currentValue }: { currentValue: number }) {
           })}
         </View>
       ) : null}
+
+      {/* Price disclaimer — the vault figure is an aggregate of estimates. */}
+      <Text style={s.disclaimer}>{t('home.priceDisclaimer')}</Text>
     </View>
   );
 }
@@ -253,6 +256,12 @@ const s = StyleSheet.create({
     fontFamily: fonts.uiSemi,
   },
   tfTextActive: { color: colors.accent },
+  disclaimer: {
+    color: colors.textDim,
+    fontSize: 10,
+    fontFamily: fonts.ui,
+    marginTop: 2,
+  },
   tfUnderline: {
     height: 2,
     width: 18,

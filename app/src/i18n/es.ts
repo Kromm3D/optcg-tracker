@@ -24,6 +24,7 @@ export const es: Record<TKey, string> = {
   'home.vaultAllTime': 'histórico',
   'home.vaultSince': 'desde {date}',
   'home.vaultTrackingStarts': 'El seguimiento empieza hoy — vuelve mañana',
+  'home.priceDisclaimer': 'Los precios son estimaciones, no ofertas de compra o venta.',
   'home.tf7d': '7D',
   'home.tf30d': '30D',
   'home.tfAll': 'Todo',

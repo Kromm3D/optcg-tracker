@@ -2516,9 +2516,12 @@ label reflow. Accept limitation for now or investigate a custom inline renderer.
 `newArchEnabled: false` in `app.json`. `@react-native-ml-kit/text-recognition` needs to be
 verified for Fabric/JSI compatibility before flipping the flag.
 
-### 9. UI price disclaimer
-Before any public release, add a small disclaimer on `HomeScreen` vault tile and `DetailScreen`
-price row clarifying that prices are estimates (until QoL §1 is done).
+### ~~9. UI price disclaimer~~ — done (2026-07-16, web-verified)
+Small muted footnote on the Home vault card (`VaultValueCard`): "Prices are
+estimates, not offers to buy or sell." (i18n `home.priceDisclaimer`, en+es).
+Placed only on the vault tile, not `DetailScreen` — the latter no longer shows a
+numeric price (just a Cardmarket link), so there's no price row to caveat.
+Web-verified visible under the € figure.
 
 ---
 

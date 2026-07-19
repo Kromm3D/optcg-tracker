@@ -23,6 +23,7 @@ export const en = {
   'home.vaultAllTime': 'all time',
   'home.vaultSince': 'since {date}',
   'home.vaultTrackingStarts': 'Tracking starts today — check back tomorrow',
+  'home.priceDisclaimer': 'Prices are estimates, not offers to buy or sell.',
   'home.tf7d': '7D',
   'home.tf30d': '30D',
   'home.tfAll': 'All',
