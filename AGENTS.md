@@ -2420,9 +2420,16 @@ aprovisionar el proyecto + verificación en dispositivo por el usuario.**
 Mejoras futuras: realtime multi-dispositivo, tombstones para borrados offline,
 OAuth/magic-link, y matching de trades (wishlist de un amigo ↔ mi colección).
 
-### 3. OPTCGSim deck export
-`lib/optcgsim.ts` can *import* from OPTCGSim format but there's no *export* function. Add
-`toOptcgSimString(deck: Deck): string` and a "Share deck code" button in `DeckDetailScreen`.
+### ~~3. OPTCGSim deck export~~ — done (2026-07-16, web-verified)
+`lib/optcgsim.ts` gained `toOptcgSimString(entries)` — leader first (OPTCGSim
+convention), rest sorted by code, `NxCODE` newline-joined; round-trips through
+`parseOptcgSim` (tokens match ENTRY_RE). `DeckDetailScreen` has a "Share deck
+code" header button (`external` icon) opening a modal with the read-only
+selectable code + a Copy (web: `navigator.clipboard`) / Share (native:
+`Share.share` from RN core — no new dep) button. **Web-verified**: imported
+`4xOP01-025 1xOP01-001 4xOP01-016 2xOP01-024` (scrambled) → export produced
+`1xOP01-001` first then sorted rest, correct qtys; clipboard write path runs
+clean in a secure context. Not device-verified (native Share path).
 
 ### 4. Barcode / QR scanning as OCR fallback
 Official OPTCG packs include a barcode or QR code on some products. Could be a faster scan path

@@ -138,6 +138,13 @@ export const es: Record<TKey, string> = {
   'deck.missingAdded': '{n} cartas faltantes añadidas a la wishlist.',
   'deck.missingNone': 'No faltan cartas — ¡las tienes todas!',
   'deck.overLimit': 'Supera el límite de 50 cartas',
+  'deck.export': 'Compartir código del mazo',
+  'deck.exportTitle': 'Código de mazo OPTCGSim',
+  'deck.exportBody': 'Copia este código y pégalo en OPTCGSim, o compártelo con un amigo.',
+  'deck.exportEmpty': 'Añade cartas al mazo primero.',
+  'deck.copy': 'Copiar',
+  'deck.copied': 'Código del mazo copiado.',
+  'deck.share': 'Compartir',
 
   // Scan
   'scan.permTitle': 'Se necesita acceso a la cámara',

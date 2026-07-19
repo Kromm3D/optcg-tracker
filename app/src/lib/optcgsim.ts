@@ -33,6 +33,24 @@ export function findLeader(entries: ParsedEntry[]): string | undefined {
   return entries.find((e) => CARDS[e.code]?.type === 'Leader')?.code;
 }
 
+/**
+ * Serialize deck entries back to an OPTCGSim deck code, e.g.
+ *   "1xOP01-001\n4xOP01-016\n4xOP01-025".
+ * Leader first (OPTCGSim convention), then the rest sorted by code. The output
+ * round-trips through parseOptcgSim(): its tokens match ENTRY_RE exactly.
+ * Entries whose qty ≤ 0 are dropped.
+ */
+export function toOptcgSimString(entries: ParsedEntry[]): string {
+  const valid = entries.filter((e) => e.qty > 0 && CARDS[e.code]);
+  const leaderCode = findLeader(valid);
+  const ordered = [...valid].sort((a, b) => {
+    if (a.code === leaderCode) return -1;
+    if (b.code === leaderCode) return 1;
+    return a.code.localeCompare(b.code, undefined, { numeric: true });
+  });
+  return ordered.map((e) => `${e.qty}x${e.code}`).join('\n');
+}
+
 /** Generate a default deck name: "LeaderName - SetCode" (e.g. "Enel - OP15").
  *  Falls back to "OPTCGSim deck" when no leader is found. */
 export function defaultDeckName(entries: ParsedEntry[]): string {

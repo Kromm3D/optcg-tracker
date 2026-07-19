@@ -5,7 +5,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -38,6 +40,7 @@ import {
   subscribe as subDecks,
   type Deck,
 } from '../lib/decks';
+import { toOptcgSimString } from '../lib/optcgsim';
 import type { Card } from '../types';
 
 const COLUMNS = 3;
@@ -57,6 +60,7 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
   const [search, setSearch] = useState('');
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState('');
+  const [exporting, setExporting] = useState(false);
   // Wishlist picker for "Add missing"
   const [showWLPicker, setShowWLPicker] = useState(false);
   const [pendingMissingCards, setPendingMissingCards] = useState<Array<{ code: string; needed: number }>>([]);
@@ -100,6 +104,39 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
   const showToast = useCallback((msg: string) => {
     toast({ message: msg });
   }, [toast]);
+
+  // OPTCGSim deck code — round-trips through the import parser (lib/optcgsim).
+  const deckCode = useMemo(
+    () => (deck ? toOptcgSimString(deck.cards.map((c) => ({ code: c.code, qty: c.qty }))) : ''),
+    [deck],
+  );
+
+  const handleExport = useCallback(() => {
+    if (!deckCode) {
+      showToast(t('deck.exportEmpty'));
+      return;
+    }
+    setExporting(true);
+  }, [deckCode, t, showToast]);
+
+  // Copy on web (Clipboard API), native share sheet on device — no extra deps.
+  const handleCopyOrShare = useCallback(async () => {
+    if (!deckCode) return;
+    try {
+      if (Platform.OS === 'web') {
+        // navigator.clipboard needs a secure context; guard so it never throws.
+        const clip = (globalThis as { navigator?: { clipboard?: { writeText(t: string): Promise<void> } } }).navigator?.clipboard;
+        if (clip) {
+          await clip.writeText(deckCode);
+          showToast(t('deck.copied'));
+        }
+      } else {
+        await Share.share({ message: deckCode });
+      }
+    } catch {
+      // User dismissed the share sheet, or clipboard was blocked — no-op.
+    }
+  }, [deckCode, t, showToast]);
 
   // Step 1: collect missing cards, then open wishlist picker
   const handleAddMissing = useCallback(() => {
@@ -167,6 +204,14 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
             </Text>
             {overLimit ? <Text style={s.overLimitTag}>  ⚠ {t('deck.overLimit')}</Text> : null}
           </Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [s.iconBtn, pressed && pressedStyle]}
+          onPress={handleExport}
+          accessibilityRole="button"
+          accessibilityLabel={t('deck.export')}
+        >
+          <Icon name="external" size={20} color={colors.text} />
         </Pressable>
         <Pressable
           style={({ pressed }) => [s.wishBtn, pressed && pressedStyle]}
@@ -244,6 +289,26 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
         onSelect={handleWishlistPicked}
       />
 
+      {/* Export / share OPTCGSim code modal */}
+      <AppModal visible={exporting} onClose={() => setExporting(false)} title={t('deck.exportTitle')}>
+        <Text style={s.exportBody}>{t('deck.exportBody')}</Text>
+        <TextInput
+          style={[s.modalInput, s.exportCode]}
+          value={deckCode}
+          editable={false}
+          multiline
+          selectTextOnFocus
+        />
+        <View style={s.modalRow}>
+          <Button title={t('common.done')} variant="secondary" onPress={() => setExporting(false)} style={s.modalBtn} />
+          <Button
+            title={Platform.OS === 'web' ? t('deck.copy') : t('deck.share')}
+            onPress={handleCopyOrShare}
+            style={s.modalBtn}
+          />
+        </View>
+      </AppModal>
+
       {/* Rename modal */}
       <AppModal visible={renaming} onClose={() => setRenaming(false)} title={t('deck.rename')}>
         <TextInput
@@ -306,6 +371,30 @@ const s = StyleSheet.create({
     borderColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exportBody: {
+    fontSize: 13,
+    fontFamily: fonts.ui,
+    color: colors.textMut,
+    lineHeight: 18,
+  },
+  exportCode: {
+    height: 130,
+    textAlignVertical: 'top',
+    paddingTop: 12,
+    fontFamily: fonts.ui,
+    fontSize: 13,
+    lineHeight: 20,
   },
   toast: {
     marginHorizontal: spacing.lg,

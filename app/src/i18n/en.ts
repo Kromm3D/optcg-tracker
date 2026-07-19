@@ -137,6 +137,13 @@ export const en = {
   'deck.missingAdded': '{n} missing cards added to wishlist.',
   'deck.missingNone': 'No missing cards — you own them all!',
   'deck.overLimit': 'Over 50-card limit',
+  'deck.export': 'Share deck code',
+  'deck.exportTitle': 'OPTCGSim deck code',
+  'deck.exportBody': 'Copy this code and paste it into OPTCGSim, or share it with a friend.',
+  'deck.exportEmpty': 'Add cards to the deck first.',
+  'deck.copy': 'Copy',
+  'deck.copied': 'Deck code copied.',
+  'deck.share': 'Share',
 
   // Scan
   'scan.permTitle': 'Camera access needed',
