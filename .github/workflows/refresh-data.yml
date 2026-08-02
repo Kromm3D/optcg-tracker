@@ -47,6 +47,13 @@ jobs:
       - name: Rebuild index
         # Sólo metadatos: las imágenes pesan y ya están en el repo. Si aparece
         # un set nuevo, sus imágenes se bajan a mano una vez (--images-only).
+        #
+        # ⚠ LIMITACIÓN CONOCIDA: --index-only tampoco recalcula hashes.json, y
+        # build_hashes() necesita el fichero de imagen local para calcularlo.
+        # O sea que un set nuevo entra en el catálogo pero **no se puede
+        # escanear** hasta que alguien corra --images-only y --hashes-only a
+        # mano. Automatizar esa cadena (imágenes → hashes → mismo PR) es trabajo
+        # aparte; ver AGENTS.md.
         run: python scripts/build_card_database.py --index-only
 
       - name: Sync index into the app bundle
@@ -66,9 +73,16 @@ jobs:
             Revisa el diff antes de mergear: un cambio de maquetación en origen
             se manifiesta como cartas que desaparecen o campos que se vacían,
             no como un fallo del script.
+          # meta.json NO es opcional aquí. El cliente (lib/remoteIndex.ts) pide
+          # primero data/meta.json y compara su `version` con la que ya tiene;
+          # sólo si ha subido descarga index.json. Si el PR trae el índice nuevo
+          # pero deja el meta viejo, el CDN sirve cartas nuevas que la app no
+          # llegará a pedir nunca — y sin ningún error por ningún lado.
           add-paths: |
             data/index.json
+            data/meta.json
             app/src/data/index.json
+            app/src/data/meta.json
 
   prices:
     name: Prices (Cardmarket, best effort)
