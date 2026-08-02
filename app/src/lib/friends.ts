@@ -160,7 +160,11 @@ export async function getFriendCollection(userId: string): Promise<CollectionIte
   const { data, error } = await supabase
     .from('collection_items')
     .select('code, suffix, count')
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    // Las lápidas de borrado (count 0) viajan al servidor para propagar el
+    // borrado entre dispositivos, pero no son cartas: fuera de cualquier vista
+    // ajena. Ver B-17 en AGENTS.md.
+    .gt('count', 0);
   if (error) {
     console.warn('[friends] getFriendCollection error:', error.message);
     return [];

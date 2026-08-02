@@ -40,7 +40,9 @@ export async function fetchPublicBinder(username: string): Promise<PublicBinder 
   const { data: items } = await supabase
     .from('collection_items')
     .select('code, suffix, count')
-    .eq('user_id', profile.id);
+    .eq('user_id', profile.id)
+    // Las lápidas de borrado (count 0) no son cartas — ver B-17 en AGENTS.md.
+    .gt('count', 0);
 
   // Perfil visible pero colección no pública: RLS devuelve cero filas. Se
   // trata como "nada que enseñar" en vez de como un binder vacío, que

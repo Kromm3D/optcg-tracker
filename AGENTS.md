@@ -2483,22 +2483,34 @@ plan). Static data (card index, prices, images) is never sent to Supabase.
 
 ## Known Bugs
 
-### B-17 — Sync resucita las cartas borradas: no hay tombstones (2026-08-02, encontrado en code review, NO ARREGLADO)
-- **Ficheros:** `app/src/lib/sync.ts` (`reconcileCollection`), `app/src/lib/collection.ts` (`adjust`).
-- **Síntoma:** quitas una carta (o la entregas en un trade), sincronizas, y vuelve
-  a aparecer con su cantidad anterior. Sin aviso.
-- **Causa:** `adjust()` **borra la entrada** cuando el contador llega a 0. En
-  `reconcileCollection`, `if (!localItem) merged[key] = <fila del servidor>` mete
-  la fila del servidor sin mirar timestamps — no puede distinguir "esto nunca ha
-  estado aquí" de "esto lo borré yo". No hay tombstones.
-- **Agravante:** `pushCollection()` **sí** borra del servidor lo que falta en
-  local. Así que el resultado depende de qué camino corra antes: push borra,
-  reconcile resucita. Es no determinista.
-- **Por qué importa ahora:** `applyAcceptedOffer` (trade offers) lleva contadores
-  a 0 de forma rutinaria, así que este camino pasa de raro a normal.
-- **Arreglo propuesto (cambio de shape, pendiente de OK):** conservar el item con
-  `count: 0` y su `updatedAt` en vez de borrarlo, y que LWW resuelva solo. Obliga
-  a bumpear la clave a v4 y a que todos los consumidores ignoren `count <= 0`.
+### B-17 — Sync resucitaba las cartas borradas: no había tombstones — FIXED (2026-08-02, encontrado en code review de PR #2)
+- **Ficheros:** `app/src/lib/collection.ts`, `app/src/lib/sync.ts`,
+  `app/src/lib/friends.ts`, `app/src/lib/publicBinder.ts`.
+- **Síntoma:** quitabas una carta (o la entregabas en un trade), sincronizabas, y
+  volvía con su cantidad anterior. Sin aviso.
+- **Causa:** `adjust()` borraba la entrada al llegar a 0, así que
+  `reconcileCollection` no podía distinguir "esto nunca ha estado aquí" de "esto
+  lo borré yo" y su rama `if (!localItem)` metía la fila del servidor sin mirar
+  timestamps. Peor: `pushCollection()` sí borraba del servidor lo ausente en
+  local, así que el resultado dependía de qué camino corriese antes — push
+  borraba, reconcile resucitaba. No determinista.
+- **Arreglo — lápidas:** borrar ahora guarda el item con `count: 0` y su
+  `updatedAt`, y LWW resuelve solo. Clave bumpeada a `optcg.collection.v4`.
+- **Decisión de diseño:** las lápidas viven **sólo** en almacenamiento y sync.
+  `getCacheSync()` devuelve una vista `live` sin ellas, recalculada en cada
+  escritura, y la sync usa `getCacheWithTombstones()`. Así ningún consumidor de
+  interfaz cambió de comportamiento y no hay riesgo de que un lector olvidado
+  pinte una carta con 0 copias. Se prefirió esto a filtrar `count > 0` en cada
+  consumidor.
+- Las lápidas **sí** se suben al servidor (la columna ya admite `count >= 0`),
+  porque si no el borrado no llegaría al resto de dispositivos. Se filtran con
+  `.gt('count', 0)` en las vistas ajenas (binder de amigo y binder público).
+- Los metadatos físicos se descartan al borrar: si dejas de tener la carta, lo
+  que pagaste y en qué estado estaba ya no describen nada.
+- **TTL de 90 días** (`TOMBSTONE_TTL_MS`), podado al cargar. De sobra para que
+  cualquier dispositivo haya sincronizado, y evita que crezcan sin fin.
+- ⚠ **Verificado por razonamiento y typecheck, NO en dispositivo.** Falta probar
+  el ciclo borrar → sincronizar → volver a entrar con dos dispositivos.
 
 ### B-16 — Escáner: fundas y foils producen falsos positivos — MITIGADO, NO ARREGLADO (2026-08-02, device-verified)
 - **Ficheros:** `app/src/lib/cardMatch.ts` (el descriptor), `app/src/lib/scanVote.ts`

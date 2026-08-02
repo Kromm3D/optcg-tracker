@@ -18,7 +18,7 @@ import { getUser, onAuthChange } from './auth';
 import { onLocalChange, type SyncDomain } from './syncBus';
 import type { CollectionItem, Wishlist } from '../types';
 import {
-  getCacheSync as getCollectionCache,
+  getCacheWithTombstones as getCollectionCache,
   replaceAllFromSync as replaceCollection,
 } from './collection';
 import {
@@ -144,6 +144,10 @@ async function reconcileCollection(): Promise<void> {
     .eq('user_id', userId);
   if (error) throw error;
 
+  // Incluye lápidas (count 0) a propósito: son la única forma de que el
+  // reconcile distinga "esto nunca ha estado aquí" de "esto lo borré yo".
+  // Sin ellas, la rama `!localItem` de abajo resucitaba cualquier borrado
+  // (B-17).
   const local = getCollectionCache();
   const merged: Record<string, CollectionItem> = {};
   const upserts: CollectionItem[] = [];
@@ -164,6 +168,9 @@ async function reconcileCollection(): Promise<void> {
     }
   }
 
+  // Las lápidas SÍ se suben (count 0): así el borrado llega al resto de
+  // dispositivos en vez de quedarse en este. Se limpian solas por TTL en
+  // lib/collection.ts.
   // Lo que el servidor no tiene o tiene desactualizado → upsert.
   const serverByKey = new Map((data ?? []).map((r) => [`${r.code}${r.suffix}`, r]));
   for (const item of Object.values(merged)) {
