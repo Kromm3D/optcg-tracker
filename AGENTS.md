@@ -2483,6 +2483,23 @@ plan). Static data (card index, prices, images) is never sent to Supabase.
 
 ## Known Bugs
 
+### B-17 — Sync resucita las cartas borradas: no hay tombstones (2026-08-02, encontrado en code review, NO ARREGLADO)
+- **Ficheros:** `app/src/lib/sync.ts` (`reconcileCollection`), `app/src/lib/collection.ts` (`adjust`).
+- **Síntoma:** quitas una carta (o la entregas en un trade), sincronizas, y vuelve
+  a aparecer con su cantidad anterior. Sin aviso.
+- **Causa:** `adjust()` **borra la entrada** cuando el contador llega a 0. En
+  `reconcileCollection`, `if (!localItem) merged[key] = <fila del servidor>` mete
+  la fila del servidor sin mirar timestamps — no puede distinguir "esto nunca ha
+  estado aquí" de "esto lo borré yo". No hay tombstones.
+- **Agravante:** `pushCollection()` **sí** borra del servidor lo que falta en
+  local. Así que el resultado depende de qué camino corra antes: push borra,
+  reconcile resucita. Es no determinista.
+- **Por qué importa ahora:** `applyAcceptedOffer` (trade offers) lleva contadores
+  a 0 de forma rutinaria, así que este camino pasa de raro a normal.
+- **Arreglo propuesto (cambio de shape, pendiente de OK):** conservar el item con
+  `count: 0` y su `updatedAt` en vez de borrarlo, y que LWW resuelva solo. Obliga
+  a bumpear la clave a v4 y a que todos los consumidores ignoren `count <= 0`.
+
 ### B-16 — Escáner: fundas y foils producen falsos positivos — MITIGADO, NO ARREGLADO (2026-08-02, device-verified)
 - **Ficheros:** `app/src/lib/cardMatch.ts` (el descriptor), `app/src/lib/scanVote.ts`
   (`MIN_CONFIDENT_SCORE`).
