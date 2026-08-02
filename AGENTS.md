@@ -25,6 +25,49 @@ fechada de abajo.)
 
 ## Current uncommitted state (read before committing)
 
+### 2026-08-02 (6) — El workflow corrió por primera vez: 2 fallos reales, ambos arreglados (CI-VERIFIED)
+
+Se lanzó a mano con `workflow_dispatch` en vez de esperar al lunes. Mereció la
+pena: los dos primeros intentos fallaron, y ninguno de los dos fallos se habría
+visto leyendo el código.
+
+**Fallo 1 — el scraper preguntaba y CI no responde.** `build_card_database.py`
+pregunta "¿Borrar el índice anterior?" cuando `data/index.json` existe. En CI
+`input()` lanzó `EOFError` y el job murió antes de scrapear nada. **La ejecución
+programada del lunes habría fallado exactamente igual.** Arreglado: sin TTY se
+conserva el índice (`sys.stdin.isatty()`), que es la opción segura porque la
+fase 1 lo sobrescribe igual. PR #3.
+
+⚠ Aviso para futuras pruebas locales: bajo Git Bash en Windows, `< /dev/null`
+reporta `isatty()` como **True** y NO reproduce CI. Hay que usar una tubería.
+Mi primera "prueba" del arreglo dio un falso negativo por esto.
+
+**Fallo 2 — Actions no podía abrir el PR.** `GitHub Actions is not permitted to
+create or approve pull requests`, un ajuste del repositorio. La rama
+`data/catalog-refresh` **sí** se subió, así que sólo faltaba el PR. Pendiente:
+activar Settings → Actions → General → *Allow GitHub Actions to create and
+approve pull requests*. Hasta entonces el workflow deja la rama lista y el PR
+hay que abrirlo a mano.
+
+**Resultado del refresco (PR #4), todo generado sin intervención:**
+
+- 2634 → **2665 cartas** (31 nuevas: ST31–ST36 y P-155)
+- **60/60 sets con nombre** — mejor que las 58/60 de la prueba local, porque la
+  página de productos rellena los que aún no tienen cartas
+- OP17 con nombre *y* fecha; EB05 con nombre y **sin** fecha (la suya es sólo
+  mes, y se rechaza a propósito)
+- Imágenes y box art descargados, hashes incrementales → las cartas nuevas son
+  **escaneables desde el primer día**
+- El apóstrofo de *The Azure Sea's Seven* ya sale bien
+- Pasó la verificación de integridad
+
+**El job de precios falló, y funcionó como debía.** Cardmarket devolvió HTTP 403
+al runner (Cloudflare) y el scrape se quedó en 127 entradas; el verificador lo
+rechazó — "Muy pocas entradas, se descarta el resultado" — en vez de pisar el
+fichero bueno. **Conclusión: los precios no se pueden scrapear desde un runner
+de GitHub.** Habrá que ejecutarlo desde una máquina propia o buscar otra fuente;
+el job se queda como está, fallando en silencio sin hacer daño.
+
 ### 2026-08-02 (5) — Catálogo auto-mantenido: nombres, fechas, imágenes y hashes sin manos
 
 Objetivo: que un set nuevo entre solo, con lo mínimo (o nada) de intervención.
