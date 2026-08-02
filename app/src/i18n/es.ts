@@ -284,6 +284,7 @@ export const es: Record<TKey, string> = {
   'trade.accept': 'Aceptar',
   'trade.decline': 'Rechazar',
   'trade.cancel': 'Cancelar oferta',
+  'trade.pendingOffers': '{n} intercambios esperando tu respuesta',
   'trade.applyToCollection': 'Aplicar a mi colección',
   'trade.applyHint': 'Hazlo cuando las cartas hayan cambiado de manos de verdad.',
 

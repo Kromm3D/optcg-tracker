@@ -283,6 +283,7 @@ export const en = {
   'trade.accept': 'Accept',
   'trade.decline': 'Decline',
   'trade.cancel': 'Cancel offer',
+  'trade.pendingOffers': '{n} trade offers waiting for you',
   'trade.applyToCollection': 'Apply to my collection',
   'trade.applyHint': 'Do this once the cards have actually changed hands.',
 

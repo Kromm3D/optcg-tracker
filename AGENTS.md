@@ -17,6 +17,65 @@ fechada de abajo.)
 
 ## Current uncommitted state (read before committing)
 
+### 2026-08-02 (3) — El scraper ya trae PRECIOS + 2 bugs de parseo (verificado con tests)
+
+Se cierra el aviso más importante de la entrada de más abajo: **`build_prices.py`
+sólo extraía `product_url`, no importes**. Sin precios reales, `getPrice()` cae
+en la estimación por rareza y el P&L, la gráfica y las alertas no tienen nada
+que decir — es decir, media tanda de features de hoy estaba construida sobre
+datos que no existían.
+
+**Qué se hizo:** portar a BeautifulSoup la extracción que `scrape_browser_console.js`
+ya hacía sobre el DOM vivo (subir por los ancestros del link hasta dar con un
+importe). Misma página, mismo DOM, así que no hace falta dependencia nueva.
+`scrape_listing` ahora emite `low` además de `product_url`; **sólo si lo
+encuentra** — escribir `low: None` borraría un precio bueno de una pasada
+anterior al hacer el `update()`.
+
+**Dos bugs reales encontrados escribiendo tests, ambos también presentes en el
+script de consola que es la vía en uso hoy. Corregidos en los dos ficheros:**
+
+1. **El regex partía los miles.** `(\d{1,4}[.,]\d{2})` sobre `"1.234,56 €"`
+   captura `"1.23"`: una carta de 1234 € se guardaba como 1,23 €. Tres órdenes
+   de magnitud, y **no revienta** — el número resultante es plausible, que es
+   justo lo que lo hacía indetectable. Ahora se captura el número con todos sus
+   separadores y se decide el decimal por regla explícita (el último separador
+   seguido de exactamente dos dígitos; el resto son millares). Cubre las dos
+   convenciones, porque Cardmarket sirve el formato según el locale de la
+   sesión, no del path. **12/12 casos en Python, 10/10 en JS**, en paridad.
+
+2. **Una carta sin precio heredaba el de otra fila.** El recorrido de ancestros
+   subía hasta 8 niveles sin freno; en una carta sin importe llegaba a un
+   contenedor con el listado entero y el regex enganchaba el primer precio que
+   veía. Detectado con un DOM sintético (la carta "SinPrecio" devolvía el
+   precio de la primera fila). Ahora el recorrido **para en cuanto el ancestro
+   abarca más de un link de producto**. 4/4 en el test, incluido un caso con el
+   link anidado tres niveles de más.
+
+**Cómo se probó** (sin red, reproducible): se carga `build_prices.py` con
+`importlib` y se llama a `parse_price`/`price_near` contra tablas de casos y un
+DOM sintético. No hay runner de tests en el repo, así que van como snippets en
+el historial de la sesión, no como ficheros — si esto crece, merece un
+`scripts/test_prices.py` de verdad.
+
+**El workflow de CI también se endurece**: ya no basta con que salgan ≥500
+entradas; ahora exige que **más de la mitad traiga importe**. Un scrape que
+devuelve todas las URLs y ningún precio significa que cambió la maquetación, no
+que las cartas no valgan nada.
+
+**Otros dos cabos sueltos cerrados:**
+- **Aviso de ofertas de intercambio entrantes** en el hub de Perfil (contador en
+  la fila de Amigos). Antes sólo se veían entrando al perfil del amigo concreto,
+  así que una propuesta podía quedarse días sin respuesta.
+- **`PUBLIC_WEB_BASE` movido a `config.ts`**, junto al resto de configuración de
+  despliegue, y `App.tsx` lo usa para el prefijo de deep linking en vez de
+  repetir el literal. Sigue siendo un **placeholder**: no hay nada desplegado en
+  ese dominio, así que los enlaces de "Compartir mi binder" aún no abren nada.
+
+**Sigue pendiente**: ejecutar el scraper de verdad contra Cardmarket. Los tests
+prueban el parseo, no que Cloudflare deje pasar ni que la maquetación real sea
+la que asumo. Hasta esa ejecución, `prices.json` sigue sin precios.
+
 ### 2026-08-02 (2) — Perfil de usuario: Sencillo / Completo (typecheck-green, device-UNVERIFIED)
 
 Reacción del usuario a la tanda de features de abajo: la app cubre ya desde

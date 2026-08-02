@@ -14,6 +14,7 @@ import type { TKey } from '../i18n/en';
 import { isSupabaseEnabled } from '../lib/supabase';
 import { getProfile, isSignedIn, subscribe as subAuth } from '../lib/auth';
 import { publicBinderUrl } from '../lib/publicBinder';
+import { getIncomingPending, refreshOffers, subscribe as subOffers } from '../lib/tradeOffers';
 
 type Row = { icon: string; title: TKey; desc: TKey; route: 'Account' | 'Friends' | 'Settings' };
 
@@ -44,6 +45,20 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
   const profile = getProfile();
   const name = signedIn ? (profile?.username ?? '…') : t('profile.guest');
   const initial = signedIn ? (profile?.username?.[0]?.toUpperCase() ?? '?') : null;
+
+  // Ofertas de intercambio pendientes de respuesta. Hasta ahora sólo se veían
+  // entrando al perfil del amigo concreto, así que una propuesta podía quedarse
+  // días sin que nadie se enterara. El contador vive en la fila de Amigos, que
+  // es la puerta natural a todo lo social.
+  const [pendingOffers, setPendingOffers] = useState(0);
+  useEffect(() => {
+    if (!backendEnabled || !signedIn) {
+      setPendingOffers(0);
+      return;
+    }
+    void refreshOffers();
+    return subOffers(() => setPendingOffers(getIncomingPending().length));
+  }, [backendEnabled, signedIn]);
 
   // Friends sólo tiene sentido con backend y sesión iniciada (igual que en
   // AccountScreen, que esconde el acceso a Friends tras el estado signed-in).
@@ -100,8 +115,17 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.navTitle}>{t(row.title)}</Text>
-                <Text style={s.navDesc} numberOfLines={1}>{t(row.desc)}</Text>
+                <Text style={s.navDesc} numberOfLines={1}>
+                  {row.route === 'Friends' && pendingOffers > 0
+                    ? t('trade.pendingOffers', { n: pendingOffers })
+                    : t(row.desc)}
+                </Text>
               </View>
+              {row.route === 'Friends' && pendingOffers > 0 ? (
+                <View style={s.badge}>
+                  <Text style={s.badgeText}>{pendingOffers}</Text>
+                </View>
+              ) : null}
               <Icon name="chevR" size={18} color={colors.textMut} />
             </Pressable>
           ))}
@@ -188,4 +212,14 @@ const s = StyleSheet.create({
   },
   navTitle: { fontSize: 15, fontFamily: fonts.uiSemi, color: colors.text },
   navDesc: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut, marginTop: 1 },
+  badge: {
+    minWidth: 22,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { fontSize: 12, fontFamily: fonts.uiBold, color: colors.onAccent },
 });

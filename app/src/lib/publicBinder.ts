@@ -13,6 +13,7 @@
 // averiguar qué nombres de usuario están registrados.
 
 import { supabase } from './supabase';
+import { PUBLIC_WEB_BASE } from '../config';
 import type { CollectionItem, FriendProfile } from '../types';
 
 export interface PublicBinder {
@@ -20,13 +21,11 @@ export interface PublicBinder {
   collection: CollectionItem[];
 }
 
-/** URL canónica del binder público de un usuario. */
+/** URL canónica del binder público de un usuario. El dominio vive en
+ *  config.ts, junto al resto de configuración de despliegue. */
 export function publicBinderUrl(username: string): string {
   return `${PUBLIC_WEB_BASE}/u/${encodeURIComponent(username)}`;
 }
-
-/** Dónde vive el build web. Cambiar al dominio real cuando se despliegue. */
-export const PUBLIC_WEB_BASE = 'https://horohoro.tcg';
 
 export async function fetchPublicBinder(username: string): Promise<PublicBinder | null> {
   if (!supabase) return null;

@@ -41,6 +41,7 @@ import { FriendProfileScreen }   from './src/screens/FriendProfileScreen';
 import { PublicBinderScreen }    from './src/screens/PublicBinderScreen';
 import { ProfileOnboardingScreen } from './src/screens/ProfileOnboardingScreen';
 import { loadSettings }          from './src/lib/settings';
+import { PUBLIC_WEB_BASE }       from './src/config';
 import './src/lib/sync'; // side-effect: arranca el listener de login/logout para la sync
 import { Icon }             from './src/components/Icon';
 import { ToastProvider }    from './src/components/Toast';
@@ -228,7 +229,7 @@ const navigationRef = createNavigationContainerRef<RootStackParamList>();
  * para siempre.
  */
 const LINKING = {
-  prefixes: ['horohoro://', 'https://horohoro.tcg'],
+  prefixes: ['horohoro://', PUBLIC_WEB_BASE],
   config: {
     screens: {
       PublicBinder: 'u/:username',

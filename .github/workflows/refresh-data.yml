@@ -98,16 +98,22 @@ jobs:
         id: verify
         run: |
           python - <<'PY'
-          import json, os, pathlib, sys
+          import json, pathlib, sys
           p = pathlib.Path('data/prices.json')
           if not p.exists():
               print('prices.json no existe'); sys.exit(1)
-          n = len(json.loads(p.read_text(encoding='utf-8')).get('prices', {}))
-          print(f'{n} entradas de precio')
+          entries = json.loads(p.read_text(encoding='utf-8')).get('prices', {})
+          priced = [e for e in entries.values() if e.get('low') or e.get('trend')]
+          print(f'{len(entries)} entradas, {len(priced)} con precio')
           # Umbral defensivo: el catálogo tiene ~4600 variantes. Si salen
           # cuatro gatos, Cloudflare ganó y no queremos pisar el fichero bueno.
-          if n < 500:
+          if len(entries) < 500:
               print('Muy pocas entradas — se descarta el resultado'); sys.exit(1)
+          # Y se exige que la mayoría traiga precio: un scrape que devuelve
+          # todas las URLs pero ningún importe significa que el listado cambió
+          # de maquetación, no que las cartas no valgan nada.
+          if len(priced) < len(entries) * 0.5:
+              print('Demasiadas entradas sin precio — se descarta el resultado'); sys.exit(1)
           PY
 
       - name: Open PR if prices moved

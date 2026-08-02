@@ -11,6 +11,17 @@ export const GITHUB_REPO = 'optcg-tracker';
 export const GITHUB_BRANCH = 'main';
 
 /**
+ * Dónde vive el build web. Es la base de los enlaces compartibles al binder
+ * público (`/u/:username`, ver lib/publicBinder.ts) y uno de los `prefixes`
+ * del deep linking en App.tsx.
+ *
+ * **PLACEHOLDER — todavía no hay nada desplegado en este dominio.** Hasta que
+ * lo haya, los enlaces que genere "Compartir mi binder" no abrirán nada.
+ * Cambiar aquí (un solo sitio) al desplegar.
+ */
+export const PUBLIC_WEB_BASE = 'https://horohoro.tcg';
+
+/**
  * Reservado para servir imágenes locales en web (app/public/images). Desactivado:
  * la estrategia actual es el CDN. Ver notas en lib/images.ts.
  */
