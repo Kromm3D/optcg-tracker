@@ -1,0 +1,147 @@
+# Refresco semanal de los datos que la app consume desde el repo.
+#
+# Por qué existe: `data/index.json` y `data/prices.json` se sirven por jsDelivr
+# desde este repo, así que hasta ahora un set nuevo o un precio movido exigían
+# que alguien se acordase de correr los scripts a mano. Este workflow lo hace
+# solo y abre un PR — nunca empuja a `main` directamente, porque los datos
+# scrapeados pueden salir mal (un cambio de HTML en origen, Cloudflare) y eso
+# debe verse en un diff antes de llegar a los usuarios.
+#
+# Dos jobs deliberadamente separados: el catálogo se scrapea del sitio oficial
+# y es fiable; los precios van contra Cardmarket, que tiene Cloudflare delante
+# y puede bloquear a un runner de CI. Que fallen los precios no debe impedir
+# que entre un set nuevo.
+
+name: Refresh card data
+
+on:
+  schedule:
+    # Lunes 04:17 UTC. Minuto impar a propósito: en punto es la hora de mayor
+    # cola en los runners compartidos de GitHub.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      prices:
+        description: 'Intentar también el refresco de precios'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  catalog:
+    name: Card catalog (official site)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: pip install requests beautifulsoup4 pillow
+
+      - name: Rebuild index
+        # Sólo metadatos: las imágenes pesan y ya están en el repo. Si aparece
+        # un set nuevo, sus imágenes se bajan a mano una vez (--images-only).
+        #
+        # ⚠ LIMITACIÓN CONOCIDA: --index-only tampoco recalcula hashes.json, y
+        # build_hashes() necesita el fichero de imagen local para calcularlo.
+        # O sea que un set nuevo entra en el catálogo pero **no se puede
+        # escanear** hasta que alguien corra --images-only y --hashes-only a
+        # mano. Automatizar esa cadena (imágenes → hashes → mismo PR) es trabajo
+        # aparte; ver AGENTS.md.
+        run: python scripts/build_card_database.py --index-only
+
+      - name: Sync index into the app bundle
+        # El bundler de Metro lee app/src/data/index.json, no data/index.json.
+        # Olvidar esta copia es el error clásico de este pipeline.
+        run: cp data/index.json app/src/data/index.json
+
+      - name: Open PR if the catalog moved
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: data/catalog-refresh
+          commit-message: 'chore(data): refresh card catalog'
+          title: 'chore(data): refresh card catalog'
+          body: |
+            Refresco automático de `data/index.json` desde el sitio oficial.
+
+            Revisa el diff antes de mergear: un cambio de maquetación en origen
+            se manifiesta como cartas que desaparecen o campos que se vacían,
+            no como un fallo del script.
+          # meta.json NO es opcional aquí. El cliente (lib/remoteIndex.ts) pide
+          # primero data/meta.json y compara su `version` con la que ya tiene;
+          # sólo si ha subido descarga index.json. Si el PR trae el índice nuevo
+          # pero deja el meta viejo, el CDN sirve cartas nuevas que la app no
+          # llegará a pedir nunca — y sin ningún error por ningún lado.
+          add-paths: |
+            data/index.json
+            data/meta.json
+            app/src/data/index.json
+            app/src/data/meta.json
+
+  prices:
+    name: Prices (Cardmarket, best effort)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || inputs.prices }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: |
+          pip install requests cloudscraper beautifulsoup4 playwright
+          playwright install --with-deps chromium
+
+      - name: Scrape Cardmarket
+        # --browser usa Playwright para pasar el desafío de Cloudflare. Aun así
+        # un runner de CI tiene bastantes papeletas de que lo bloqueen: por eso
+        # el paso es `continue-on-error` y hay una verificación explícita
+        # después. Un prices.json vacío merecido nunca debe llegar a un PR.
+        continue-on-error: true
+        run: python scripts/build_prices.py --browser --all
+
+      - name: Verify the scrape produced something usable
+        id: verify
+        run: |
+          python - <<'PY'
+          import json, pathlib, sys
+          p = pathlib.Path('data/prices.json')
+          if not p.exists():
+              print('prices.json no existe'); sys.exit(1)
+          entries = json.loads(p.read_text(encoding='utf-8')).get('prices', {})
+          priced = [e for e in entries.values() if e.get('low') or e.get('trend')]
+          print(f'{len(entries)} entradas, {len(priced)} con precio')
+          # Umbral defensivo: el catálogo tiene ~4600 variantes. Si salen
+          # cuatro gatos, Cloudflare ganó y no queremos pisar el fichero bueno.
+          if len(entries) < 500:
+              print('Muy pocas entradas — se descarta el resultado'); sys.exit(1)
+          # Y se exige que la mayoría traiga precio: un scrape que devuelve
+          # todas las URLs pero ningún importe significa que el listado cambió
+          # de maquetación, no que las cartas no valgan nada.
+          if len(priced) < len(entries) * 0.5:
+              print('Demasiadas entradas sin precio — se descarta el resultado'); sys.exit(1)
+          PY
+
+      - name: Open PR if prices moved
+        if: steps.verify.outcome == 'success'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: data/price-refresh
+          commit-message: 'chore(data): refresh Cardmarket prices'
+          title: 'chore(data): refresh Cardmarket prices'
+          body: |
+            Refresco automático de precios desde Cardmarket.
+
+            Al mergear esto, `lib/priceHistory.ts` toma el fichero anterior como
+            referencia y los deltas de precio de las tiles pasan a ser reales.
+          add-paths: |
+            data/prices.json
+            app/src/data/prices.json
