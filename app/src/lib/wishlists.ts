@@ -9,11 +9,62 @@ import { notifyLocalChange } from './syncBus';
 
 const STORAGE_KEY = 'optcg.wishlists.v3';
 const LEGACY_KEY = 'optcg.wishlists.v2';
+/** Wishlist única pre-multi-wishlist (eliminada 2026-06-06). Ver B-06. */
+const ANCIENT_SINGLE_KEY = 'optcg.wishlist.v1';
 
 type WishlistMap = Record<string, Wishlist>;
 
+/** Forma del `WishlistItem` antiguo, keyed por código base sin variantes. */
+interface LegacyWishlistItem {
+  code?: string;
+  qty?: number;
+  needed?: number;
+  addedAt?: number;
+}
+
 let cache: WishlistMap | null = null;
 const listeners = new Set<() => void>();
+
+/** B-06 — convierte la wishlist única antigua en una wishlist con nombre.
+ *  El formato viejo estaba keyed por código base y no tenía variantes, así
+ *  que todas las entradas migran a la variante base (suffix ""). */
+function migrateAncientSingle(raw: string): WishlistMap | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const entries: LegacyWishlistItem[] = Array.isArray(parsed)
+    ? (parsed as LegacyWishlistItem[])
+    : parsed && typeof parsed === 'object'
+      ? Object.entries(parsed as Record<string, LegacyWishlistItem | number>).map(([code, v]) =>
+          typeof v === 'number' ? { code, qty: v } : { code, ...v },
+        )
+      : [];
+
+  const cards: Record<string, WishlistCard> = {};
+  for (const it of entries) {
+    const code = it.code;
+    if (!code || typeof code !== 'string') continue;
+    cards[wishCardKey(code, '')] = {
+      code,
+      suffix: '',
+      needed: Math.max(1, it.needed ?? it.qty ?? 1),
+      addedAt: it.addedAt ?? 0,
+    };
+  }
+  if (Object.keys(cards).length === 0) return null;
+
+  const wl: Wishlist = {
+    id: 'wl_migrated_v1',
+    name: 'Wishlist',
+    cards,
+    createdAt: 0,
+    updatedAt: 0,
+  };
+  return { [wl.id]: wl };
+}
 
 // Migración v2 → v3: añade `updatedAt` (sellado a 0 = legacy) para la sync.
 async function loadRaw(): Promise<WishlistMap> {
@@ -25,6 +76,17 @@ async function loadRaw(): Promise<WishlistMap> {
     for (const k of Object.keys(map)) if (map[k].updatedAt == null) map[k].updatedAt = 0;
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
     return map;
+  }
+  // B-06: último recurso, la wishlist única pre-multi-wishlist.
+  const ancient = await AsyncStorage.getItem(ANCIENT_SINGLE_KEY);
+  if (ancient) {
+    const map = migrateAncientSingle(ancient);
+    if (map) {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+      // No borramos la clave vieja: si la migración resultó mal, el dato
+      // original sigue ahí para recuperarlo a mano.
+      return map;
+    }
   }
   return {};
 }

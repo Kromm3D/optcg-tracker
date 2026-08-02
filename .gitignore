@@ -32,3 +32,9 @@ Thumbs.db
 
 # Debug/test artifacts from scripts (hash visualizations, scratch dumps)
 scripts/output/
+
+# Dev scratch (Metro logs, ad-hoc device screenshots)
+metro.log
+app/metro.log
+screen.png
+*.screenshot.png
