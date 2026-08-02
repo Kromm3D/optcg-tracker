@@ -27,6 +27,19 @@ import { getFriendCollection, getFriendDecks, getFriendWishlists } from '../lib/
 import { getCachedWishlists } from '../lib/wishlists';
 import { getOwnedFor } from '../lib/ownedAggregate';
 import { matchGiveToFriend, matchReceiveFromFriend, type TradeMatch } from '../lib/tradeMatch';
+import {
+  acceptOffer,
+  applyAcceptedOffer,
+  cancelOffer,
+  createOffer,
+  declineOffer,
+  getOffersWith,
+  refreshOffers,
+  subscribe as subOffers,
+  type TradeOffer,
+  type TradeOfferItem,
+  type TradeSide,
+} from '../lib/tradeOffers';
 import type { Deck } from '../lib/decks';
 import type { CollectionItem, Wishlist } from '../types';
 
@@ -89,7 +102,12 @@ export function FriendProfileScreen({ route, navigation }: FriendProfileScreenPr
         {tab === 'wishlist' && <WishlistView wishlists={wishlists} />}
         {tab === 'decks' && <DecksView decks={decks} />}
         {tab === 'trade' && (
-          <TradeView friendCollection={collection} friendWishlists={wishlists} username={username} />
+          <TradeView
+            friendCollection={collection}
+            friendWishlists={wishlists}
+            username={username}
+            userId={userId}
+          />
         )}
       </ScrollView>
     </View>
@@ -193,10 +211,12 @@ function TradeView({
   friendCollection,
   friendWishlists,
   username,
+  userId,
 }: {
   friendCollection: CollectionItem[] | null;
   friendWishlists: Wishlist[] | null;
   username: string;
+  userId: string;
 }) {
   const t = useT();
   // Ambos lados deben haber cargado (o resuelto a []); null = aún cargando.
@@ -209,9 +229,52 @@ function TradeView({
     [friendCollection],
   );
 
+  // Selección de la oferta en curso, por lado. La cantidad por defecto es lo
+  // máximo que el trato admite: min(lo que hay, lo que se necesita).
+  const [picked, setPicked] = useState<Record<TradeSide, Record<string, number>>>({
+    give: {},
+    receive: {},
+  });
+  const [sending, setSending] = useState(false);
+  const [offers, setOffers] = useState<TradeOffer[]>(() => getOffersWith(userId));
+
+  useEffect(() => {
+    void refreshOffers();
+    return subOffers(() => setOffers(getOffersWith(userId)));
+  }, [userId]);
+
+  const toggle = (side: TradeSide, m: TradeMatch) =>
+    setPicked((p) => {
+      const next = { ...p[side] };
+      if (next[m.code]) delete next[m.code];
+      else next[m.code] = Math.max(1, Math.min(m.have, m.need));
+      return { ...p, [side]: next };
+    });
+
+  const selectedCount =
+    Object.keys(picked.give).length + Object.keys(picked.receive).length;
+
+  const send = async () => {
+    setSending(true);
+    // El sufijo va vacío a propósito: el matching es por código base (un trade
+    // es de la carta, no del arte). Concretar la variante es cosa del chat.
+    const items: TradeOfferItem[] = [
+      ...Object.entries(picked.give).map(([code, qty]) => ({ side: 'give' as const, code, suffix: '', qty })),
+      ...Object.entries(picked.receive).map(([code, qty]) => ({ side: 'receive' as const, code, suffix: '', qty })),
+    ];
+    const res = await createOffer(userId, items);
+    setSending(false);
+    if (res.ok) setPicked({ give: {}, receive: {} });
+    else console.warn('[trade] createOffer failed:', res.error);
+  };
+
   if (give === null || receive === null) return <Loading />;
 
-  if (give.length === 0 && receive.length === 0) {
+  // Pendientes + aceptadas: una aceptada sigue necesitando una acción (aplicar
+  // el intercambio a la colección cuando las cartas cambien de manos).
+  const openOffers = offers.filter((o) => o.status === 'pending' || o.status === 'accepted');
+
+  if (give.length === 0 && receive.length === 0 && openOffers.length === 0) {
     return (
       <View style={s.empty}>
         <Icon name="swap" size={28} color={colors.textDim} />
@@ -223,18 +286,110 @@ function TradeView({
 
   return (
     <View style={{ gap: 20 }}>
+      {openOffers.map((o) => (
+        <OfferCard key={o.id} offer={o} username={username} />
+      ))}
+
       <TradeSection
         title={t('friend.youHaveTheyWant', { name: username })}
         matches={give}
         needLabelKey="friend.tradeTheyNeed"
         haveLabelKey="friend.tradeYouHave"
+        picked={picked.give}
+        onToggle={(m) => toggle('give', m)}
       />
       <TradeSection
         title={t('friend.theyHaveYouWant', { name: username })}
         matches={receive}
         needLabelKey="friend.tradeYouNeed"
         haveLabelKey="friend.tradeTheyHave"
+        picked={picked.receive}
+        onToggle={(m) => toggle('receive', m)}
       />
+
+      {selectedCount > 0 ? (
+        <Pressable
+          onPress={send}
+          disabled={sending}
+          accessibilityRole="button"
+          accessibilityLabel={t('trade.propose')}
+          style={({ pressed }) => [s.proposeBtn, pressed && pressedStyle, sending && { opacity: 0.6 }]}
+        >
+          <Icon name="swap" size={17} color={colors.onAccent} />
+          <Text style={s.proposeText}>{t('trade.propose', { n: selectedCount })}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+/** Una oferta abierta con este amigo, con las acciones que me correspondan. */
+function OfferCard({ offer, username }: { offer: TradeOffer; username: string }) {
+  const t = useT();
+  const [busy, setBusy] = useState(false);
+
+  const run = async (fn: () => Promise<unknown>) => {
+    setBusy(true);
+    await fn();
+    setBusy(false);
+  };
+
+  const line = (side: TradeSide) =>
+    offer.items
+      .filter((i) => i.side === side)
+      .map((i) => `${i.qty}× ${i.code}`)
+      .join(', ') || '—';
+
+  return (
+    <View style={s.offerCard}>
+      <Text style={s.offerTitle}>
+        {offer.outgoing ? t('trade.youProposed', { name: username }) : t('trade.theyProposed', { name: username })}
+      </Text>
+      {/* Siempre en primera persona: "das" / "recibes", nunca los nombres
+          crudos de los lados, que se leen al revés según quién mire. */}
+      <Text style={s.offerLine}>{t('trade.youGive')}: {line(offer.outgoing ? 'give' : 'receive')}</Text>
+      <Text style={s.offerLine}>{t('trade.youGet')}: {line(offer.outgoing ? 'receive' : 'give')}</Text>
+
+      <View style={s.offerActions}>
+        {offer.status === 'accepted' ? (
+          <Pressable
+            onPress={() => run(() => applyAcceptedOffer(offer))}
+            disabled={busy}
+            accessibilityRole="button"
+            style={({ pressed }) => [s.offerBtn, s.offerBtnPrimary, pressed && pressedStyle]}
+          >
+            <Text style={[s.offerBtnText, { color: colors.onAccent }]}>{t('trade.applyToCollection')}</Text>
+          </Pressable>
+        ) : offer.outgoing ? (
+          <Pressable
+            onPress={() => run(() => cancelOffer(offer.id))}
+            disabled={busy}
+            accessibilityRole="button"
+            style={({ pressed }) => [s.offerBtn, pressed && pressedStyle]}
+          >
+            <Text style={s.offerBtnText}>{t('trade.cancel')}</Text>
+          </Pressable>
+        ) : (
+          <>
+            <Pressable
+              onPress={() => run(() => declineOffer(offer.id))}
+              disabled={busy}
+              accessibilityRole="button"
+              style={({ pressed }) => [s.offerBtn, pressed && pressedStyle]}
+            >
+              <Text style={s.offerBtnText}>{t('trade.decline')}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => run(() => acceptOffer(offer.id))}
+              disabled={busy}
+              accessibilityRole="button"
+              style={({ pressed }) => [s.offerBtn, s.offerBtnPrimary, pressed && pressedStyle]}
+            >
+              <Text style={[s.offerBtnText, { color: colors.onAccent }]}>{t('trade.accept')}</Text>
+            </Pressable>
+          </>
+        )}
+      </View>
     </View>
   );
 }
@@ -244,11 +399,15 @@ function TradeSection({
   matches,
   needLabelKey,
   haveLabelKey,
+  picked,
+  onToggle,
 }: {
   title: string;
   matches: TradeMatch[];
   needLabelKey: 'friend.tradeTheyNeed' | 'friend.tradeYouNeed';
   haveLabelKey: 'friend.tradeYouHave' | 'friend.tradeTheyHave';
+  picked: Record<string, number>;
+  onToggle: (m: TradeMatch) => void;
 }) {
   const t = useT();
   if (matches.length === 0) return null;
@@ -261,14 +420,29 @@ function TradeSection({
           const variant = card?.variants[0];
           if (!variant) return null;
           const { uri, fallback } = resolveImageUris(variant);
+          const qty = picked[m.code];
           return (
-            <View key={m.code} style={s.tradeCell}>
-              <CachedImage uri={uri} fallbackUri={fallback} style={s.tradeImg} placeholderBg={colors.surface2} />
+            <Pressable
+              key={m.code}
+              style={s.tradeCell}
+              onPress={() => onToggle(m)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: !!qty }}
+              accessibilityLabel={m.code}
+            >
+              <View>
+                <CachedImage uri={uri} fallbackUri={fallback} style={s.tradeImg} placeholderBg={colors.surface2} />
+                {qty ? (
+                  <View style={s.pickBadge}>
+                    <Text style={s.pickBadgeText}>×{qty}</Text>
+                  </View>
+                ) : null}
+              </View>
               <Text style={s.tradeCode} numberOfLines={1}>{m.code}</Text>
               <Text style={s.tradeMeta} numberOfLines={1}>
                 {t(haveLabelKey, { n: m.have })} · {t(needLabelKey, { n: m.need })}
               </Text>
-            </View>
+            </Pressable>
           );
         })}
       </View>
@@ -310,6 +484,48 @@ const s = StyleSheet.create({
   tradeImg: { width: '100%', aspectRatio: 5 / 7, borderRadius: radii.md },
   tradeCode: { fontSize: 10, fontFamily: fonts.uiSemi, color: colors.textMut, marginTop: 4 },
   tradeMeta: { fontSize: 10, fontFamily: fonts.ui, color: colors.textDim, marginTop: 1 },
+  pickBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    minWidth: 22,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+  },
+  pickBadgeText: { fontSize: 10, fontFamily: fonts.uiBold, color: colors.onAccent },
+  proposeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.accent,
+    borderRadius: radii.lg,
+    paddingVertical: 14,
+  },
+  proposeText: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.onAccent },
+  offerCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: 6,
+  },
+  offerTitle: { fontSize: 14, fontFamily: fonts.uiBold, color: colors.text },
+  offerLine: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut },
+  offerActions: { flexDirection: 'row', gap: 8, marginTop: 6 },
+  offerBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface2,
+  },
+  offerBtnPrimary: { backgroundColor: colors.accent },
+  offerBtnText: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.textMut },
   listRow: {
     flexDirection: 'row',
     alignItems: 'center',

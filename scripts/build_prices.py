@@ -208,6 +208,86 @@ def today_str():
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
+# Precio "From" tal como aparece en el listado. Cardmarket usa el formato del
+# locale de la SESION, no del path, asi que hay que tragar las dos formas:
+#   europea  "1.234,56 €"  /  "12,34 €"
+#   anglosajona "1,234.56 €" / "12.34 €"
+#
+# El patron captura el numero entero con sus separadores y la normalizacion se
+# hace despues. Un `\d{1,4}[.,]\d{2}` ingenuo — que es lo que hace hoy
+# scripts/scrape_browser_console.js — parte "1.234,56" en "1.23" y convierte
+# una carta de 1234 € en una de 1,23 €: un error de tres ordenes de magnitud
+# que ademas pasa desapercibido porque el numero resultante es plausible.
+PRICE_RE = re.compile(r"(\d[\d.,  ]*\d)\s*€")
+
+# Cuantos ancestros se suben buscando el precio antes de rendirse. El link del
+# producto y su precio viven en la misma fila de la tabla, pero cuantos niveles
+# hay entre medias depende del ancho de pantalla con el que Cardmarket
+# renderizo la pagina. 8 cubre todas las variantes vistas; mas que eso empieza
+# a capturar el precio de la fila de al lado.
+PRICE_ANCESTOR_LEVELS = 8
+
+
+def parse_price(text):
+    """
+    Primer importe en euros de `text`, o None.
+
+    La regla para decidir cual de los separadores es el decimal: el ULTIMO
+    separador que venga seguido de exactamente dos digitos. Todo lo demas son
+    millares y se tira. Si el ultimo grupo tiene tres digitos ("1.234") no hay
+    parte decimal y el numero es entero.
+    """
+    if not text:
+        return None
+    m = PRICE_RE.search(text)
+    if not m:
+        return None
+
+    raw = m.group(1).replace(" ", "").replace(" ", "")
+    head, sep, tail = raw.rpartition(".") if raw.rfind(".") > raw.rfind(",") \
+        else raw.rpartition(",")
+
+    if sep and len(tail) == 2:
+        digits = re.sub(r"[.,]", "", head)
+        candidate = "{}.{}".format(digits or "0", tail)
+    else:
+        candidate = re.sub(r"[.,]", "", raw)
+
+    try:
+        return float(candidate)
+    except ValueError:
+        return None
+
+
+def price_near(link):
+    """
+    Precio asociado a un link de producto en el listado, o None.
+
+    Sube por los ancestros hasta dar con un importe — igual que
+    scripts/scrape_browser_console.js sobre el DOM vivo — pero **se detiene en
+    cuanto el ancestro abarca mas de un producto**.
+
+    Sin ese freno, una carta sin precio acaba devolviendo el de otra fila: al
+    subir lo suficiente se llega a un contenedor con el listado entero y el
+    regex engancha el primer importe que encuentre. Se comprobo con un DOM de
+    prueba y pasaba exactamente eso. Es el peor tipo de fallo posible aqui —
+    no revienta, escribe en prices.json un numero plausible pero de otra carta,
+    y de ahi va al valor de la coleccion del usuario.
+    """
+    el = link.parent
+    for _ in range(PRICE_ANCESTOR_LEVELS):
+        if el is None or el.name in ("body", "html", "[document]"):
+            break
+        # Mas de un link de producto = hemos salido de la fila de esta carta.
+        if len(el.select("a[href*='/Products/Singles/']")) > 1:
+            break
+        price = parse_price(el.get_text(" ", strip=True))
+        if price is not None:
+            return price
+        el = el.parent
+    return None
+
+
 # Señales de que Cloudflare bloqueó la peticion (en lugar del contenido real).
 _CF_SIGNALS = ("Just a moment", "cf-challenge-running", "Checking your browser",
                "Enable JavaScript and cookies to continue")
@@ -276,9 +356,9 @@ def discover_slugs(client, delay):
 # ---------------------------------------------------------------------------
 def scrape_listing(client, slug, known_codes, delay):
     """
-    Pagina /Products/Singles/{slug}?site=N y extrae el product_url de cada
-    variante. Solo lee los href de los links — sin traversal de DOM para precios.
-    Devuelve { variant_key: product_url }
+    Pagina /Products/Singles/{slug}?site=N y extrae, por variante, el
+    product_url y el precio "From" del listado.
+    Devuelve { variant_key: {product_url, updated, low?} }
     """
     results = {}
     base_url = "{}/{}".format(CM_SINGLES_BASE, slug)
@@ -318,7 +398,13 @@ def scrape_listing(client, slug, known_codes, delay):
             if not clean_url.startswith("http"):
                 clean_url = "https://www.cardmarket.com" + clean_url
 
-            results[key] = {"product_url": clean_url, "updated": today_str()}
+            entry = {"product_url": clean_url, "updated": today_str()}
+            # `low` solo se escribe si se encontro: una clave con None borraria
+            # un precio bueno de una pasada anterior al hacer el update().
+            low = price_near(a)
+            if low is not None:
+                entry["low"] = low
+            results[key] = entry
 
         time.sleep(delay)
 

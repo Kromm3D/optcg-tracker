@@ -18,7 +18,7 @@ import { getUser, onAuthChange } from './auth';
 import { onLocalChange, type SyncDomain } from './syncBus';
 import type { CollectionItem, Wishlist } from '../types';
 import {
-  getCacheSync as getCollectionCache,
+  getCacheWithTombstones as getCollectionCache,
   replaceAllFromSync as replaceCollection,
 } from './collection';
 import {
@@ -138,10 +138,16 @@ async function reconcileCollection(): Promise<void> {
   const sb = supabase!;
   const { data, error } = await sb
     .from('collection_items')
-    .select('code, suffix, count, updated_at')
+    .select(
+      'code, suffix, count, updated_at, condition, language, graded_company, graded_grade, acquired_unit_price, acquired_at',
+    )
     .eq('user_id', userId);
   if (error) throw error;
 
+  // Incluye lápidas (count 0) a propósito: son la única forma de que el
+  // reconcile distinga "esto nunca ha estado aquí" de "esto lo borré yo".
+  // Sin ellas, la rama `!localItem` de abajo resucitaba cualquier borrado
+  // (B-17).
   const local = getCollectionCache();
   const merged: Record<string, CollectionItem> = {};
   const upserts: CollectionItem[] = [];
@@ -153,12 +159,18 @@ async function reconcileCollection(): Promise<void> {
     const serverMs = toMs(row.updated_at);
     const localItem = merged[key];
     if (!localItem) {
-      merged[key] = { key, code: row.code, suffix: row.suffix, count: row.count, updatedAt: serverMs };
+      merged[key] = { key, code: row.code, suffix: row.suffix, count: row.count, updatedAt: serverMs, ...metaFromRow(row) };
     } else if (serverMs > (localItem.updatedAt ?? 0)) {
-      merged[key] = { ...localItem, count: row.count, updatedAt: serverMs };
+      // El servidor gana entero: si su fila es más nueva, sus metadatos también
+      // lo son. Fusionar campo a campo resucitaría datos que el usuario borró
+      // en el otro dispositivo.
+      merged[key] = { key, code: row.code, suffix: row.suffix, count: row.count, updatedAt: serverMs, ...metaFromRow(row) };
     }
   }
 
+  // Las lápidas SÍ se suben (count 0): así el borrado llega al resto de
+  // dispositivos en vez de quedarse en este. Se limpian solas por TTL en
+  // lib/collection.ts.
   // Lo que el servidor no tiene o tiene desactualizado → upsert.
   const serverByKey = new Map((data ?? []).map((r) => [`${r.code}${r.suffix}`, r]));
   for (const item of Object.values(merged)) {
@@ -186,6 +198,21 @@ async function pushCollection(): Promise<void> {
   }
 }
 
+/** Fila del servidor → metadatos físicos del CollectionItem. Sólo se copian
+ *  los campos presentes: así una fila anterior a la migración 0002 no llena el
+ *  item local de `null`s que luego se serializarían a disco. */
+function metaFromRow(row: Record<string, unknown>): Partial<CollectionItem> {
+  const out: Partial<CollectionItem> = {};
+  if (row.condition) out.condition = row.condition as CollectionItem['condition'];
+  if (row.language) out.language = row.language as CollectionItem['language'];
+  if (row.graded_company && row.graded_grade != null) {
+    out.graded = { company: String(row.graded_company), grade: Number(row.graded_grade) };
+  }
+  if (row.acquired_unit_price != null) out.acquiredUnitPrice = Number(row.acquired_unit_price);
+  if (row.acquired_at) out.acquiredAt = toMs(row.acquired_at as string);
+  return out;
+}
+
 async function upsertCollectionRows(items: CollectionItem[]): Promise<void> {
   const sb = supabase!;
   const rows = items.map((i) => ({
@@ -194,6 +221,12 @@ async function upsertCollectionRows(items: CollectionItem[]): Promise<void> {
     suffix: i.suffix,
     count: i.count,
     updated_at: toIso(i.updatedAt),
+    condition: i.condition ?? null,
+    language: i.language ?? null,
+    graded_company: i.graded?.company ?? null,
+    graded_grade: i.graded?.grade ?? null,
+    acquired_unit_price: i.acquiredUnitPrice ?? null,
+    acquired_at: i.acquiredAt ? toIso(i.acquiredAt) : null,
   }));
   const { error } = await sb.from('collection_items').upsert(rows, { onConflict: 'user_id,code,suffix' });
   if (error) throw error;

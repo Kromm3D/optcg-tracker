@@ -3,13 +3,454 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-07-15 (**B-14 root-caused and partially fixed** — the scanner's rectified crop isn't corner-precision-broken as first hypothesized (that fix was tried, disproved, and reverted); it's an **orientation** bug: the rectified card can come out rotated 90°/180°/270°, and the fixed ART_CROP band then crops the wrong region entirely. Fixed by trying all 4 rotations and keeping the best match; device-verified to correctly recover the true card (OP09-088) when previously it never did. Threshold recalibrated from a real measured data point. **Not fully solved**: wrong-orientation noise can coincidentally outscore the true match, so the top-ranked candidate isn't always correct yet — documented as remaining work. Typecheck-green.)
-**Current branch:** `main`
+**Last updated:** 2026-08-02 (4) (**Primera sesión de verificación en dispositivo**
+de todo el competitive-gap push: perfiles OK, metadatos de copia OK, P&L OK. Se
+encontró y arregló **B-15**, un bug que llevaba tapando el escáner desde que
+existen los modos: el frame processor se quedaba con los callbacks del primer
+montaje, así que el escáner obedecía siempre al modo activo al abrir la pantalla.
+Añadido `MIN_CONFIDENT_SCORE` (0,80) tras medir falsos positivos por funda. Ver
+la entrada fechada de abajo.)
+
+**Last updated (previous):** 2026-08-02 (**Competitive-gap push**: 13 features en 4 fases —
+metadatos físicos de colección + P&L + multi-divisa, trade offers, binder público,
+voto de frames + bulk scan, alertas de precio, calendario de sets, gráfica de
+precio. Typecheck verde, **nada verificado en dispositivo**. Ver la entrada
+fechada de abajo.)
+
+**Last updated (older):** 2026-07-30 (**Scan action-sheet** — replaced the scanner's silent auto-add-to-collection with a post-match action sheet: view profile / add to deck / add to collection (qty stepper) / open Cardmarket price. Typecheck-green, **not yet device-verified** — device was disconnected mid-session, user asked to keep developing without testing for now. See dated entry below.)
+**Current branch:** `feature/scan-action-modes` (branched off `main`)
 **App version:** 0.1.0 (pre-release)
 
 ---
 
 ## Current uncommitted state (read before committing)
+
+### 2026-08-02 (5) — Catálogo auto-mantenido: nombres, fechas, imágenes y hashes sin manos
+
+Objetivo: que un set nuevo entre solo, con lo mínimo (o nada) de intervención.
+Punto de partida: el cron existía pero un set nuevo exigía **seis** tareas
+manuales. Ahora exige **una**, y sólo si te importa revisar.
+
+**Lo que había que hacer a mano por cada set nuevo (antes → ahora):**
+
+| Tarea | Antes | Ahora |
+|---|---|---|
+| Regenerar el índice | cron | cron |
+| Descargar imágenes | a mano (`--images-only`) | **CI** |
+| Recalcular hashes | a mano (`--hashes-only`) | **CI, incremental** |
+| Escribir el nombre del set en `setMeta.ts` | a mano | **deducido de las cartas** |
+| Escribir la fecha en `setMeta.ts` | a mano (búsqueda web) | **scrapeada de /products/** |
+| Commit + push de todo | a mano | **PR automático** |
+| Revisar y mergear el PR | a mano | a mano (a propósito) |
+
+**Nombres deducidos, no mantenidos.** Cada carta trae el `set_name` del producto
+donde aparece, así que un set tiene varios nombres (los suyos y los de las
+reediciones). Gana el más frecuente: OP01 son 104 cartas que dicen "Romance
+Dawn" contra 13 que dicen "One Piece Card The Best". Verificado contra los 10
+nombres que hoy están escritos a mano: 10/10. Se publica en
+`set_meta[code].name`, así que llega **por CDN** sin actualizar la app.
+
+**Nombre y fecha de lo anunciado, de la página de productos.** No están en el
+cardlist, pero sí en `/products/`, que lista sólo lo anunciado — justo lo que
+falta, porque el histórico ya está y no cambia. Y es la **única** fuente posible
+para un set sin cartas publicadas: su nombre no se puede deducir de las cartas
+porque todavía no hay ninguna, que es precisamente el set que sale en el
+calendario. Probado en vivo: OP17 → *The World's Strongest Warriors* +
+28/08/2026, y descubre EB05, que ni siquiera estaba en el mapa.
+
+Precedencia: para un set ya publicado gana el nombre deducido de las cartas
+(voto por mayoría, más fiable); para uno anunciado, el de la página de productos.
+
+⚠ **Bug encontrado y corregido durante la propia verificación.** La primera
+versión buscaba la fecha y subía por los ancestros del DOM hasta topar con un
+código de set. Con dos productos vecinos se cruzaba los datos: **EB05 heredó la
+fecha de OP17** (28/08/2026) cuando la suya es "October 2026". Un dato falso
+perfectamente plausible, del tipo que ninguna verificación de "¿encogió el
+catálogo?" detecta. Se arregló leyendo nombre y fecha **del mismo nodo**, el
+bloque más pequeño que contiene el código. De paso, ahora se exige día explícito:
+una fecha de sólo mes se descarta en vez de inventar un día 1.
+
+`setMeta.ts` ahora lee del índice primero y cae al mapa manual como respaldo, y
+`setsByReleaseDate()` recorre la unión de ambos orígenes — si sólo recorriese el
+mapa manual, un set con fecha del CDN no saldría nunca en el calendario, que es
+justo el caso que esto resuelve.
+
+**Bug de codificación arreglado de camino.** `resp.text` dejaba que `requests`
+adivinase la codificación; el sitio sirve UTF-8 sin charset en la cabecera, así
+que caía a ISO-8859-1 y "The Azure Sea's Seven" se guardaba con U+FFFD. Se
+fuerza en `_html_of()`, en el punto de entrada, no carta por carta. Sin esto los
+nombres automáticos habrían salido rotos.
+
+**Hashes incrementales (`--hashes-only --only-missing`).** Reutiliza los ya
+calculados y sólo procesa los que faltan: un set nuevo son ~120 imágenes en vez
+de las ~4600 del catálogo. Comprobado que produce un fichero **byte a byte
+idéntico** cuando no falta ninguno, así que CI no genera diffs falsos. Sólo
+reutiliza si el algoritmo y sus parámetros coinciden — mezclar descriptores de
+distintos recortes en un mismo fichero haría comparar peras con manzanas.
+
+**Verificación que se niega a publicar basura.** El job de catálogo ahora falla
+si desaparecen cartas o si alguna llega sin nombre o sin variantes. Es el modo
+real de fallo: un cambio de maquetación en origen no lanza una excepción, deja
+un JSON de aspecto normal con la mitad de los campos vacíos. Probado en local
+con tres casos (sin cambios → pasa; 7 cartas borradas → falla; una carta sin
+nombre → falla): 3/3.
+
+**Medido, no supuesto:** jsDelivr sirve el repo a 307 MB de imágenes sin
+problema (200, imagen de 80 KB). El aviso de los ~50 MB de `CLAUDE.md` no se ha
+materializado. `.git` sí pesa ya 2,7 GB, lo que encarece cada checkout de CI —
+no es urgente, pero es la próxima pared.
+
+⚠ **Nada de esto se ha ejecutado en CI todavía.** Las funciones nuevas están
+probadas en local contra datos y web reales, pero el workflow completo no ha
+corrido nunca. El primer lunes es el estreno.
+
+**Sigue siendo manual a propósito:** mergear el PR. El auto-merge de datos
+scrapeados es la clase de decisión que conviene tomar después de ver unas
+cuantas ejecuciones reales, no antes.
+
+### 2026-08-02 (4) — Sesión de verificación en dispositivo: B-15 (escáner sordo a los modos) + suelo de confianza (DEVICE-VERIFIED)
+
+Primera vez que el competitive-gap push se prueba en un teléfono real. Casi todo
+pasó a la primera; lo que no, escondía el bug más gordo del escáner hasta la fecha.
+
+**Verificado en dispositivo (Xiaomi, build debug arm64):**
+
+- **Perfiles Sencillo/Completo** — Sencillo esconde las cuatro piezas (P&L en
+  Home, gráfica de precio, botón de detalles de copia, alerta de wishlist).
+  Cambiar a Completo las devuelve. Los interruptores sueltos mandan sobre el
+  preset, y `setProfile` los limpia al cambiar de perfil (comprobado leyendo
+  `optcg.settings.v1` en el `RKStorage` del dispositivo: `profile=full`,
+  `featureOverrides={}`).
+- **Onboarding** — sale al primer arranque y persiste la elección.
+- **Metadatos de copia** — estado/idioma/precio pagado **sobreviven a un `+1`**.
+  Era el riesgo real: la primera versión los borraba al tocar la cantidad.
+- **P&L en Home** aparece en cuanto hay una carta con precio de compra.
+- **Calendario de sets** — OP17 con la cuenta atrás correcta.
+
+**B-15 (FIXED, device-verified) — el escáner obedecía siempre al modo de apertura.**
+
+Síntoma: en modo LOTE se abría la hoja de decisión y la cola no registraba nada.
+
+Causa: en `NativeScanCamera.tsx`, `useFrameProcessor` estaba memoizado con
+dependencias `[resize, forceCapture]`. Los callbacks `onStable`/`onQuad` se
+creaban con `Worklets.createRunOnJS` en el cuerpo del componente —nuevos en cada
+render— pero **no estaban en las dependencias**, así que el worklet conservaba
+para siempre los del primer montaje. Esos encerraban el `scanMode` inicial.
+
+Arreglo: estabilizar los callbacks (`useMemo(..., [])` + ref al callback vigente)
+y añadirlos a las dependencias. Meterlos en las dependencias *sin* estabilizarlos
+habría reconstruido el frame processor en cada render — justo lo que la lista
+corta intentaba evitar; por eso el arreglo es al revés de lo que sugiere el
+warning de exhaustive-deps.
+
+⚠ **Implicación retroactiva importante:** todo lo que se probó del escáner antes
+de hoy era **TAP disfrazado**, cualquiera que fuese el botón pulsado. AUTO nunca
+se había ejecutado de verdad. Al revisar sesiones antiguas de escáner, no dar por
+buena ninguna conclusión sobre AUTO/LOTE anterior a esta fecha.
+
+**Suelo de confianza `MIN_CONFIDENT_SCORE = 0.80` (`lib/scanVote.ts`).**
+
+Medido con cartas reales. Kouzuki Hiyori (EB01-013):
+
+| Condición | Lectura | Puntuación |
+|---|---|---|
+| sin funda | correcta | 0,836 · 0,844 · 0,854 |
+| con funda / doble funda | Ten-Layer Igloo (OP10-018) | 0,711 · 0,730 · 0,733 |
+
+Otros falsos positivos etiquetados por el usuario: OP13-097 a 0,78 y OP16-112 a
+0,71. Acierto más flojo observado: Kikunojo (OP14-023) a 0,792.
+
+Por debajo del umbral **no se rechaza la lectura: se pide confirmación** (hoja con
+aviso ámbar). El peor fallo posible del escáner no es "no te entiendo" sino meter
+en la colección una carta que no es sin que el usuario se entere.
+
+⚠ El margen entre el peor acierto (0,792) y el mejor falso positivo (0,784) es de
+**ocho milésimas**. Es una casualidad afortunada, no un margen. Esperar que algún
+acierto legítimo pida confirmación sin motivo, y **revisar el valor cuando haya
+más lecturas etiquetadas** — no tratarlo como constante.
+
+**Corrección a `scanVote.ts`: la premisa del módulo era falsa a medias.** Decía
+"el ruido no se repite". Con funda **sí** se repite: el Igloo ganó la votación de
+consenso dos veces seguidas, limpiamente, porque la funda baja el contraste en
+todos los frames por igual. El votante filtra ruido *aleatorio* (temblor,
+encuadre), no sesgos *constantes*. El comentario de cabecera ya lo dice, con el
+caso Hiyori/Igloo como evidencia. Tercera señal probada contra B-14: el margen
+1º-2º no sirvió, la repetición entre frames no sirve contra fundas, y la
+puntuación absoluta **sí** separa los casos — pero por muy poco.
+
+**Añadido al tema:** token `warn` (ámbar, claro y oscuro) e icono `alert`, que no
+existían. `colors.down` habría servido de apaño pero significa pérdida, no aviso.
+
+**Sigue abierto:** las fundas y los foils siguen sin identificarse bien. Esto no
+lo arregla, lo hace honesto. El arreglo de verdad es cambiar el descriptor
+(embedding en vez de promedio de color) — ver la investigación del escáner.
+
+### 2026-08-02 (3) — El scraper ya trae PRECIOS + 2 bugs de parseo (verificado con tests)
+
+Se cierra el aviso más importante de la entrada de más abajo: **`build_prices.py`
+sólo extraía `product_url`, no importes**. Sin precios reales, `getPrice()` cae
+en la estimación por rareza y el P&L, la gráfica y las alertas no tienen nada
+que decir — es decir, media tanda de features de hoy estaba construida sobre
+datos que no existían.
+
+**Qué se hizo:** portar a BeautifulSoup la extracción que `scrape_browser_console.js`
+ya hacía sobre el DOM vivo (subir por los ancestros del link hasta dar con un
+importe). Misma página, mismo DOM, así que no hace falta dependencia nueva.
+`scrape_listing` ahora emite `low` además de `product_url`; **sólo si lo
+encuentra** — escribir `low: None` borraría un precio bueno de una pasada
+anterior al hacer el `update()`.
+
+**Dos bugs reales encontrados escribiendo tests, ambos también presentes en el
+script de consola que es la vía en uso hoy. Corregidos en los dos ficheros:**
+
+1. **El regex partía los miles.** `(\d{1,4}[.,]\d{2})` sobre `"1.234,56 €"`
+   captura `"1.23"`: una carta de 1234 € se guardaba como 1,23 €. Tres órdenes
+   de magnitud, y **no revienta** — el número resultante es plausible, que es
+   justo lo que lo hacía indetectable. Ahora se captura el número con todos sus
+   separadores y se decide el decimal por regla explícita (el último separador
+   seguido de exactamente dos dígitos; el resto son millares). Cubre las dos
+   convenciones, porque Cardmarket sirve el formato según el locale de la
+   sesión, no del path. **12/12 casos en Python, 10/10 en JS**, en paridad.
+
+2. **Una carta sin precio heredaba el de otra fila.** El recorrido de ancestros
+   subía hasta 8 niveles sin freno; en una carta sin importe llegaba a un
+   contenedor con el listado entero y el regex enganchaba el primer precio que
+   veía. Detectado con un DOM sintético (la carta "SinPrecio" devolvía el
+   precio de la primera fila). Ahora el recorrido **para en cuanto el ancestro
+   abarca más de un link de producto**. 4/4 en el test, incluido un caso con el
+   link anidado tres niveles de más.
+
+**Cómo se probó** (sin red, reproducible): se carga `build_prices.py` con
+`importlib` y se llama a `parse_price`/`price_near` contra tablas de casos y un
+DOM sintético. No hay runner de tests en el repo, así que van como snippets en
+el historial de la sesión, no como ficheros — si esto crece, merece un
+`scripts/test_prices.py` de verdad.
+
+**El workflow de CI también se endurece**: ya no basta con que salgan ≥500
+entradas; ahora exige que **más de la mitad traiga importe**. Un scrape que
+devuelve todas las URLs y ningún precio significa que cambió la maquetación, no
+que las cartas no valgan nada.
+
+**Otros dos cabos sueltos cerrados:**
+- **Aviso de ofertas de intercambio entrantes** en el hub de Perfil (contador en
+  la fila de Amigos). Antes sólo se veían entrando al perfil del amigo concreto,
+  así que una propuesta podía quedarse días sin respuesta.
+- **`PUBLIC_WEB_BASE` movido a `config.ts`**, junto al resto de configuración de
+  despliegue, y `App.tsx` lo usa para el prefijo de deep linking en vez de
+  repetir el literal. Sigue siendo un **placeholder**: no hay nada desplegado en
+  ese dominio, así que los enlaces de "Compartir mi binder" aún no abren nada.
+
+**Sigue pendiente**: ejecutar el scraper de verdad contra Cardmarket. Los tests
+prueban el parseo, no que Cloudflare deje pasar ni que la maquetación real sea
+la que asumo. Hasta esa ejecución, `prices.json` sigue sin precios.
+
+### 2026-08-02 (2) — Perfil de usuario: Sencillo / Completo (DEVICE-VERIFIED el 02/08/2026, ver entrada (4))
+
+Reacción del usuario a la tanda de features de abajo: la app cubre ya desde
+"cuántas cartas tengo" hasta gradeo y P&L, y **eso no le sirve a la misma
+persona**. El público objetivo declarado es el jugador/coleccionista medio, no
+el powerseller. En vez de recortar features, se decide **enseñar menos por
+defecto**.
+
+También se cierra la duda de la nota de modelo de abajo: **el estado de carta
+se queda general (por variante)**. No se hará por copia. Decisión tomada, no
+deuda pendiente.
+
+**Diseño elegido** (`AskUserQuestion`, 2 preguntas):
+- **Dos perfiles, no tres**: `simple` / `full`. Un solo interruptor conceptual,
+  imposible de malinterpretar.
+- **Onboarding al primer arranque, saltable**. Saltar = `simple` (el público
+  objetivo). Vive fuera del stack de navegación: no es una pantalla a la que se
+  vuelva ni de la que se salga con "atrás".
+- **El perfil es un preset sobre interruptores sueltos**, no un modo cerrado.
+  Ajustes lista **siempre las cinco** piezas gateables, también en Sencillo: si
+  sólo aparecieran las activas, nadie descubriría lo que se pierde.
+- **Regla firme: el perfil oculta INTERFAZ, nunca datos.** En Sencillo la app
+  sigue guardando el histórico de precios y lo ya guardado. Pasar a Completo
+  más tarde da historial desde el primer día en vez de una gráfica vacía. Lo
+  contrario sería una trampa silenciosa. Documentado en `settings.ts`.
+
+**Qué se apaga en Sencillo** (`FeatureKey`): `condition` (y con él idioma, que
+describe lo mismo), `grading`, `costBasis` (incluida la fila de P&L en Home),
+`priceChart`, `priceAlerts`. **Trade, amigos, mazos, sets, wishlist, valor del
+vault y calendario están SIEMPRE**, en los dos perfiles.
+
+**Ficheros**: `settings.ts` (+`profile`, `featureOverrides`, `isFeatureEnabled`,
+`setProfile` — que **limpia los overrides**, si no elegir perfil dejaría restos
+del anterior), `screens/ProfileOnboardingScreen.tsx` (nuevo), `App.tsx`
+(gate previo al navegador), `SettingsScreen` (selector + 5 toggles), y los
+call sites gateados: `VaultValueCard`, `DetailScreen`, `CopyDetailsSheet`
+(sección a sección), `WishlistDetailScreen`, `HomeScreen`.
+
+**Bug encontrado y corregido durante la implementación**: el primer intento
+detectaba `profile == null` con `getCachedSettings()` + `subscribe()`. No
+funciona: `subscribe` sólo notifica en las **escrituras**, así que si la
+hidratación terminaba sin escribir, el suscriptor no corría nunca. Y usar
+`getSettings()` a secas devuelve los defaults mientras hidrata — que también
+traen `profile: null` — así que le habría sacado el onboarding a gente que ya
+lo respondió. Se añade `loadSettings(): Promise<Settings>` y `App.tsx` espera a
+la lectura real (`needsProfile === undefined` → splash).
+
+### 2026-08-02 — Competitive-gap push: 13 features (PARCIALMENTE device-verified el 02/08/2026 — ver entrada (4) para qué se probó y qué no)
+
+Sesión abierta ("compara con la competencia y ejecuta el plan"). Primero se
+investigó el campo (Collectr, OP.TCG, Logia, OneCollector, MyOPCards) y salió
+un diagnóstico incómodo: **la feature estrella de todos los competidores es el
+escáner, que es justo lo que aquí no funciona** (B-14), y las tres cosas que
+esta app ya hace y ellos no — trade matching con amigos, "coste para completar"
+de la wishlist, export OPTCGSim — no son escáner. De ahí el orden de las fases:
+reforzar el foso propio antes que perseguir el suyo.
+
+**Fase 0 — deuda**
+- `.gitignore`: `metro.log`, `screen.png`, `*.screenshot.png`.
+- **B-06 RESUELTO**: `wishlists.ts` migra ahora la wishlist única pre-2026-06-06
+  (`optcg.wishlist.v1`, keyed por código, sin variantes) a una wishlist con
+  nombre. Tolera las dos formas que pudo tener aquel dato (array u objeto) y
+  **no borra la clave vieja**, por si la conversión sale mal.
+
+**Fase 1 — el modelo de datos que faltaba** (habilita el resto)
+- **`CollectionItem` gana metadatos físicos**: `condition` (NM/LP/MP/HP/DMG),
+  `language`, `graded {company, grade}`, `acquiredUnitPrice`, `acquiredAt`.
+  Clave `optcg.collection.v2` → **v3** (migración = copia; el cambio es
+  puramente aditivo, se bumpea por convención).
+  **Decisión de modelo, importante**: los metadatos son **por variante**, no
+  por copia. Separar por condición obligaría a cambiar la clave
+  `${code}${suffix}` que usan colección, trade, sync y las tablas de Supabase.
+  Documentado en `types.ts`. Los competidores sí separan por condición: si
+  algún día hace falta, es una migración grande, no un parche.
+  `setCount`/`adjust` ahora hacen spread del item previo — sin eso, un `+1`
+  borraba el estado y el coste del montón.
+- **Nuevo `lib/portfolio.ts`**: valor de mercado consciente del estado
+  (`CONDITION_MULTIPLIER`, `gradeMultiplier` en `prices.ts`) + **P&L contra el
+  coste base**. Sólo entran en el P&L las variantes con coste declarado —
+  mezclarlas con las que no lo tienen daría una cifra sin significado.
+  `HomeScreen` ya no suma `count × getPrice(base)`: usa `getPortfolio()`, que
+  recorre variante a variante (precio del parallel correcto).
+- **Nuevo `lib/currency.ts`**: EUR es la divisa base (es lo que scrapeamos) y
+  ésta es la única capa que traduce. Tasas **estáticas**, revisadas a mano.
+  `formatEur()` sustituye los `€` hardcodeados de `CardThumb`, `VaultValueCard`
+  y `WishlistDetailScreen`.
+- **Nuevo `components/CopyDetailsSheet.tsx`**, abierto desde el botón de la
+  fila de variante en `DetailScreen` (sólo si tienes copias).
+- Settings: selector de divisa + toggle "valorar según el estado".
+- **Supabase `0002_collection_metadata.sql`** (aplicada): columnas nuevas +
+  checks de dominio. `sync.ts` las transporta; cuando el servidor gana el LWW
+  se reemplaza el item **entero**, no campo a campo — fusionar resucitaría
+  datos que el usuario borró en el otro dispositivo.
+
+**Fase 1.5 — `.github/workflows/refresh-data.yml`**
+Refresco semanal que abre PR (nunca empuja a `main`: un scrape puede salir
+mal y eso debe verse en un diff). Dos jobs separados a propósito.
+**Aviso honesto**: `build_prices.py` hoy extrae **product_url, no precios** —
+los precios reales entran por el fallback de consola
+(`scrape_browser_console.js` → `import_browser_prices.py`). El job de precios
+sirve para refrescar URLs y como esqueleto; hacer que traiga precios de verdad
+es trabajo aparte, y Cloudflare puede bloquear a un runner de CI igualmente
+(por eso el paso de verificación descarta un resultado con <500 entradas).
+
+**Fase 2 — apostar por el diferenciador social**
+- **Trade offers** (`0003_trade_offers.sql` aplicada + `lib/tradeOffers.ts` +
+  UI en la pestaña Trade de `FriendProfileScreen`). El matching pasa de
+  informativo a accionable: se seleccionan cartas de ambos lados y se manda una
+  propuesta que el otro acepta/rechaza. Cabecera + líneas, con las cartas como
+  texto plano (una oferta es un registro histórico; no debe cambiar porque
+  alguien venda la carta). RLS: sólo los dos participantes la ven, y sólo se
+  puede proponer a un **amigo aceptado** (`are_friends`). Un trigger
+  `trade_offer_guard` valida las transiciones — RLS decide *quién*, el trigger
+  decide *qué*: el proponente no puede auto-aceptarse.
+  `applyAcceptedOffer()` ajusta la colección, y se llama **aparte de aceptar**:
+  aceptar es "trato hecho", las cartas cambian de manos días después.
+- **Binder público** (`0004_public_binder.sql` aplicada + `lib/publicBinder.ts`
+  + `screens/PublicBinderScreen.tsx` + `linking` en `App.tsx` → `/u/:username`).
+  `can_view()` ya devolvía true para 'public'; lo que faltaba era el **rol**:
+  todas las políticas de 0001 eran `to authenticated`, así que un enlace sólo
+  funcionaba para quien ya tenía cuenta. Se añaden políticas `to anon` con la
+  misma condición de visibilidad. Los perfiles visibles a `anon` se limitan a
+  quienes hayan hecho público *algo*, para no regalar enumeración de usuarios.
+  `PUBLIC_WEB_BASE` en `publicBinder.ts` está en `https://horohoro.tcg` —
+  **cambiar al dominio real al desplegar**.
+
+**Fase 3 — scanner**
+- **Nuevo `lib/scanVote.ts`**: la idea que B-14 dejó pendiente. El ruido no se
+  repite; un acierto real gana frame tras frame. En AUTO/BULK una carta no se
+  acepta hasta ganar 2 frames seguidos (ventana de 6 s). El voto es **por
+  código base** — dos parallels del mismo código comparten arte y alternarse
+  entre ellos no es desacuerdo. TAP no vota: es un disparo deliberado.
+  Puntos de consenso en la píldora de estado para que no parezca colgado.
+- **Modo BULK** (`components/BulkScanSheet.tsx`): escanea y encola sin
+  preguntar; al final se revisa la lista con steppers y se añade todo de una
+  vez. **La revisión no es opcional a propósito**: el escáner acierta lo
+  bastante para ahorrar tecleo, no para meter cartas a ciegas en la colección
+  de alguien.
+
+**Fase 4 — QoL**
+- Escáner alcanzable desde Decks (faltaba desde que se quitó el FAB).
+- **`components/ReleaseCalendar.tsx`** en Home: próximo set con cuenta atrás +
+  últimos 3. `setMeta` gana `setDateAsDate()` (parseo manual: `new Date()`
+  interpreta `DD/MM/YYYY` como MM/DD en locale en-US) y `setsByReleaseDate()`.
+  **Añadido OP17 "The World's Strongest Warriors", 28/08/2026** (verificado por
+  búsqueda web; JP 22/08, UK 26/08 — se usa la de EE.UU. por coherencia con la
+  tabla, que sigue el sitio EN). Sin fechas futuras el bloque se calla en vez
+  de extrapolar una cadencia trimestral.
+- **`priceHistory` v1 → v2**: además del snapshot previo, guarda una **serie**
+  por carta (máx. 26 publicaciones ≈ 6 meses). Sólo para las cartas que el
+  usuario tiene o desea — guardar las ~4600 variantes multiplicaría por 26 un
+  fichero que ya pesa. `components/PriceChart.tsx` la pinta en `DetailScreen`.
+- **`lib/priceAlerts.ts` + `PriceAlertSheet`**: precio objetivo por carta de
+  wishlist, banner de disparadas en Home. **`expo-notifications` NO está
+  instalado** (obliga a prebuild): el módulo se carga con `require()` perezoso
+  tras `isNotificationsAvailable()`, mismo contrato que `ocr`/`shareImage`, y
+  hasta que se instale el aviso es in-app. Instalarlo + prebuild activa el push
+  sin tocar este código. Las alertas sólo saltan con **precio real** — hacerlas
+  saltar con la estimación por rareza sería avisar de una oportunidad inventada.
+
+**Qué falta / riesgos conocidos**
+1. **Nada de esto se ha visto en un dispositivo ni en el preview web.** Es la
+   misma deuda que arrastraba el ScanResultSheet del 30/07 y la que produjo
+   B-11. Typecheck verde ≠ funciona.
+2. El P&L, el gráfico y las alertas dependen de `prices.json`, que **hoy no
+   tiene precios reales cargados** (sólo URLs). Hasta que se ejecute el
+   fallback de consola, casi todo cae en la estimación por rareza: el P&L será
+   ruido y las alertas no saltarán (por diseño).
+3. `voteStreak` sube la latencia de AUTO a ~2 frames (~3 s). Si en dispositivo
+   se hace pesado, `createScanVoter({ needed: 1 })` lo desactiva.
+4. Falta un aviso de ofertas entrantes fuera del perfil del amigo concreto —
+   hoy hay que entrar en su perfil para ver que te han propuesto algo.
+
+### 2026-07-30 — Scan action-sheet (device-unverified)
+
+Branch `feature/scan-action-modes`, off `main` (the earlier `feature/wishlist-acquired`
+4-commit stack is a separate, still-unmerged branch — see further down).
+
+Previously `ScanScreen.tsx` added a matched card straight to the collection
+(AUTO mode) or on shutter press (TAP mode), with only an Undo toast as the
+escape hatch. Per user request, scanning a card now always stops at a choice
+instead of committing automatically:
+
+- **New `components/ScanResultSheet.tsx`** — bottom sheet shown after a card
+  is matched, with 4 actions: view card profile, add to a deck, add to
+  collection, open the Cardmarket price link (`buildCardmarketVariantUrl`,
+  already existed).
+- **Reused `components/BulkTargetSheet.tsx`** (already built for bulk actions
+  elsewhere) for the "add to deck" and "add to collection" actions — it
+  already had the qty stepper + deck/wishlist picker, so no new stepper code
+  was written.
+- **`screens/ScanScreen.tsx`** — `handleCodeFound` no longer calls `adjust()`;
+  it now just resolves the card/variant, pauses the scanner (`pausedRef`),
+  and opens `ScanResultSheet`. New `matched` / `bulkTarget` state. The old
+  `lastAdded` Undo toast is kept, now triggered by `BulkTargetSheet`'s
+  `onDone` callback (only for the collection target, via
+  `getCountSync` to read the new count) instead of firing on every scan.
+  "View profile" navigates to `Detail` with `{ code, suffix }`.
+- New i18n keys (en/es): `scan.viewProfile`, `scan.addToDeck`,
+  `scan.addToCollection`, `scan.viewPrice`, `scan.keepScanning`.
+
+**Not yet verified**: this only exercises through the real camera + native
+detector on-device (Expo Go can't run OCR/detection). Typecheck is green but
+nobody has tapped through the sheet on a phone yet. Next session: reconnect
+the device, run through AUTO and TAP with the new sheet, confirm deck/
+collection/profile/price all work, then it's a normal review→commit.
+
 
 Everything from the previous refresh (scanner removal, price pipeline, vault
 value, Sets restyle, set-data fix, TR-rarity/sort/bulk/Decks-banner fixes) is
@@ -2124,6 +2565,52 @@ plan). Static data (card index, prices, images) is never sent to Supabase.
   offline can be resurrected if B logs in and pushes first. Acceptable for v1.
 
 ## Known Bugs
+
+### B-17 — Sync resucitaba las cartas borradas: no había tombstones — FIXED (2026-08-02, encontrado en code review de PR #2)
+- **Ficheros:** `app/src/lib/collection.ts`, `app/src/lib/sync.ts`,
+  `app/src/lib/friends.ts`, `app/src/lib/publicBinder.ts`.
+- **Síntoma:** quitabas una carta (o la entregabas en un trade), sincronizabas, y
+  volvía con su cantidad anterior. Sin aviso.
+- **Causa:** `adjust()` borraba la entrada al llegar a 0, así que
+  `reconcileCollection` no podía distinguir "esto nunca ha estado aquí" de "esto
+  lo borré yo" y su rama `if (!localItem)` metía la fila del servidor sin mirar
+  timestamps. Peor: `pushCollection()` sí borraba del servidor lo ausente en
+  local, así que el resultado dependía de qué camino corriese antes — push
+  borraba, reconcile resucitaba. No determinista.
+- **Arreglo — lápidas:** borrar ahora guarda el item con `count: 0` y su
+  `updatedAt`, y LWW resuelve solo. Clave bumpeada a `optcg.collection.v4`.
+- **Decisión de diseño:** las lápidas viven **sólo** en almacenamiento y sync.
+  `getCacheSync()` devuelve una vista `live` sin ellas, recalculada en cada
+  escritura, y la sync usa `getCacheWithTombstones()`. Así ningún consumidor de
+  interfaz cambió de comportamiento y no hay riesgo de que un lector olvidado
+  pinte una carta con 0 copias. Se prefirió esto a filtrar `count > 0` en cada
+  consumidor.
+- Las lápidas **sí** se suben al servidor (la columna ya admite `count >= 0`),
+  porque si no el borrado no llegaría al resto de dispositivos. Se filtran con
+  `.gt('count', 0)` en las vistas ajenas (binder de amigo y binder público).
+- Los metadatos físicos se descartan al borrar: si dejas de tener la carta, lo
+  que pagaste y en qué estado estaba ya no describen nada.
+- **TTL de 90 días** (`TOMBSTONE_TTL_MS`), podado al cargar. De sobra para que
+  cualquier dispositivo haya sincronizado, y evita que crezcan sin fin.
+- ⚠ **Verificado por razonamiento y typecheck, NO en dispositivo.** Falta probar
+  el ciclo borrar → sincronizar → volver a entrar con dos dispositivos.
+
+### B-16 — Escáner: fundas y foils producen falsos positivos — MITIGADO, NO ARREGLADO (2026-08-02, device-verified)
+- **Ficheros:** `app/src/lib/cardMatch.ts` (el descriptor), `app/src/lib/scanVote.ts`
+  (`MIN_CONFIDENT_SCORE`).
+- **Síntoma:** con la carta enfundada (y peor con doble funda), la identificación
+  devuelve otra carta con seguridad. Medido: Kouzuki Hiyori (EB01-013) leída como
+  Ten-Layer Igloo (OP10-018), 0,71-0,73 frente a 0,84 sin funda.
+- **Causa:** el descriptor compara promedios de color por regiones. La funda baja
+  el contraste de toda la imagen y comprime esos promedios hacia el centro del
+  rango, así que la carta se parece a cualquier otra tanto como a la suya. El foil
+  hace lo contrario: mete brillos que cambian según la inclinación.
+- **Mitigación actual:** el suelo de confianza 0,80 convierte el falso positivo
+  silencioso en una petición de confirmación. **No mejora la identificación.**
+- **Arreglo real pendiente:** cambiar el descriptor por un embedding, tal y como
+  concluyó la investigación del escáner. Es trabajo grande, no un parámetro.
+- **Aviso de calibración:** el 0,80 se apoya en cinco lecturas etiquetadas y deja
+  ocho milésimas entre el peor acierto y el mejor fallo. Recalibrar con más datos.
 
 ### B-14 — Scanner: rectified crop comes out rotated → wrong region hashed — PARTIALLY FIXED (2026-07-15)
 - **Files:** `app/src/lib/phash.ts` (`computeAhash` gained a `rotate` param),

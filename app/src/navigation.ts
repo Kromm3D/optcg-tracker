@@ -18,6 +18,8 @@ export type RootStackParamList = {
   Account: undefined;
   Friends: undefined;
   FriendProfile: { userId: string; username: string };
+  /** Binder de sólo lectura abierto desde un enlace compartido (`/u/:username`). */
+  PublicBinder: { username: string };
 };
 
 export type TabParamList = {
@@ -63,3 +65,4 @@ export type WishlistDetailScreenProps = NativeStackScreenProps<RootStackParamLis
 export type AccountScreenProps = NativeStackScreenProps<RootStackParamList, 'Account'>;
 export type FriendsScreenProps = NativeStackScreenProps<RootStackParamList, 'Friends'>;
 export type FriendProfileScreenProps = NativeStackScreenProps<RootStackParamList, 'FriendProfile'>;
+export type PublicBinderScreenProps = NativeStackScreenProps<RootStackParamList, 'PublicBinder'>;

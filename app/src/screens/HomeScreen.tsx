@@ -15,7 +15,17 @@ import { CARD_LIST, INDEX_META } from '../data/loadIndex';
 import { colors, fonts, radii, spacing, pressedStyle, pressedSurface, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
 import { getOwnedFor, getOwnedTotals, subscribe as subOwned } from '../lib/ownedAggregate';
-import { getPrice, HOLO_RARITIES } from '../lib/prices';
+import { HOLO_RARITIES } from '../lib/prices';
+import { getPortfolio } from '../lib/portfolio';
+import { ReleaseCalendar } from '../components/ReleaseCalendar';
+import { formatEur } from '../lib/currency';
+import { isFeatureEnabled } from '../lib/settings';
+import {
+  checkAlerts,
+  getTriggeredAlerts,
+  subscribe as subAlerts,
+  type TriggeredAlert,
+} from '../lib/priceAlerts';
 import { listDecks } from '../lib/decks';
 import { useT } from '../lib/i18n';
 import { SetUpdateBanner } from '../components/SetUpdateBanner';
@@ -151,6 +161,14 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     return subOwned(() => setTick((n) => n + 1));
   }, []);
 
+  // Alertas de precio: se comprueban al abrir Home (es el único punto por el
+  // que pasa todo el mundo) y se refrescan si el usuario cambia un objetivo.
+  const [triggeredAlerts, setTriggeredAlerts] = useState<TriggeredAlert[]>([]);
+  useEffect(() => {
+    void checkAlerts().then(setTriggeredAlerts);
+    return subAlerts(() => setTriggeredAlerts(getTriggeredAlerts()));
+  }, []);
+
   // Recalculate every time the collection changes (tick increments).
   const stats = useMemo(() => {
     const totals = getOwnedTotals();
@@ -160,11 +178,10 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
       ? Math.round((uniqueOwned / CARD_LIST.length) * 100)
       : 0;
 
-    let vaultValue = 0;
-    for (const card of CARD_LIST) {
-      const count = getOwnedFor(card.code);
-      if (count) vaultValue += count * getPrice(card);
-    }
+    // El valor va por lib/portfolio: recorre la colección variante a variante
+    // (precio del parallel concreto, no el de la base) y descuenta por estado
+    // físico si el usuario tiene activado `valueByCondition`.
+    const vaultValue = getPortfolio().marketValue;
 
     const byColor: Record<string, number> = {};
     for (const card of CARD_LIST) {
@@ -235,6 +252,34 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
       {/* Vault value over time */}
       <VaultValueCard currentValue={stats.vaultValue} />
 
+      {/* Alertas de precio disparadas. Aparece sólo si hay alguna: sin push
+          (expo-notifications no está instalado) este banner ES el aviso. */}
+      {isFeatureEnabled('priceAlerts') && triggeredAlerts.length > 0 && (
+        <View style={s.alertCard}>
+          <View style={s.alertHead}>
+            <Icon name="bolt" size={16} color={colors.accent} />
+            <Text style={s.alertHeadText}>{t('alert.triggered', { n: triggeredAlerts.length })}</Text>
+          </View>
+          {triggeredAlerts.slice(0, 3).map((a) => (
+            <Pressable
+              key={`${a.code}${a.suffix}`}
+              style={({ pressed }) => [s.alertRow, pressed && pressedSurface]}
+              onPress={() => navigation.navigate('Detail', { code: a.code, suffix: a.suffix })}
+              accessibilityRole="button"
+              accessibilityLabel={a.name}
+            >
+              <Text style={s.alertName} numberOfLines={1}>{a.name}</Text>
+              <Text style={s.alertPrice}>
+                {formatEur(a.currentEur)}
+                <Text style={s.alertTarget}> / {formatEur(a.targetEur)}</Text>
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
+      <ReleaseCalendar onOpenSet={(setCode) => navigation.navigate('SetDetail', { setCode })} />
+
       {/* Main section tiles */}
       <View style={s.grid}>
         <SectionTile
@@ -282,6 +327,26 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
+  alertCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
+    gap: 4,
+  },
+  alertHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  alertHeadText: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.accent },
+  alertRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  alertName: { flex: 1, fontSize: 14, fontFamily: fonts.ui, color: colors.text },
+  alertPrice: { fontSize: 14, fontFamily: fonts.uiSemi, color: colors.up },
+  alertTarget: { fontSize: 11, fontFamily: fonts.ui, color: colors.textDim },
   scroll: {
     padding: spacing.lg,
     paddingBottom: 110,

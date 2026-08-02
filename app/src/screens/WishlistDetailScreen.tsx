@@ -30,7 +30,10 @@ import { fuzzyFilter } from '../lib/filters';
 import { resolveImageUris } from '../lib/images';
 import { getOwnedFor, subscribe as subOwned } from '../lib/ownedAggregate';
 import { getPrice } from '../lib/prices';
-import { getDefaultWishlistSuffix } from '../lib/settings';
+import { formatEur } from '../lib/currency';
+import { getAlertSync, subscribe as subAlerts } from '../lib/priceAlerts';
+import { PriceAlertSheet } from '../components/PriceAlertSheet';
+import { getDefaultWishlistSuffix, isFeatureEnabled } from '../lib/settings';
 import {
   getWishlist,
   renameWishlist,
@@ -66,6 +69,10 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
   // Variant picker (tap a card pile to change its variant)
   const [pickerCard, setPickerCard] = useState<Card | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+  // Carta cuya alerta de precio se está editando (null = hoja cerrada).
+  const [alertTarget, setAlertTarget] = useState<{ code: string; suffix: string; name: string } | null>(null);
+  const [, bumpAlerts] = useState(0);
+  useEffect(() => subAlerts(() => bumpAlerts((n) => n + 1)), []);
 
   const refresh = useCallback(() => {
     getWishlist(wishlistId).then(setWishlist);
@@ -153,7 +160,7 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
             {entries.length} {t('wl.entries')} · {totalOwned}/{totalNeeded} {t('wl.copiesNeeded')}
             {costToComplete > 0.005 ? (
               <Text style={s.headerCost}>
-                {'  ·  '}{t('wl.toComplete', { price: `€${costToComplete.toFixed(2)}` })}
+                {'  ·  '}{t('wl.toComplete', { price: formatEur(costToComplete, { grouped: true }) })}
               </Text>
             ) : null}
           </Text>
@@ -221,11 +228,34 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
                   {variant?.label || t('wl.normal')}
                 </Text>
                 <Text style={s.pileCode} numberOfLines={1}>{card.code}</Text>
+
+                {/* Alerta de precio: la wishlist ya dice QUÉ quieres; esto
+                    añade A CUÁNTO te interesa. Ver lib/priceAlerts.ts. */}
+                {(() => {
+                  if (!isFeatureEnabled('priceAlerts')) return null;
+                  const alert = getAlertSync(card.code, wc.suffix);
+                  return (
+                    <Pressable
+                      onPress={() => setAlertTarget({ code: card.code, suffix: wc.suffix, name: card.name })}
+                      hitSlop={HIT_SLOP}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('alert.setTarget')}
+                      style={({ pressed }) => [s.alertBtn, pressed && pressedStyle]}
+                    >
+                      <Icon name="bolt" size={11} color={alert ? colors.accent : colors.textDim} />
+                      <Text style={[s.alertText, alert ? { color: colors.accent } : null]} numberOfLines={1}>
+                        {alert ? formatEur(alert.targetEur) : t('alert.add')}
+                      </Text>
+                    </Pressable>
+                  );
+                })()}
               </View>
             );
           }}
         />
       )}
+
+      <PriceAlertSheet target={alertTarget} onClose={() => setAlertTarget(null)} />
 
       {/* Add cards modal */}
       <Modal visible={showAdd} animationType="slide" onRequestClose={() => setShowAdd(false)}>
@@ -378,6 +408,17 @@ const s = StyleSheet.create({
   qtySign: { fontSize: 18, color: colors.text, fontFamily: fonts.uiBold, lineHeight: 22 },
   qtyVal: { fontSize: 15, fontFamily: fonts.display, color: colors.text, minWidth: 18, textAlign: 'center' },
   variantLabel: { fontSize: 9, fontFamily: fonts.uiSemi, color: colors.accent, marginTop: 1 },
+  alertBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 4,
+    paddingVertical: 3,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surface2,
+  },
+  alertText: { fontSize: 10, fontFamily: fonts.uiSemi, color: colors.textDim },
   pileCode: { fontSize: 10, fontFamily: fonts.uiSemi, color: colors.textDim },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },

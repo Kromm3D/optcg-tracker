@@ -88,7 +88,29 @@ export interface IndexMetaPayload {
   newest_set: string | null;
 }
 
-/** Estado de una variante en la coleccion. */
+/** Estado físico de una carta, en la escala estándar de Cardmarket/TCGplayer.
+ *  `undefined` en un CollectionItem = sin especificar (se asume NM al valorar). */
+export type CardCondition = 'NM' | 'LP' | 'MP' | 'HP' | 'DMG';
+
+/** Idioma de impresión de la copia física. */
+export type CardLanguage = 'EN' | 'JP' | 'ES' | 'FR' | 'DE' | 'IT' | 'CN' | 'KR';
+
+/** Datos de gradeo profesional (PSA/BGS/CGC…). */
+export interface GradedInfo {
+  /** Empresa gradeadora, texto libre en mayúsculas (PSA, BGS, CGC…). */
+  company: string;
+  /** Nota, típicamente 1–10 (BGS admite .5). */
+  grade: number;
+}
+
+/** Estado de una variante en la coleccion.
+ *
+ *  **Nota de modelo (2026-08-02):** los metadatos físicos (condición, idioma,
+ *  gradeo, coste base) son **por variante**, no por copia — es decir, describen
+ *  el montón entero de esa variante. Separar por condición exigiría cambiar la
+ *  clave `${code}${suffix}` que usan la colección, el trade, la sync y las
+ *  tablas de Supabase. Se acepta la simplificación a cambio de no romper nada.
+ */
 export interface CollectionItem {
   /** Clave unica: code+suffix. */
   key: string;
@@ -98,6 +120,17 @@ export interface CollectionItem {
   /** Timestamp (ms) del último cambio. Usado por la sync LWW (last-write-wins).
    *  `undefined` = dato legacy sin sellar (se trata como el más antiguo). */
   updatedAt?: number;
+  /** Estado físico del montón. `undefined` = sin especificar → se valora como NM. */
+  condition?: CardCondition;
+  /** Idioma de impresión. `undefined` = sin especificar → se asume EN. */
+  language?: CardLanguage;
+  /** Presente sólo si las copias están gradeadas. */
+  graded?: GradedInfo;
+  /** Lo que pagaste **por copia**, en la divisa base del catálogo (EUR).
+   *  `undefined` = desconocido → esa variante no cuenta para el P&L. */
+  acquiredUnitPrice?: number;
+  /** Timestamp (ms) de adquisición, para futuros informes por periodo. */
+  acquiredAt?: number;
 }
 
 /** A single card+variant entry inside a named wishlist. */

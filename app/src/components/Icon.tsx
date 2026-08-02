@@ -4,6 +4,8 @@ import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 
 const ICON_PATHS: Record<string, string> = {
+  // Triángulo de aviso con signo de exclamación.
+  alert:   'M12 3.5 22 20H2L12 3.5ZM12 10v4M12 17h.01',
   home:    'M3 10.5 12 3l9 7.5M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5',
   grid:    'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
   layers:  'M12 3 2 8.5 12 14l10-5.5L12 3ZM2 15.5 12 21l10-5.5M2 12 12 17.5 22 12',

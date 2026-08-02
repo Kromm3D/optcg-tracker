@@ -144,6 +144,42 @@ export function rarityLabel(rarity: string): string {
 export const HOLO_RARITIES = new Set(['SR', 'SEC', 'SP', 'TR', 'L']);
 
 // ---------------------------------------------------------------------------
+// Ajuste por estado físico
+// ---------------------------------------------------------------------------
+
+/**
+ * Multiplicador de valor por estado. Los precios de Cardmarket que scrapeamos
+ * son de cartas **Near Mint**, así que NM = 1.0 y el resto descuenta.
+ *
+ * Los porcentajes son las rebajas habituales del mercado europeo, no una
+ * tasación: sirven para que el valor del vault no mienta al alza cuando el
+ * usuario marca cartas jugadas. `undefined` (sin especificar) se trata como NM.
+ */
+export const CONDITION_MULTIPLIER: Record<string, number> = {
+  NM: 1.0,
+  LP: 0.85,
+  MP: 0.65,
+  HP: 0.45,
+  DMG: 0.25,
+};
+
+/**
+ * Multiplicador de valor por gradeo. Una carta encapsulada con nota alta vale
+ * un múltiplo de la suelta; con nota baja, el slab apenas aporta.
+ *
+ * Igual que arriba: es una heurística declarada, no una tasación. Se aplica
+ * en lugar del multiplicador de estado (un slab no tiene "estado" editable).
+ */
+export function gradeMultiplier(grade: number): number {
+  if (grade >= 10) return 6;
+  if (grade >= 9.5) return 3.5;
+  if (grade >= 9) return 2;
+  if (grade >= 8) return 1.3;
+  if (grade >= 7) return 1.0;
+  return 0.8;
+}
+
+// ---------------------------------------------------------------------------
 // Soporte para deltas de precio (lib/priceHistory.ts)
 // ---------------------------------------------------------------------------
 

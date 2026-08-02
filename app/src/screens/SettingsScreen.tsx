@@ -16,15 +16,35 @@ import {
   getSettings,
   setColumns,
   setCountParallels,
+  setCurrency,
   setImagesDownloaded,
   setLanguage,
   setPlaysetSize,
+  setFeatureOverride,
+  setProfile,
   setShowAlternateArt,
+  setValueByCondition,
+  isFeatureEnabled,
+  DEFAULT_PROFILE,
+  type FeatureKey,
+  type UserProfile,
   setWishlistDefaultVariant,
   subscribe as subSettings,
   type Language,
   type WishlistDefaultVariant,
 } from '../lib/settings';
+import { CURRENCIES, CURRENCY_CODES } from '../lib/currency';
+import type { TKey } from '../i18n/en';
+
+/** Las piezas que el perfil apaga, en el orden en que se explican solas:
+ *  primero lo que describe la carta, después lo que la valora. */
+const FEATURE_ROWS: Array<{ key: FeatureKey; label: TKey }> = [
+  { key: 'condition',   label: 'settings.featCondition' },
+  { key: 'grading',     label: 'settings.featGrading' },
+  { key: 'costBasis',   label: 'settings.featCostBasis' },
+  { key: 'priceChart',  label: 'settings.featPriceChart' },
+  { key: 'priceAlerts', label: 'settings.featPriceAlerts' },
+];
 import {
   prefetchAllImages,
   type PrefetchCancel,
@@ -148,6 +168,93 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             );
           })}
         </View>
+
+        {/* Perfil: cuánta app enseñar. Es un preset, no un modo cerrado — los
+            interruptores de abajo mandan sobre él. */}
+        <Text style={s.sectionLabel}>{t('settings.profile')}</Text>
+        <Text style={s.desc}>{t('settings.profileDesc')}</Text>
+        <View style={s.row}>
+          {(['simple', 'full'] as UserProfile[]).map((p) => {
+            const on = (settings.profile ?? DEFAULT_PROFILE) === p;
+            const label = p === 'simple' ? t('settings.profileSimple') : t('settings.profileFull');
+            return (
+              <Pressable
+                key={p}
+                style={({ pressed }) => [s.chip, on && s.chipOn, pressed && pressedStyle]}
+                onPress={() => setProfile(p)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={label}
+              >
+                <Text style={[s.chipText, on && s.chipTextOn]}>{label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Interruptores sueltos. Se listan SIEMPRE los cinco, también en
+            perfil Sencillo: si sólo apareciesen los ya activos, nadie
+            descubriría lo que se está perdiendo. */}
+        <Text style={s.sectionLabel}>{t('settings.advanced')}</Text>
+        <Text style={s.desc}>{t('settings.advancedDesc')}</Text>
+        {FEATURE_ROWS.map(({ key, label }) => {
+          const on = isFeatureEnabled(key);
+          return (
+            <View key={key} style={s.featureRow}>
+              <Text style={s.featureLabel}>{t(label)}</Text>
+              <Pressable
+                style={[s.toggle, on && s.toggleOn]}
+                onPress={() => setFeatureOverride(key, !on)}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: on }}
+                accessibilityLabel={t(label)}
+              >
+                <View style={[s.knob, on && s.knobOn]} />
+              </Pressable>
+            </View>
+          );
+        })}
+
+        {/* Currency — el catálogo se scrapea en EUR, el resto es conversión. */}
+        <Text style={s.sectionLabel}>{t('settings.currency')}</Text>
+        <Text style={s.desc}>{t('settings.currencyDesc')}</Text>
+        <View style={s.row}>
+          {CURRENCY_CODES.map((code) => {
+            const on = settings.currency === code;
+            return (
+              <Pressable
+                key={code}
+                style={({ pressed }) => [s.chip, on && s.chipOn, pressed && pressedStyle]}
+                onPress={() => setCurrency(code)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={code}
+              >
+                <Text style={[s.chipText, on && s.chipTextOn]}>
+                  {CURRENCIES[code].symbol} {code}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Value by condition — sin estado de carta no hay nada que
+            descontar, así que el ajuste no tendría efecto ni sentido. */}
+        {isFeatureEnabled('condition') ? (
+          <>
+            <Text style={s.sectionLabel}>{t('settings.valueByCondition')}</Text>
+            <Text style={s.desc}>{t('settings.valueByConditionDesc')}</Text>
+            <Pressable
+              style={[s.toggle, settings.valueByCondition && s.toggleOn]}
+              onPress={() => setValueByCondition(!settings.valueByCondition)}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: settings.valueByCondition }}
+              accessibilityLabel={t('settings.valueByCondition')}
+            >
+              <View style={[s.knob, settings.valueByCondition && s.knobOn]} />
+            </Pressable>
+          </>
+        ) : null}
 
         {/* Count parallels */}
         <Text style={s.sectionLabel}>{t('settings.countParallels')}</Text>
@@ -338,6 +445,14 @@ const s = StyleSheet.create({
   toggleOn: { backgroundColor: colors.accentDim, borderColor: colors.accent },
   knob: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.textDim },
   knobOn: { backgroundColor: colors.accent, alignSelf: 'flex-end' },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  featureLabel: { flex: 1, fontSize: 14, fontFamily: fonts.ui, color: colors.text },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   stepBtn: {
     width: 36,

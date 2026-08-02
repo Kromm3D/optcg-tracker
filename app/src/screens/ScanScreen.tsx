@@ -39,11 +39,16 @@ import type { ScanScreenProps } from '../navigation';
 import { smartGoBack } from '../lib/nav';
 import type { Card, Variant } from '../types';
 import { CARDS } from '../data/loadIndex';
-import { adjust } from '../lib/collection';
+import { adjust, getCountSync } from '../lib/collection';
 import { Icon } from '../components/Icon';
 import { CardThumb } from '../components/CardThumb';
+import { ScanResultSheet, type ScanResultAction } from '../components/ScanResultSheet';
+import { BulkTargetSheet, type BulkSelection } from '../components/BulkTargetSheet';
+import type { BulkTarget } from '../components/BulkActionBar';
 import { matchTopK } from '../lib/cardMatch';
+import { createScanVoter, MIN_CONFIDENT_SCORE } from '../lib/scanVote';
 import { isCardDetectAvailable } from '../lib/cardDetect';
+import { BulkScanSheet } from '../components/BulkScanSheet';
 import { useT } from '../lib/i18n';
 import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
 
@@ -92,7 +97,14 @@ function PeronaGhost({ size = 64 }: { size?: number }) {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ScanMode = 'tap' | 'auto';
+// AUTO — se acepta sola cuando varios frames coinciden.
+// TAP  — un disparo deliberado del usuario.
+// BULK — como AUTO pero encola en vez de preguntar: para catalogar un sobre
+//        entero sin tocar la pantalla entre carta y carta.
+type ScanMode = 'tap' | 'auto' | 'bulk';
+
+/** Una carta esperando confirmación en la cola del modo BULK. */
+type QueuedCard = { code: string; suffix: string; card: Card; variant: Variant; qty: number };
 
 type LastAdded = {
   code: string;
@@ -133,6 +145,41 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
   const [manualInput, setManualInput] = useState('');
   const [noMatchVisible, setNoMatchVisible] = useState(false);
 
+  // Carta identificada, pendiente de que el usuario elija qué hacer con ella
+  // (ver ficha / añadir a mazo / añadir a colección / ver precio).
+  const [matched, setMatched] = useState<
+    { code: string; suffix: string; card: Card; variant: Variant; lowConfidence?: boolean } | null
+  >(null);
+  // Sub-hoja de BulkTargetSheet reutilizada para "añadir a mazo/colección".
+  const [bulkTarget, setBulkTarget] = useState<BulkTarget | null>(null);
+
+  // Consenso entre frames (B-14): en AUTO/BULK una carta no se acepta hasta
+  // que gana varios frames seguidos. Ver lib/scanVote.ts.
+  const voterRef = useRef(createScanVoter());
+  const [voteStreak, setVoteStreak] = useState(0);
+
+  // Cola del modo BULK y su hoja de revisión.
+  const [queue, setQueue] = useState<QueuedCard[]>([]);
+  const [showQueue, setShowQueue] = useState(false);
+
+  /** Encola una carta identificada; si ya estaba, sube su cantidad. */
+  const enqueue = useCallback(async (code: string, suffix: string) => {
+    const card = CARDS[code];
+    if (!card) return;
+    const variant = card.variants.find((v) => v.suffix === suffix) ?? card.variants[0];
+    if (!variant) return;
+    setQueue((q) => {
+      const i = q.findIndex((x) => x.code === code && x.suffix === variant.suffix);
+      if (i === -1) return [...q, { code, suffix: variant.suffix, card, variant, qty: 1 }];
+      const next = [...q];
+      next[i] = { ...next[i], qty: next[i].qty + 1 };
+      return next;
+    });
+    // El háptico es el único acuse de recibo en BULK: el usuario está mirando
+    // las cartas, no la pantalla.
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
+
   // URI de la última carta rectificada (usada en TAP mode para el shutter).
   const pendingUriRef = useRef<string | null>(null);
   const pausedRef = useRef(false);
@@ -148,10 +195,12 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
   const flashAnim    = useRef(new Animated.Value(0)).current;
   const noMatchAnim  = useRef(new Animated.Value(0)).current;
 
-  // ── Core: add card to collection ───────────────────────────────────────────
+  // ── Core: card identified → show action sheet (no auto-add) ────────────────
+  // Antes se añadía directamente a la colección; ahora el usuario elige el
+  // modo (ver ficha / mazo / colección / precio) en ScanResultSheet.
 
   const handleCodeFound = useCallback(
-    async (rawCode: string, variantSuffix?: string) => {
+    async (rawCode: string, variantSuffix?: string, lowConfidence = false) => {
       const now = Date.now();
       if (now - lastScan.current < 800) return;
       lastScan.current = now;
@@ -160,27 +209,78 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
       const card = CARDS[code];
       if (!card) return;
 
-      setIsProcessing(true);
       const suffix  = variantSuffix ?? card.variants[0]?.suffix ?? '';
       const variant = card.variants.find((v) => v.suffix === suffix) ?? card.variants[0];
-      const newCount = await adjust(code, suffix, 1);
-      setIsProcessing(false);
 
-      setLastAdded({ code, name: card.name, card, variant, count: newCount });
+      pausedRef.current = true; // congelar el escáner mientras se decide
       setManualInput('');
-
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      Animated.sequence([
-        Animated.timing(flashAnim, { toValue: 0.35, duration: 60, useNativeDriver: true }),
-        Animated.timing(flashAnim, { toValue: 0,    duration: 350, useNativeDriver: true }),
-      ]).start();
-
-      // Auto-dismiss toast after 3.5 s
-      setTimeout(() => setLastAdded((prev) => (prev?.code === code ? null : prev)), 3500);
+      setMatched({ code, suffix, card, variant, lowConfidence });
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     },
-    [flashAnim],
+    [],
   );
+
+  // ── Result sheet: resume scanning (dismiss without action) ─────────────────
+
+  const handleSheetClose = useCallback(() => {
+    setMatched(null);
+    pausedRef.current = false;
+  }, []);
+
+  // ── Result sheet: user picked an action ─────────────────────────────────────
+
+  const handleSheetAction = useCallback(
+    (action: ScanResultAction) => {
+      if (!matched) return;
+      if (action === 'profile') {
+        const { code, suffix } = matched;
+        setMatched(null);
+        pausedRef.current = false;
+        navigation.navigate('Detail', { code, suffix });
+        return;
+      }
+      // 'deck' | 'collection' → delegar en BulkTargetSheet (stepper + picker).
+      setBulkTarget(action);
+    },
+    [matched, navigation],
+  );
+
+  // ── BulkTargetSheet finished applying the chosen action ─────────────────────
+
+  const handleBulkDone = useCallback(
+    (_count: number, target: BulkTarget) => {
+      setBulkTarget(null);
+      const card = matched;
+      setMatched(null);
+      pausedRef.current = false;
+      if (!card) return;
+
+      if (target === 'collection') {
+        const newCount = getCountSync(card.code, card.suffix);
+        setLastAdded({ code: card.code, name: card.card.name, card: card.card, variant: card.variant, count: newCount });
+        Animated.sequence([
+          Animated.timing(flashAnim, { toValue: 0.35, duration: 60, useNativeDriver: true }),
+          Animated.timing(flashAnim, { toValue: 0,    duration: 350, useNativeDriver: true }),
+        ]).start();
+        setTimeout(() => setLastAdded((prev) => (prev?.code === card.code ? null : prev)), 3500);
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    [matched, flashAnim],
+  );
+
+  const bulkSelections: BulkSelection[] = matched ? [{ code: matched.code, suffix: matched.suffix }] : [];
+
+  // ── Confirmar la cola BULK: todo a la colección de una vez ─────────────────
+
+  const handleBulkQueueConfirm = useCallback(async () => {
+    for (const entry of queue) {
+      await adjust(entry.code, entry.suffix, entry.qty);
+    }
+    setQueue([]);
+    setShowQueue(false);
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [queue]);
 
   // ── No-match feedback ─────────────────────────────────────────────────────
 
@@ -208,10 +308,36 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
   const handleScanResults = useCallback(
     (results: Array<{ code: string; suffix: string; score: number }>) => {
       if (!results.length) return;
-      const top = results[0];
-      handleCodeFound(top.code, top.suffix);
+
+      // TAP es un disparo deliberado: el usuario ha apuntado y pulsado, y
+      // hacerle pulsar tres veces para "confirmar" sería absurdo. El voto es
+      // sólo para los modos que deciden solos.
+      if (scanMode === 'tap') {
+        handleCodeFound(results[0].code, results[0].suffix);
+        return;
+      }
+
+      const winner = voterRef.current.vote(results);
+      setVoteStreak(voterRef.current.streak());
+      if (!winner) return;
+      setVoteStreak(0);
+
+      // Lectura floja (funda, foil, mala luz): no se encola a ciegas ni se
+      // presenta como un hecho. Se abre la hoja marcada como dudosa para que
+      // el usuario mire la miniatura antes de aceptar. Ver MIN_CONFIDENT_SCORE.
+      const confident = winner.score >= MIN_CONFIDENT_SCORE;
+      if (!confident) {
+        handleCodeFound(winner.code, winner.suffix, true);
+        return;
+      }
+
+      if (scanMode === 'bulk') {
+        enqueue(winner.code, winner.suffix);
+        return;
+      }
+      handleCodeFound(winner.code, winner.suffix);
     },
-    [handleCodeFound],
+    [scanMode, handleCodeFound, enqueue],
   );
 
   // ── Native camera callbacks ────────────────────────────────────────────────
@@ -221,7 +347,7 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
       if (pausedRef.current) return;
       pendingUriRef.current = uri;
 
-      if (scanMode === 'auto') {
+      if (scanMode === 'auto' || scanMode === 'bulk') {
         pausedRef.current = true; // evitar re-fire mientras se procesa
         const results = await matchTopK(uri, undefined, 3);
         pausedRef.current = false;
@@ -310,6 +436,13 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
     if (shutterTimeoutRef.current) clearTimeout(shutterTimeoutRef.current);
   }, []);
 
+  // Cambiar de modo invalida la racha en curso: los votos acumulados apuntando
+  // a otra cosa no deben decidir la primera carta del modo nuevo.
+  useEffect(() => {
+    voterRef.current.reset();
+    setVoteStreak(0);
+  }, [scanMode]);
+
   // ── Manual code submit ─────────────────────────────────────────────────────
 
   const handleManualSubmit = useCallback(() => {
@@ -343,7 +476,7 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
         const cropH = Math.min(Math.round(ART_FOCUS_H * scaleY), photoH - cropY);
         if (cropW <= 0 || cropH <= 0) return;
 
-        if (scanMode === 'auto') {
+        if (scanMode === 'auto' || scanMode === 'bulk') {
           const results = await matchTopK(
             photo.uri,
             { originX: cropX, originY: cropY, width: cropW, height: cropH },
@@ -443,8 +576,30 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
           <Text style={[s.statusText, statusReady && s.statusTextReady]}>
             {statusReady ? t('scan.statusReady') : t('scan.statusAim')}
           </Text>
+          {/* Puntos de consenso: el usuario ve que el escáner está "sumando
+              votos" en vez de creer que se ha quedado colgado. */}
+          {voteStreak > 0 && (
+            <View style={s.voteDots}>
+              {Array.from({ length: voterRef.current.needed }).map((_, i) => (
+                <View key={i} style={[s.voteDot, i < voteStreak && s.voteDotOn]} />
+              ))}
+            </View>
+          )}
         </View>
       </View>
+
+      {/* ── Chip de la cola BULK (arriba-derecha) ── */}
+      {scanMode === 'bulk' && (
+        <Pressable
+          style={({ pressed }) => [s.queueChip, { top: insets.top + 12 }, pressed && pressedStyle]}
+          onPress={() => setShowQueue(true)}
+          accessibilityRole="button"
+          accessibilityLabel={t('scan.bulkQueue')}
+        >
+          <Icon name="archive" size={16} color={colors.onAccent} />
+          <Text style={s.queueChipText}>{queue.reduce((n, e) => n + e.qty, 0)}</Text>
+        </Pressable>
+      )}
 
       {/* ── Close button (top-left) ── */}
       <Pressable
@@ -459,20 +614,23 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
 
       {/* ── Right sidebar: TAP / AUTO ── */}
       <View style={[s.sidebar, { top: screenH * 0.35, bottom: 120 + insets.bottom }]}>
-        {(['tap', 'auto'] as ScanMode[]).map((mode) => (
-          <Pressable
-            key={mode}
-            style={({ pressed }) => [s.sideBtn, scanMode === mode && s.sideBtnActive, pressed && pressedStyle]}
-            onPress={() => setScanMode(mode)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: scanMode === mode }}
-            accessibilityLabel={t(mode === 'tap' ? 'scan.modeTap' : 'scan.modeAuto')}
-          >
-            <Text style={[s.sideBtnText, scanMode === mode && s.sideBtnTextActive]}>
-              {t(mode === 'tap' ? 'scan.modeTap' : 'scan.modeAuto')}
-            </Text>
-          </Pressable>
-        ))}
+        {(['tap', 'auto', 'bulk'] as ScanMode[]).map((mode) => {
+          const label = t(
+            mode === 'tap' ? 'scan.modeTap' : mode === 'auto' ? 'scan.modeAuto' : 'scan.modeBulk',
+          );
+          return (
+            <Pressable
+              key={mode}
+              style={({ pressed }) => [s.sideBtn, scanMode === mode && s.sideBtnActive, pressed && pressedStyle]}
+              onPress={() => setScanMode(mode)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: scanMode === mode }}
+              accessibilityLabel={label}
+            >
+              <Text style={[s.sideBtnText, scanMode === mode && s.sideBtnTextActive]}>{label}</Text>
+            </Pressable>
+          );
+        })}
         {/* Manual code toggle */}
         <Pressable
           style={({ pressed }) => [s.sideBtn, showManual && s.sideBtnActive, pressed && pressedStyle]}
@@ -557,6 +715,40 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
           </View>
         )}
       </View>
+
+      {/* ── Post-scan action sheet ── */}
+      <ScanResultSheet
+        visible={!!matched}
+        card={matched?.card ?? null}
+        variant={matched?.variant ?? null}
+        lowConfidence={matched?.lowConfidence}
+        onClose={handleSheetClose}
+        onAction={handleSheetAction}
+      />
+
+      {/* ── Cola del modo BULK ── */}
+      <BulkScanSheet
+        visible={showQueue}
+        entries={queue}
+        onClose={() => setShowQueue(false)}
+        onAdjust={(code, suffix, delta) =>
+          setQueue((q) =>
+            q
+              .map((e) => (e.code === code && e.suffix === suffix ? { ...e, qty: e.qty + delta } : e))
+              .filter((e) => e.qty > 0),
+          )
+        }
+        onConfirm={handleBulkQueueConfirm}
+      />
+
+      {/* ── Deck / colección sub-hoja (stepper + picker) ── */}
+      <BulkTargetSheet
+        visible={!!bulkTarget}
+        target={bulkTarget}
+        selections={bulkSelections}
+        onClose={() => setBulkTarget(null)}
+        onDone={handleBulkDone}
+      />
 
     </View>
   );
@@ -663,6 +855,31 @@ const s = StyleSheet.create({
     letterSpacing: 0.5,
   },
   statusTextReady: { color: '#22c55e' },
+
+  // Consenso entre frames
+  voteDots: { flexDirection: 'row', gap: 3, marginLeft: 2 },
+  voteDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.30)',
+  },
+  voteDotOn: { backgroundColor: '#22c55e' },
+
+  // Chip de la cola BULK
+  queueChip: {
+    position: 'absolute',
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.accent,
+    zIndex: 11,
+  },
+  queueChipText: { fontSize: 14, fontFamily: fonts.uiBold, color: colors.onAccent },
 
   // Close button
   closeBtn: {

@@ -4,7 +4,7 @@
 // Las pantallas destino (Account/Friends/Settings) son del stack raíz.
 
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ProfileScreenProps } from '../navigation';
 import { colors, fonts, radii, spacing, pressedStyle, pressedSurface } from '../theme';
@@ -13,8 +13,26 @@ import { useT } from '../lib/i18n';
 import type { TKey } from '../i18n/en';
 import { isSupabaseEnabled } from '../lib/supabase';
 import { getProfile, isSignedIn, subscribe as subAuth } from '../lib/auth';
+import { publicBinderUrl } from '../lib/publicBinder';
+import { getIncomingPending, refreshOffers, subscribe as subOffers } from '../lib/tradeOffers';
 
 type Row = { icon: string; title: TKey; desc: TKey; route: 'Account' | 'Friends' | 'Settings' };
+
+/** Comparte (nativo) o copia al portapapeles (web) el enlace al binder. */
+async function shareBinder(username: string): Promise<void> {
+  const url = publicBinderUrl(username);
+  if (Platform.OS === 'web') {
+    // `navigator.clipboard` sólo existe en contexto seguro; si no está, el
+    // fallo silencioso sería peor que no ofrecer nada, así que se avisa.
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      console.warn('[profile] clipboard unavailable; link:', url);
+    }
+    return;
+  }
+  await Share.share({ message: url, url });
+}
 
 export function ProfileScreen({ navigation }: ProfileScreenProps) {
   const t = useT();
@@ -27,6 +45,20 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
   const profile = getProfile();
   const name = signedIn ? (profile?.username ?? '…') : t('profile.guest');
   const initial = signedIn ? (profile?.username?.[0]?.toUpperCase() ?? '?') : null;
+
+  // Ofertas de intercambio pendientes de respuesta. Hasta ahora sólo se veían
+  // entrando al perfil del amigo concreto, así que una propuesta podía quedarse
+  // días sin que nadie se enterara. El contador vive en la fila de Amigos, que
+  // es la puerta natural a todo lo social.
+  const [pendingOffers, setPendingOffers] = useState(0);
+  useEffect(() => {
+    if (!backendEnabled || !signedIn) {
+      setPendingOffers(0);
+      return;
+    }
+    void refreshOffers();
+    return subOffers(() => setPendingOffers(getIncomingPending().length));
+  }, [backendEnabled, signedIn]);
 
   // Friends sólo tiene sentido con backend y sesión iniciada (igual que en
   // AccountScreen, que esconde el acceso a Friends tras el estado signed-in).
@@ -83,11 +115,43 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.navTitle}>{t(row.title)}</Text>
-                <Text style={s.navDesc} numberOfLines={1}>{t(row.desc)}</Text>
+                <Text style={s.navDesc} numberOfLines={1}>
+                  {row.route === 'Friends' && pendingOffers > 0
+                    ? t('trade.pendingOffers', { n: pendingOffers })
+                    : t(row.desc)}
+                </Text>
               </View>
+              {row.route === 'Friends' && pendingOffers > 0 ? (
+                <View style={s.badge}>
+                  <Text style={s.badgeText}>{pendingOffers}</Text>
+                </View>
+              ) : null}
               <Icon name="chevR" size={18} color={colors.textMut} />
             </Pressable>
           ))}
+
+          {/* Compartir binder: sólo con sesión, porque el enlace es
+              /u/<username> y un invitado no tiene username que compartir. */}
+          {signedIn && profile?.username ? (
+            <Pressable
+              style={({ pressed }) => [s.navRow, pressed && pressedSurface]}
+              onPress={() => shareBinder(profile.username)}
+              accessibilityRole="button"
+              accessibilityLabel={t('public.share')}
+            >
+              <View style={s.navIcon}>
+                <Icon name="external" size={20} color={colors.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.navTitle}>{t('public.share')}</Text>
+                {/* El aviso es parte de la fila, no una sorpresa después:
+                    la visibilidad por defecto es 'friends' y sin cambiarla el
+                    enlace no le abre a nadie. */}
+                <Text style={s.navDesc} numberOfLines={2}>{t('public.shareNeedsPublic')}</Text>
+              </View>
+              <Icon name="chevR" size={18} color={colors.textMut} />
+            </Pressable>
+          ) : null}
         </View>
       </ScrollView>
     </View>
@@ -148,4 +212,14 @@ const s = StyleSheet.create({
   },
   navTitle: { fontSize: 15, fontFamily: fonts.uiSemi, color: colors.text },
   navDesc: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut, marginTop: 1 },
+  badge: {
+    minWidth: 22,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { fontSize: 12, fontFamily: fonts.uiBold, color: colors.onAccent },
 });

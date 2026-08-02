@@ -12,6 +12,7 @@ import { Counter } from './Counter';
 import { colors, fonts, HIT_SLOP, HOT_RARITIES, pressedStyle, pressedSurface } from '../theme';
 import { FoilBadge } from './FoilBadge';
 import { resolveImageUris } from '../lib/images';
+import { formatEur } from '../lib/currency';
 import { adjust, getCount, getCountSync, subscribe as subColl } from '../lib/collection';
 import {
   getOwnedFor,
@@ -58,10 +59,11 @@ function rarityRank(r: string | undefined): number {
   return RARITY_RANK[(r ?? '').toUpperCase()] ?? 0;
 }
 
-// Precio compacto para el footer del grid: 2 decimales por debajo de 100 €,
+// Precio compacto para el footer del grid: 2 decimales por debajo de 100,
 // entero por encima (ahorra ancho en cartas caras sin perder información útil).
-function formatPrice(n: number): string {
-  return n >= 100 ? `€${Math.round(n)}` : `€${n.toFixed(2)}`;
+// El importe entra en EUR; la divisa de salida la decide lib/currency.
+function formatPrice(eur: number): string {
+  return formatEur(eur, { compact: true });
 }
 
 const STACK_OFFSET = 4;  // px de desplazamiento por capa fantasma

@@ -26,9 +26,25 @@
   const DELAY_MS = 2500;      // ms entre navegaciones de página
   const SLUG_RE  = /([A-Z]{1,4}\d{2}-\d{3})-V(\d+)/;
 
+  // Cardmarket usa el formato del locale de la sesion, asi que hay que tragar
+  // "1.234,56 €" y "1,234.56 €". El patron captura el numero con todos sus
+  // separadores y la normalizacion decide cual es el decimal: el ultimo
+  // separador seguido de exactamente dos digitos; el resto son millares.
+  //
+  // El patron anterior era /(\d{1,4}[.,]\d{2})/, que parte "1.234,56" en
+  // "1.23" — una carta de 1234 € se guardaba como 1,23 €. No revienta y el
+  // numero resultante es plausible, que es lo que lo hacia dificil de ver.
   function parsePrice(text) {
-    const m = text && text.match(/(\d{1,4}[.,]\d{2})\s*€/);
-    return m ? parseFloat(m[1].replace(',', '.')) : null;
+    const m = text && text.match(/(\d[\d.,  ]*\d)\s*€/);
+    if (!m) return null;
+    const raw = m[1].replace(/[  ]/g, '');
+    const cut = Math.max(raw.lastIndexOf('.'), raw.lastIndexOf(','));
+    const tail = cut === -1 ? '' : raw.slice(cut + 1);
+    const value = (cut !== -1 && tail.length === 2)
+      ? `${raw.slice(0, cut).replace(/[.,]/g, '') || '0'}.${tail}`
+      : raw.replace(/[.,]/g, '');
+    const n = parseFloat(value);
+    return Number.isFinite(n) ? n : null;
   }
 
   function versionToSuffix(v) {
@@ -56,9 +72,14 @@
       const suffix = versionToSuffix(m[2]);
       const key    = code + suffix;
 
+      // Se sube buscando el precio, pero parando en cuanto el ancestro abarca
+      // mas de un producto: sin ese freno, una carta sin precio se lleva el de
+      // otra fila (al subir lo suficiente se llega al listado entero y el
+      // regex engancha el primer importe que vea).
       let low = null;
       let el  = a.parentElement;
-      for (let i = 0; i < 8 && el; i++) {
+      for (let i = 0; i < 8 && el && el !== document.body; i++) {
+        if (el.querySelectorAll('a[href*="/Products/Singles/"]').length > 1) break;
         low = parsePrice(el.innerText);
         if (low !== null) break;
         el = el.parentElement;
