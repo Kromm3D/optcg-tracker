@@ -343,53 +343,74 @@ _MONTHS = {
     "july": 7, "august": 8, "september": 9, "october": 10, "november": 11,
     "december": 12,
 }
+# Se exige DÍA explícito. La página también publica fechas de sólo mes
+# ("October 2026"); son demasiado imprecisas para una cuenta atrás, así que se
+# descartan en vez de inventar un día 1.
 _DATE_RE = re.compile(r"([A-Z][a-z]{2,8})\s+(\d{1,2}),\s*(20\d\d)")
 _SETCODE_RE = re.compile(r"\[(OP|EB|ST|PRB)-?(\d{2})\]")
 
 
-def fetch_release_dates(session):
-    """Fechas de lanzamiento de los productos ANUNCIADOS, por código de set.
+def fetch_product_meta(session):
+    """Nombre y fecha de los productos ANUNCIADOS, por código de set.
 
     La página de productos sólo lista lo próximo y lo reciente, no el histórico
-    — que es exactamente lo que hace falta: las fechas pasadas ya están en la
-    app y no cambian; la que falta siempre es la del set que viene.
+    — que es exactamente lo que hace falta. Y es la ÚNICA fuente para un set aún
+    sin cartas publicadas: su nombre no se puede deducir de las cartas porque
+    todavía no hay ninguna, que es justo el caso del set que sale en el
+    calendario de lanzamientos.
 
-    Devuelve {"OP17": "28/08/2026"} en el formato DD/MM/YYYY que usa la app.
-    Ante cualquier fallo devuelve {} — una fecha ausente sólo significa que ese
-    set no sale en el calendario, así que nunca merece romper el refresco.
+    Cada producto vive en un bloque con todo junto:
+
+        BOOSTER PACK -THE WORLD'S STRONGEST WARRIORS- [OP-17]
+        Release Date August 28, 2026  MSRP USD $4.99 per pack
+
+    Se lee del MISMO nodo a propósito. La primera versión buscaba la fecha y
+    subía por los ancestros hasta topar con un código, y con dos productos
+    vecinos se cruzaba los datos: EB05 (octubre) heredó la fecha de OP17
+    (28 de agosto). Un dato falso perfectamente plausible.
+
+    Devuelve {"OP17": {"name": "The World's Strongest Warriors",
+                       "release_date": "28/08/2026"}}.
+    Ante cualquier fallo devuelve {} — esto es información de adorno, y nunca
+    merece tumbar el refresco del catálogo.
     """
     try:
         resp = session.get(PRODUCTS_URL, timeout=HTTP_TIMEOUT)
         resp.raise_for_status()
         soup = BeautifulSoup(_html_of(resp), "html.parser")
     except Exception as e:
-        print(f"[!] No se pudieron leer las fechas de lanzamiento: {e}")
+        print(f"[!] No se pudo leer la página de productos: {e}")
         return {}
 
-    dates = {}
+    # Bloque más PEQUEÑO que contiene el código de set: el más grande sería la
+    # página entera, y volveríamos a mezclar productos.
+    blocks = {}
     for el in soup.find_all(True):
-        if el.find(True):
-            continue                      # sólo nodos hoja
-        m = _DATE_RE.search(el.get_text(" ", strip=True))
-        if not m:
+        text = el.get_text(" ", strip=True)
+        m = _SETCODE_RE.search(text)
+        if not m or "Release Date" not in text:
             continue
-        month = _MONTHS.get(m.group(1).lower())
-        if not month:
-            continue
-        stamp = f"{int(m.group(2)):02d}/{month:02d}/{m.group(3)}"
-        # Subir por los ancestros hasta dar con el código de set del producto.
-        node = el
-        for _ in range(6):
-            node = node.parent
-            if node is None:
-                break
-            cm = _SETCODE_RE.search(node.get_text(" ", strip=True))
-            if cm:
-                dates.setdefault(f"{cm.group(1)}{cm.group(2)}", stamp)
-                break
-    if dates:
-        print(f"[OK] Fechas de lanzamiento encontradas: {dates}")
-    return dates
+        code = f"{m.group(1)}{m.group(2)}"
+        if code not in blocks or len(text) < len(blocks[code]):
+            blocks[code] = text
+
+    out = {}
+    for code, text in blocks.items():
+        info = {}
+        dm = _DATE_RE.search(text)
+        if dm:
+            month = _MONTHS.get(dm.group(1).lower())
+            if month:
+                info["release_date"] = f"{int(dm.group(2)):02d}/{month:02d}/{dm.group(3)}"
+        nm = re.search(r"-([^-\[\]]{4,80})-\s*\[", text)
+        if nm:
+            info["name"] = titlecase_set_name(nm.group(1).strip())
+        if info:
+            out[code] = info
+
+    if out:
+        print(f"[OK] Metadatos de productos anunciados: {out}")
+    return out
 
 
 def build_set_meta(series):
@@ -632,9 +653,10 @@ def scrape_all(session):
             print(f"  [{i}/{len(series)}] {label[:48]:48}  [!] FALLO: {e}")
         time.sleep(REQUEST_DELAY)
 
-    # Fechas de lanzamiento de lo anunciado (página de productos, no cardlist).
-    for code, stamp in fetch_release_dates(session).items():
-        set_meta.setdefault(code, {"release_order": 999})["release_date"] = stamp
+    # Nombre y fecha de lo anunciado (página de productos, no cardlist). Es la
+    # única fuente para un set que todavía no tiene cartas publicadas.
+    for code, info in fetch_product_meta(session).items():
+        set_meta.setdefault(code, {"release_order": 999}).update(info)
 
     return all_cards, set_meta
 

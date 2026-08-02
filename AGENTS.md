@@ -50,11 +50,25 @@ Dawn" contra 13 que dicen "One Piece Card The Best". Verificado contra los 10
 nombres que hoy están escritos a mano: 10/10. Se publica en
 `set_meta[code].name`, así que llega **por CDN** sin actualizar la app.
 
-**Fechas scrapeadas de la página de productos.** No están en el cardlist, pero
-sí en `/products/`, que lista sólo lo anunciado — justo lo que falta, porque el
-histórico ya está y no cambia. Probado en vivo: devuelve OP17 → 28/08/2026 (la
-misma fecha que se había buscado a mano) y descubre EB05, que ni siquiera
-estaba en el mapa. Se publica en `set_meta[code].release_date`.
+**Nombre y fecha de lo anunciado, de la página de productos.** No están en el
+cardlist, pero sí en `/products/`, que lista sólo lo anunciado — justo lo que
+falta, porque el histórico ya está y no cambia. Y es la **única** fuente posible
+para un set sin cartas publicadas: su nombre no se puede deducir de las cartas
+porque todavía no hay ninguna, que es precisamente el set que sale en el
+calendario. Probado en vivo: OP17 → *The World's Strongest Warriors* +
+28/08/2026, y descubre EB05, que ni siquiera estaba en el mapa.
+
+Precedencia: para un set ya publicado gana el nombre deducido de las cartas
+(voto por mayoría, más fiable); para uno anunciado, el de la página de productos.
+
+⚠ **Bug encontrado y corregido durante la propia verificación.** La primera
+versión buscaba la fecha y subía por los ancestros del DOM hasta topar con un
+código de set. Con dos productos vecinos se cruzaba los datos: **EB05 heredó la
+fecha de OP17** (28/08/2026) cuando la suya es "October 2026". Un dato falso
+perfectamente plausible, del tipo que ninguna verificación de "¿encogió el
+catálogo?" detecta. Se arregló leyendo nombre y fecha **del mismo nodo**, el
+bloque más pequeño que contiene el código. De paso, ahora se exige día explícito:
+una fecha de sólo mes se descarta en vez de inventar un día 1.
 
 `setMeta.ts` ahora lee del índice primero y cae al mapa manual como respaldo, y
 `setsByReleaseDate()` recorre la unión de ambos orígenes — si sólo recorriese el
