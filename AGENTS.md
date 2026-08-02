@@ -25,6 +25,75 @@ fechada de abajo.)
 
 ## Current uncommitted state (read before committing)
 
+### 2026-08-02 (5) — Catálogo auto-mantenido: nombres, fechas, imágenes y hashes sin manos
+
+Objetivo: que un set nuevo entre solo, con lo mínimo (o nada) de intervención.
+Punto de partida: el cron existía pero un set nuevo exigía **seis** tareas
+manuales. Ahora exige **una**, y sólo si te importa revisar.
+
+**Lo que había que hacer a mano por cada set nuevo (antes → ahora):**
+
+| Tarea | Antes | Ahora |
+|---|---|---|
+| Regenerar el índice | cron | cron |
+| Descargar imágenes | a mano (`--images-only`) | **CI** |
+| Recalcular hashes | a mano (`--hashes-only`) | **CI, incremental** |
+| Escribir el nombre del set en `setMeta.ts` | a mano | **deducido de las cartas** |
+| Escribir la fecha en `setMeta.ts` | a mano (búsqueda web) | **scrapeada de /products/** |
+| Commit + push de todo | a mano | **PR automático** |
+| Revisar y mergear el PR | a mano | a mano (a propósito) |
+
+**Nombres deducidos, no mantenidos.** Cada carta trae el `set_name` del producto
+donde aparece, así que un set tiene varios nombres (los suyos y los de las
+reediciones). Gana el más frecuente: OP01 son 104 cartas que dicen "Romance
+Dawn" contra 13 que dicen "One Piece Card The Best". Verificado contra los 10
+nombres que hoy están escritos a mano: 10/10. Se publica en
+`set_meta[code].name`, así que llega **por CDN** sin actualizar la app.
+
+**Fechas scrapeadas de la página de productos.** No están en el cardlist, pero
+sí en `/products/`, que lista sólo lo anunciado — justo lo que falta, porque el
+histórico ya está y no cambia. Probado en vivo: devuelve OP17 → 28/08/2026 (la
+misma fecha que se había buscado a mano) y descubre EB05, que ni siquiera
+estaba en el mapa. Se publica en `set_meta[code].release_date`.
+
+`setMeta.ts` ahora lee del índice primero y cae al mapa manual como respaldo, y
+`setsByReleaseDate()` recorre la unión de ambos orígenes — si sólo recorriese el
+mapa manual, un set con fecha del CDN no saldría nunca en el calendario, que es
+justo el caso que esto resuelve.
+
+**Bug de codificación arreglado de camino.** `resp.text` dejaba que `requests`
+adivinase la codificación; el sitio sirve UTF-8 sin charset en la cabecera, así
+que caía a ISO-8859-1 y "The Azure Sea's Seven" se guardaba con U+FFFD. Se
+fuerza en `_html_of()`, en el punto de entrada, no carta por carta. Sin esto los
+nombres automáticos habrían salido rotos.
+
+**Hashes incrementales (`--hashes-only --only-missing`).** Reutiliza los ya
+calculados y sólo procesa los que faltan: un set nuevo son ~120 imágenes en vez
+de las ~4600 del catálogo. Comprobado que produce un fichero **byte a byte
+idéntico** cuando no falta ninguno, así que CI no genera diffs falsos. Sólo
+reutiliza si el algoritmo y sus parámetros coinciden — mezclar descriptores de
+distintos recortes en un mismo fichero haría comparar peras con manzanas.
+
+**Verificación que se niega a publicar basura.** El job de catálogo ahora falla
+si desaparecen cartas o si alguna llega sin nombre o sin variantes. Es el modo
+real de fallo: un cambio de maquetación en origen no lanza una excepción, deja
+un JSON de aspecto normal con la mitad de los campos vacíos. Probado en local
+con tres casos (sin cambios → pasa; 7 cartas borradas → falla; una carta sin
+nombre → falla): 3/3.
+
+**Medido, no supuesto:** jsDelivr sirve el repo a 307 MB de imágenes sin
+problema (200, imagen de 80 KB). El aviso de los ~50 MB de `CLAUDE.md` no se ha
+materializado. `.git` sí pesa ya 2,7 GB, lo que encarece cada checkout de CI —
+no es urgente, pero es la próxima pared.
+
+⚠ **Nada de esto se ha ejecutado en CI todavía.** Las funciones nuevas están
+probadas en local contra datos y web reales, pero el workflow completo no ha
+corrido nunca. El primer lunes es el estreno.
+
+**Sigue siendo manual a propósito:** mergear el PR. El auto-merge de datos
+scrapeados es la clase de decisión que conviene tomar después de ver unas
+cuantas ejecuciones reales, no antes.
+
 ### 2026-08-02 (4) — Sesión de verificación en dispositivo: B-15 (escáner sordo a los modos) + suelo de confianza (DEVICE-VERIFIED)
 
 Primera vez que el competitive-gap push se prueba en un teléfono real. Casi todo

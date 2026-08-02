@@ -39,11 +39,13 @@ USO:
     python build_card_database.py --index-only       # solo fase 1 (metadatos)
     python build_card_database.py --images-only      # solo fase 2 (usa index.json existente)
     python build_card_database.py --hashes-only      # solo fase 3 (genera hashes.json)
+    python build_card_database.py --hashes-only --only-missing   # idem, sólo los que faltan (CI)
     python build_card_database.py --workers 16       # ajustar paralelismo (defecto 8)
     python build_card_database.py --wipe             # borrar index anterior sin preguntar
 """
 
 import argparse
+import collections
 import io
 import json
 import re
@@ -202,6 +204,19 @@ def set_prefix_of(code):
     return code.split("-")[0] if "-" in code else (code or "OTHER")
 
 
+def _html_of(resp):
+    """Texto HTML decodificado como UTF-8.
+
+    El sitio oficial sirve UTF-8 pero **sin charset en la cabecera**, así que
+    `requests` cae a ISO-8859-1 y los apóstrofos tipográficos (U+2019) de
+    nombres como "The Azure Sea's Seven" acababan como U+FFFD. Se fuerza la
+    codificación en vez de arreglar los nombres a posteriori.
+    """
+    if not resp.encoding or resp.encoding.lower() == "iso-8859-1":
+        resp.encoding = resp.apparent_encoding or "utf-8"
+    return resp.text
+
+
 def clean_set_name(raw):
     """De '-THE TIME OF BATTLE- [OP-16]' deja 'THE TIME OF BATTLE'."""
     if not raw:
@@ -303,7 +318,7 @@ def discover_series(session):
     print(f"[*] Descubriendo series desde {CARDLIST_URL}")
     resp = session.get(CARDLIST_URL, timeout=HTTP_TIMEOUT)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
+    soup = BeautifulSoup(_html_of(resp), "html.parser")
 
     # Buscar el select que contenga options con value numérico de serie.
     series = []
@@ -323,6 +338,60 @@ def discover_series(session):
     return series
 
 
+_MONTHS = {
+    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11,
+    "december": 12,
+}
+_DATE_RE = re.compile(r"([A-Z][a-z]{2,8})\s+(\d{1,2}),\s*(20\d\d)")
+_SETCODE_RE = re.compile(r"\[(OP|EB|ST|PRB)-?(\d{2})\]")
+
+
+def fetch_release_dates(session):
+    """Fechas de lanzamiento de los productos ANUNCIADOS, por código de set.
+
+    La página de productos sólo lista lo próximo y lo reciente, no el histórico
+    — que es exactamente lo que hace falta: las fechas pasadas ya están en la
+    app y no cambian; la que falta siempre es la del set que viene.
+
+    Devuelve {"OP17": "28/08/2026"} en el formato DD/MM/YYYY que usa la app.
+    Ante cualquier fallo devuelve {} — una fecha ausente sólo significa que ese
+    set no sale en el calendario, así que nunca merece romper el refresco.
+    """
+    try:
+        resp = session.get(PRODUCTS_URL, timeout=HTTP_TIMEOUT)
+        resp.raise_for_status()
+        soup = BeautifulSoup(_html_of(resp), "html.parser")
+    except Exception as e:
+        print(f"[!] No se pudieron leer las fechas de lanzamiento: {e}")
+        return {}
+
+    dates = {}
+    for el in soup.find_all(True):
+        if el.find(True):
+            continue                      # sólo nodos hoja
+        m = _DATE_RE.search(el.get_text(" ", strip=True))
+        if not m:
+            continue
+        month = _MONTHS.get(m.group(1).lower())
+        if not month:
+            continue
+        stamp = f"{int(m.group(2)):02d}/{month:02d}/{m.group(3)}"
+        # Subir por los ancestros hasta dar con el código de set del producto.
+        node = el
+        for _ in range(6):
+            node = node.parent
+            if node is None:
+                break
+            cm = _SETCODE_RE.search(node.get_text(" ", strip=True))
+            if cm:
+                dates.setdefault(f"{cm.group(1)}{cm.group(2)}", stamp)
+                break
+    if dates:
+        print(f"[OK] Fechas de lanzamiento encontradas: {dates}")
+    return dates
+
+
 def build_set_meta(series):
     """Construye el mapa de metadatos por set a partir del orden del desplegable.
 
@@ -338,12 +407,66 @@ def build_set_meta(series):
     return set_meta
 
 
+def set_display_name(cards, set_code):
+    """Nombre legible de un set, deducido de las propias cartas.
+
+    Cada carta trae el `set_name` del producto donde aparece, así que un set
+    tiene varios nombres: los suyos y los de las reediciones. Gana **el más
+    frecuente** — las reediciones son siempre minoría (OP01: 104 cartas dicen
+    "Romance Dawn" y 13 dicen "One Piece Card The Best").
+
+    Se deduce en vez de mantenerse a mano para que un set nuevo traiga su
+    nombre solo, sin que nadie edite un mapa en TypeScript.
+    """
+    counts = collections.Counter()
+    for card in cards.values():
+        if card.get("code", "").split("-")[0] != set_code:
+            continue
+        name = (card.get("set_name") or "").strip()
+        if name:
+            counts[name] += 1
+    if not counts:
+        return ""
+    return titlecase_set_name(counts.most_common(1)[0][0])
+
+
+# Palabras que se quedan en minúscula dentro del título (salvo la primera).
+_LOWER_WORDS = {"of", "the", "in", "on", "a", "an", "and", "to", "for", "vol."}
+
+
+def titlecase_set_name(raw):
+    """'THE AZURE SEA'S SEVEN' → \"The Azure Sea's Seven\".
+
+    Los nombres llegan en mayúsculas del sitio oficial pero la app los enseña
+    en title case. Se respetan los tokens que ya mezclan mayúsculas y dígitos
+    ("GEAR5", "25th") en vez de destrozarlos.
+    """
+    words = raw.split()
+    out = []
+    for i, w in enumerate(words):
+        if any(ch.isdigit() for ch in w):
+            out.append(w)                      # GEAR5, 25th, vol.2
+        elif i > 0 and w.lower() in _LOWER_WORDS:
+            out.append(w.lower())
+        else:
+            # Se capitaliza por segmentos para respetar "O'HARA" → "O'Hara".
+            # El segmento corto sólo se baja a minúscula si NO es el primero:
+            # así el posesivo de "SEA'S" queda "Sea's", pero la palabra suelta
+            # "A" de "A Fist of Divine Speed" no se convierte en "a".
+            parts = w.split("'")
+            out.append("'".join(
+                p.capitalize() if (i2 == 0 or len(p) > 1) else p.lower()
+                for i2, p in enumerate(parts)
+            ))
+    return " ".join(out)
+
+
 def fetch_series_html(session, series_id):
     """GET de la página de una serie. Devuelve (html, url)."""
     url = f"{CARDLIST_URL}?series={series_id}"
     resp = session.get(url, timeout=HTTP_TIMEOUT)
     resp.raise_for_status()
-    return resp.text, url
+    return _html_of(resp), url
 
 
 def _div_text(node, selector):
@@ -508,12 +631,31 @@ def scrape_all(session):
         except Exception as e:
             print(f"  [{i}/{len(series)}] {label[:48]:48}  [!] FALLO: {e}")
         time.sleep(REQUEST_DELAY)
+
+    # Fechas de lanzamiento de lo anunciado (página de productos, no cardlist).
+    for code, stamp in fetch_release_dates(session).items():
+        set_meta.setdefault(code, {"release_order": 999})["release_date"] = stamp
+
     return all_cards, set_meta
+
+
+def enrich_set_meta_with_names(index, set_meta):
+    """Añade `name` a cada set deduciéndolo de las cartas (ver set_display_name).
+
+    Vive aquí y no en la app para que un set nuevo llegue con nombre por el
+    CDN, sin esperar a una actualización de la app.
+    """
+    for code in set_meta:
+        name = set_display_name(index, code)
+        if name:
+            set_meta[code]["name"] = name
+    return set_meta
 
 
 def save_index(index, set_meta=None):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     set_meta = set_meta or {}
+    enrich_set_meta_with_names(index, set_meta)
     version = int(time.time())
     payload = {
         "generated_with": "build_card_database.py",
@@ -916,18 +1058,60 @@ def rgb_average_hash(img):
     )
 
 
-def build_hashes(index):
-    """Calcula el rgb_average_hash (3 × HASH_SIZE² bits) de cada variante."""
+def _load_existing_hashes():
+    """Hashes ya calculados en disco, o {} si no hay fichero utilizable.
+
+    Se exige que el algoritmo y sus parámetros coincidan: reutilizar hashes
+    calculados con otro recorte o tamaño mezclaría descriptores incompatibles
+    en el mismo fichero, y el escáner compararía peras con manzanas.
+    """
+    if not HASHES_PATH.exists():
+        return {}
+    try:
+        with open(HASHES_PATH, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+    except Exception:
+        return {}
+    same_algo = (
+        payload.get("hash_algo") == "rgb_average_hash_artcrop_norm"
+        and payload.get("hash_size") == HASH_SIZE
+        and tuple(payload.get("art_crop") or ()) == tuple(ART_CROP)
+        and tuple(payload.get("masked_rows") or ()) == tuple(MASK_ROWS)
+    )
+    if not same_algo:
+        print("[*] hashes.json existente usa otros parámetros — se recalcula entero.")
+        return {}
+    return payload.get("hashes", {})
+
+
+def build_hashes(index, only_missing=False):
+    """Calcula el rgb_average_hash (3 × HASH_SIZE² bits) de cada variante.
+
+    Con `only_missing` reutiliza los hashes ya calculados y sólo procesa las
+    variantes que faltan. Es el modo pensado para CI: un set nuevo son ~120
+    imágenes en vez de las ~4600 del catálogo entero. Las claves que ya no
+    están en el índice se descartan igualmente, así que el fichero no acumula
+    basura de cartas retiradas.
+    """
     if imagehash is None:
         print("[!] Falta 'imagehash'. Instálalo con:  pip install imagehash")
         print("    Saltando generación de hashes.")
         return
 
     print(f"[FASE 3] Generando hashes perceptuales (rgb_average_hash_artcrop_norm {ART_CROP}, 3×{HASH_SIZE}×{HASH_SIZE})")
+    known = _load_existing_hashes() if only_missing else {}
+    if only_missing:
+        print(f"[*] Modo incremental: {len(known)} hashes ya en disco.")
     hashes = {}
+    reused = 0
     skipped = 0
     for code, entry in index.items():
         for v in entry.get("variants", []):
+            key = f"{code}{v['suffix']}"
+            if only_missing and key in known:
+                hashes[key] = known[key]
+                reused += 1
+                continue
             rel = v.get("image_local", "")
             if not rel:
                 skipped += 1
@@ -938,7 +1122,6 @@ def build_hashes(index):
                 continue
             try:
                 img = PILImage.open(img_path)
-                key = f"{code}{v['suffix']}"
                 hashes[key] = rgb_average_hash(img)
             except Exception as e:
                 skipped += 1
@@ -955,7 +1138,8 @@ def build_hashes(index):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(HASHES_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False)
-    print(f"[OK] {len(hashes)} hashes guardados en {HASHES_PATH}  (saltados: {skipped})")
+    print(f"[OK] {len(hashes)} hashes guardados en {HASHES_PATH}  "
+          f"(reutilizados: {reused}, nuevos: {len(hashes) - reused}, saltados: {skipped})")
 
     # Copiar a la app (mismo patrón que build_embeddings.py) para mantener sincronía.
     app_hashes = ROOT / "app" / "src" / "data" / "hashes.json"
@@ -973,6 +1157,8 @@ def main():
     parser.add_argument("--index-only", action="store_true", help="Solo construir el índice (metadatos).")
     parser.add_argument("--images-only", action="store_true", help="Solo descargar imágenes (usa index.json existente).")
     parser.add_argument("--hashes-only", action="store_true", help="Solo generar hashes perceptuales (usa index.json existente).")
+    parser.add_argument("--only-missing", action="store_true",
+                        help="Con --hashes-only: reutiliza los hashes ya calculados y sólo procesa los que faltan (modo CI).")
     parser.add_argument("--workers", type=int, default=8, help="Hilos paralelos para descargar (defecto 8).")
     parser.add_argument("--wipe", action="store_true", help="Borrar index.json anterior sin preguntar.")
     parser.add_argument("--no-boxart", action="store_true", help="No intentar descargar box art de /products/.")
@@ -990,7 +1176,7 @@ def main():
     # Si --hashes-only, solo generar hashes y salir
     if args.hashes_only:
         index = load_index()
-        build_hashes(index)
+        build_hashes(index, only_missing=args.only_missing)
         print("\n[DONE]")
         return
 

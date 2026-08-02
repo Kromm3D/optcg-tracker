@@ -42,24 +42,90 @@ jobs:
           python-version: '3.12'
 
       - name: Install deps
-        run: pip install requests beautifulsoup4 pillow
+        run: pip install requests beautifulsoup4 pillow imagehash
 
       - name: Rebuild index
-        # Sólo metadatos: las imágenes pesan y ya están en el repo. Si aparece
-        # un set nuevo, sus imágenes se bajan a mano una vez (--images-only).
-        #
-        # ⚠ LIMITACIÓN CONOCIDA: --index-only tampoco recalcula hashes.json, y
-        # build_hashes() necesita el fichero de imagen local para calcularlo.
-        # O sea que un set nuevo entra en el catálogo pero **no se puede
-        # escanear** hasta que alguien corra --images-only y --hashes-only a
-        # mano. Automatizar esa cadena (imágenes → hashes → mismo PR) es trabajo
-        # aparte; ver AGENTS.md.
+        # Metadatos primero. El nombre legible de cada set se deduce aquí de las
+        # propias cartas (set_meta[code].name), así que un set nuevo llega con
+        # nombre sin que nadie edite setMeta.ts.
         run: python scripts/build_card_database.py --index-only
 
       - name: Sync index into the app bundle
         # El bundler de Metro lee app/src/data/index.json, no data/index.json.
         # Olvidar esta copia es el error clásico de este pipeline.
         run: cp data/index.json app/src/data/index.json
+
+      - name: Download images for any new cards
+        # Sin esto un set nuevo entra en el catálogo pero se ve con el hueco del
+        # CDN, y sobre todo NO SE PUEDE ESCANEAR: build_hashes necesita el
+        # fichero local. Salta las que ya existen, así que en una semana normal
+        # (sin set nuevo) no descarga nada y termina en segundos.
+        run: python scripts/build_card_database.py --images-only
+
+      - name: Hash the new images
+        # Incremental: reutiliza los ~4600 hashes ya calculados y sólo procesa
+        # los que faltan. Un set nuevo son ~120 imágenes, no el catálogo entero.
+        run: python scripts/build_card_database.py --hashes-only --only-missing
+
+      - name: Verify the catalog did not shrink or empty out
+        # La automatización sólo sirve si se niega a publicar basura. Un cambio
+        # de maquetación en origen NO se manifiesta como una excepción: se
+        # manifiesta como cartas que desaparecen o campos que se vacían, y sin
+        # esta comprobación acabaría en un PR de aspecto normal.
+        run: |
+          python - <<'PY'
+          import json, pathlib, subprocess, sys
+
+          new = json.loads(pathlib.Path('data/index.json').read_text(encoding='utf-8'))
+          old_raw = subprocess.run(
+              ['git', 'show', 'HEAD:data/index.json'],
+              capture_output=True, text=True, encoding='utf-8',
+          ).stdout
+          if not old_raw:
+              print('No hay índice previo con el que comparar — se acepta.')
+              sys.exit(0)
+          old = json.loads(old_raw)
+
+          old_cards, new_cards = old.get('cards', {}), new.get('cards', {})
+          print(f'{len(old_cards)} cartas antes, {len(new_cards)} después')
+
+          # 1. El catálogo de un TCG no encoge. Si encoge, el scrape falló.
+          missing = set(old_cards) - set(new_cards)
+          if missing:
+              print(f'FALLO: {len(missing)} cartas han desaparecido, p.ej. {sorted(missing)[:5]}')
+              sys.exit(1)
+
+          # 2. Los campos que la app da por hechos no pueden quedarse vacíos.
+          for code, card in new_cards.items():
+              if not card.get('name') or not card.get('variants'):
+                  print(f'FALLO: {code} llega sin nombre o sin variantes')
+                  sys.exit(1)
+
+          # 3. Un set nuevo sin fecha no es un error, pero conviene saberlo.
+          undated = [c for c, m in (new.get('set_meta') or {}).items()
+                     if not m.get('release_date')]
+          if undated:
+              print(f'Aviso: {len(undated)} sets sin fecha de lanzamiento en el índice '
+                    f'(usarán el mapa manual de setMeta.ts si lo tienen)')
+          print('Catálogo verificado.')
+          PY
+
+      - name: Report what changed
+        # Resumen legible en la pestaña Actions: si nadie mira el PR, esto es lo
+        # que queda como rastro de qué hizo la ejecución.
+        run: |
+          {
+            echo '### Refresco de catálogo'
+            echo ''
+            echo '| Fichero | Estado |'
+            echo '|---|---|'
+            for f in data/index.json data/meta.json data/hashes.json; do
+              if git diff --quiet -- "$f"; then st='sin cambios'; else st='**modificado**'; fi
+              echo "| \`$f\` | $st |"
+            done
+            new_imgs=$(git status --porcelain images | grep -c '^??' || true)
+            echo "| imágenes nuevas | $new_imgs |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Open PR if the catalog moved
         uses: peter-evans/create-pull-request@v6
@@ -81,8 +147,11 @@ jobs:
           add-paths: |
             data/index.json
             data/meta.json
+            data/hashes.json
             app/src/data/index.json
             app/src/data/meta.json
+            app/src/data/hashes.json
+            images
 
   prices:
     name: Prices (Cardmarket, best effort)
