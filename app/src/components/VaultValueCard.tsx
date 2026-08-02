@@ -9,7 +9,13 @@ import React, { useEffect, useReducer, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radii, spacing, type, pressedStyle, HIT_SLOP } from '../theme';
 import { useT } from '../lib/i18n';
-import { getSettings, setValueTimeframe, subscribe as subSettings, type ValueTimeframe } from '../lib/settings';
+import {
+  getSettings,
+  isFeatureEnabled,
+  setValueTimeframe,
+  subscribe as subSettings,
+  type ValueTimeframe,
+} from '../lib/settings';
 import {
   ALL_DAYS,
   getDelta,
@@ -75,9 +81,11 @@ export function VaultValueCard({ currentValue }: { currentValue: number }) {
   const onLayout = (e: LayoutChangeEvent) => setSparkW(e.nativeEvent.layout.width);
 
   // ── P&L vs coste base ────────────────────────────────────────────────────
+  // Se calcula igual en perfil Sencillo (el dato sigue guardándose); lo que
+  // cambia es si se enseña. Ver la nota de perfiles en lib/settings.ts.
   const portfolio = getPortfolio();
   const pnl =
-    portfolio.trackedVariants > 0
+    isFeatureEnabled('costBasis') && portfolio.trackedVariants > 0
       ? {
           profit: portfolio.profit,
           profitPct: portfolio.profitPct,

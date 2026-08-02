@@ -214,6 +214,35 @@ export const en = {
 
   // Settings
   'settings.title': 'Settings',
+  // ─── First-run profile ───────────────────────────────────────────────────
+  'onboard.title': 'How do you use your cards?',
+  'onboard.sub': 'This only decides how much the app shows you. Nothing is locked away.',
+  'onboard.simpleTitle': 'Keep it simple',
+  'onboard.simpleDesc': 'Track what you own, build decks, chase sets.',
+  'onboard.simpleB1': 'Quantities, prices and set progress',
+  'onboard.simpleB2': 'Decks, wishlists and trading with friends',
+  'onboard.simpleB3': 'No condition grading or portfolio maths',
+  'onboard.fullTitle': 'Give me everything',
+  'onboard.fullDesc': 'The above, plus the numbers behind your collection.',
+  'onboard.fullB1': 'Card condition and professional grading',
+  'onboard.fullB2': 'What you paid, and your profit or loss',
+  'onboard.fullB3': 'Price history charts and drop alerts',
+  'onboard.note': 'You can change this any time in Settings.',
+  'onboard.skip': 'Skip — keep it simple',
+
+  // ─── Profile (Settings) ──────────────────────────────────────────────────
+  'settings.profile': 'How much to show',
+  'settings.profileDesc': 'Pick a starting point, then turn individual things on below.',
+  'settings.profileSimple': 'Simple',
+  'settings.profileFull': 'Everything',
+  'settings.advanced': 'Advanced features',
+  'settings.advancedDesc': 'These override the choice above.',
+  'settings.featCondition': 'Card condition',
+  'settings.featGrading': 'Professional grading',
+  'settings.featCostBasis': 'Cost and profit / loss',
+  'settings.featPriceChart': 'Price history chart',
+  'settings.featPriceAlerts': 'Price drop alerts',
+
   // ─── Price alerts ────────────────────────────────────────────────────────
   'alert.title': 'Price alert',
   'alert.add': 'Alert',

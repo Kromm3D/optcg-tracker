@@ -33,7 +33,7 @@ import { getPrice } from '../lib/prices';
 import { formatEur } from '../lib/currency';
 import { getAlertSync, subscribe as subAlerts } from '../lib/priceAlerts';
 import { PriceAlertSheet } from '../components/PriceAlertSheet';
-import { getDefaultWishlistSuffix } from '../lib/settings';
+import { getDefaultWishlistSuffix, isFeatureEnabled } from '../lib/settings';
 import {
   getWishlist,
   renameWishlist,
@@ -232,6 +232,7 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
                 {/* Alerta de precio: la wishlist ya dice QUÉ quieres; esto
                     añade A CUÁNTO te interesa. Ver lib/priceAlerts.ts. */}
                 {(() => {
+                  if (!isFeatureEnabled('priceAlerts')) return null;
                   const alert = getAlertSync(card.code, wc.suffix);
                   return (
                     <Pressable

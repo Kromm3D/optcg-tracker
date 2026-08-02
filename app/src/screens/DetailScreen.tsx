@@ -40,7 +40,7 @@ import {
   addCard as addToWishlistCard,
   subscribe as subWishlists,
 } from '../lib/wishlists';
-import { getDefaultWishlistSuffix } from '../lib/settings';
+import { getDefaultWishlistSuffix, isFeatureEnabled } from '../lib/settings';
 import { WishlistPickerModal } from '../components/WishlistPickerModal';
 import { EffectText } from '../components/EffectText';
 import type { Variant, Wishlist } from '../types';
@@ -253,7 +253,7 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
       ) : null}
 
       {/* Histórico de precio del arte actualmente visible */}
-      <PriceChart code={code} suffix={main?.suffix ?? ''} />
+      {isFeatureEnabled('priceChart') ? <PriceChart code={code} suffix={main?.suffix ?? ''} /> : null}
 
       {/* Cardmarket button — URL específica del arte actualmente visible */}
       <Pressable
@@ -313,6 +313,11 @@ function VariantRow({ code, cardSet, variant }: { code: string; cardSet: string;
 
   // Resumen compacto de los metadatos: "PSA 10" o "LP · JP". Vacío si el
   // usuario no ha rellenado nada — no ensuciamos la fila con "sin datos".
+  // La hoja de copia agrupa tres cosas independientes; basta con que una esté
+  // activa para que valga la pena abrirla.
+  const copyDetailsEnabled =
+    isFeatureEnabled('condition') || isFeatureEnabled('grading') || isFeatureEnabled('costBasis');
+
   const metaLabel = meta.graded
     ? `${meta.graded.company} ${meta.graded.grade}`
     : [meta.condition, meta.language].filter(Boolean).join(' · ');
@@ -348,8 +353,10 @@ function VariantRow({ code, cardSet, variant }: { code: string; cardSet: string;
             label={`${code} ${variant.label}`}
           />
           {/* Los metadatos físicos sólo tienen sentido sobre copias que
-              existen: sin cartas del montón, no se ofrece la hoja. */}
-          {count > 0 ? (
+              existen: sin cartas del montón, no se ofrece la hoja. Y en perfil
+              Sencillo la hoja entera se queda sin contenido, así que tampoco
+              se ofrece el botón. */}
+          {count > 0 && copyDetailsEnabled ? (
             <Pressable
               onPress={() => setShowCopyDetails(true)}
               hitSlop={HIT_SLOP}
@@ -368,7 +375,7 @@ function VariantRow({ code, cardSet, variant }: { code: string; cardSet: string;
             hitSlop={HIT_SLOP}
             style={({ pressed }) => [
               s.counterBtn,
-              count > 0 ? null : { marginLeft: 'auto' },
+              count > 0 && copyDetailsEnabled ? null : { marginLeft: 'auto' },
               pressed && pressedStyle,
             ]}
             accessibilityRole="link"

@@ -17,6 +17,53 @@ fechada de abajo.)
 
 ## Current uncommitted state (read before committing)
 
+### 2026-08-02 (2) — Perfil de usuario: Sencillo / Completo (typecheck-green, device-UNVERIFIED)
+
+Reacción del usuario a la tanda de features de abajo: la app cubre ya desde
+"cuántas cartas tengo" hasta gradeo y P&L, y **eso no le sirve a la misma
+persona**. El público objetivo declarado es el jugador/coleccionista medio, no
+el powerseller. En vez de recortar features, se decide **enseñar menos por
+defecto**.
+
+También se cierra la duda de la nota de modelo de abajo: **el estado de carta
+se queda general (por variante)**. No se hará por copia. Decisión tomada, no
+deuda pendiente.
+
+**Diseño elegido** (`AskUserQuestion`, 2 preguntas):
+- **Dos perfiles, no tres**: `simple` / `full`. Un solo interruptor conceptual,
+  imposible de malinterpretar.
+- **Onboarding al primer arranque, saltable**. Saltar = `simple` (el público
+  objetivo). Vive fuera del stack de navegación: no es una pantalla a la que se
+  vuelva ni de la que se salga con "atrás".
+- **El perfil es un preset sobre interruptores sueltos**, no un modo cerrado.
+  Ajustes lista **siempre las cinco** piezas gateables, también en Sencillo: si
+  sólo aparecieran las activas, nadie descubriría lo que se pierde.
+- **Regla firme: el perfil oculta INTERFAZ, nunca datos.** En Sencillo la app
+  sigue guardando el histórico de precios y lo ya guardado. Pasar a Completo
+  más tarde da historial desde el primer día en vez de una gráfica vacía. Lo
+  contrario sería una trampa silenciosa. Documentado en `settings.ts`.
+
+**Qué se apaga en Sencillo** (`FeatureKey`): `condition` (y con él idioma, que
+describe lo mismo), `grading`, `costBasis` (incluida la fila de P&L en Home),
+`priceChart`, `priceAlerts`. **Trade, amigos, mazos, sets, wishlist, valor del
+vault y calendario están SIEMPRE**, en los dos perfiles.
+
+**Ficheros**: `settings.ts` (+`profile`, `featureOverrides`, `isFeatureEnabled`,
+`setProfile` — que **limpia los overrides**, si no elegir perfil dejaría restos
+del anterior), `screens/ProfileOnboardingScreen.tsx` (nuevo), `App.tsx`
+(gate previo al navegador), `SettingsScreen` (selector + 5 toggles), y los
+call sites gateados: `VaultValueCard`, `DetailScreen`, `CopyDetailsSheet`
+(sección a sección), `WishlistDetailScreen`, `HomeScreen`.
+
+**Bug encontrado y corregido durante la implementación**: el primer intento
+detectaba `profile == null` con `getCachedSettings()` + `subscribe()`. No
+funciona: `subscribe` sólo notifica en las **escrituras**, así que si la
+hidratación terminaba sin escribir, el suscriptor no corría nunca. Y usar
+`getSettings()` a secas devuelve los defaults mientras hidrata — que también
+traen `profile: null` — así que le habría sacado el onboarding a gente que ya
+lo respondió. Se añade `loadSettings(): Promise<Settings>` y `App.tsx` espera a
+la lectura real (`needsProfile === undefined` → splash).
+
 ### 2026-08-02 — Competitive-gap push: 13 features (typecheck-green, device-UNVERIFIED)
 
 Sesión abierta ("compara con la competencia y ejecuta el plan"). Primero se

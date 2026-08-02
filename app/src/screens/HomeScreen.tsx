@@ -19,6 +19,7 @@ import { HOLO_RARITIES } from '../lib/prices';
 import { getPortfolio } from '../lib/portfolio';
 import { ReleaseCalendar } from '../components/ReleaseCalendar';
 import { formatEur } from '../lib/currency';
+import { isFeatureEnabled } from '../lib/settings';
 import {
   checkAlerts,
   getTriggeredAlerts,
@@ -253,7 +254,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
       {/* Alertas de precio disparadas. Aparece sólo si hay alguna: sin push
           (expo-notifications no está instalado) este banner ES el aviso. */}
-      {triggeredAlerts.length > 0 && (
+      {isFeatureEnabled('priceAlerts') && triggeredAlerts.length > 0 && (
         <View style={s.alertCard}>
           <View style={s.alertHead}>
             <Icon name="bolt" size={16} color={colors.accent} />

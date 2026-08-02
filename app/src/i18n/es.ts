@@ -215,6 +215,35 @@ export const es: Record<TKey, string> = {
 
   // Settings
   'settings.title': 'Ajustes',
+  // ─── Perfil del primer arranque ──────────────────────────────────────────
+  'onboard.title': '¿Cómo vives tus cartas?',
+  'onboard.sub': 'Esto solo decide cuánto te enseña la app. No se bloquea nada.',
+  'onboard.simpleTitle': 'Sencillo',
+  'onboard.simpleDesc': 'Apunta lo que tienes, monta mazos, completa sets.',
+  'onboard.simpleB1': 'Cantidades, precios y progreso de sets',
+  'onboard.simpleB2': 'Mazos, wishlists e intercambios con amigos',
+  'onboard.simpleB3': 'Sin estado de carta ni cuentas de cartera',
+  'onboard.fullTitle': 'Dámelo todo',
+  'onboard.fullDesc': 'Lo anterior, más los números de tu colección.',
+  'onboard.fullB1': 'Estado de la carta y gradeo profesional',
+  'onboard.fullB2': 'Lo que pagaste y cuánto ganas o pierdes',
+  'onboard.fullB3': 'Gráficas de precio y avisos de bajada',
+  'onboard.note': 'Puedes cambiarlo cuando quieras en Ajustes.',
+  'onboard.skip': 'Saltar — hazlo sencillo',
+
+  // ─── Perfil (Ajustes) ────────────────────────────────────────────────────
+  'settings.profile': 'Cuánto mostrar',
+  'settings.profileDesc': 'Elige un punto de partida y luego enciende cosas sueltas abajo.',
+  'settings.profileSimple': 'Sencillo',
+  'settings.profileFull': 'Todo',
+  'settings.advanced': 'Funciones avanzadas',
+  'settings.advancedDesc': 'Estas mandan sobre la elección de arriba.',
+  'settings.featCondition': 'Estado de la carta',
+  'settings.featGrading': 'Gradeo profesional',
+  'settings.featCostBasis': 'Coste y ganancia / pérdida',
+  'settings.featPriceChart': 'Gráfica de precio',
+  'settings.featPriceAlerts': 'Avisos de bajada de precio',
+
   // ─── Alertas de precio ───────────────────────────────────────────────────
   'alert.title': 'Alerta de precio',
   'alert.add': 'Alerta',

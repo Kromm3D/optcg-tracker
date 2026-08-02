@@ -12,6 +12,7 @@ import { colors, fonts, radii, spacing, pressedStyle } from '../theme';
 import { useT } from '../lib/i18n';
 import { getMetaSync, setMeta, type CollectionMeta } from '../lib/collection';
 import { currencySymbol, fromEur, toEur } from '../lib/currency';
+import { isFeatureEnabled } from '../lib/settings';
 import { CONDITION_MULTIPLIER } from '../lib/prices';
 import type { CardCondition, CardLanguage } from '../types';
 
@@ -75,6 +76,8 @@ export function CopyDetailsSheet({ visible, code, suffix, onClose }: Props) {
 
           <ScrollView style={s.scroll} keyboardShouldPersistTaps="handled">
             {/* ── Estado ──────────────────────────────────────────────── */}
+            {isFeatureEnabled('condition') ? (
+              <>
             <Text style={s.section}>{t('copy.condition')}</Text>
             <View style={s.chipRow}>
               {CONDITIONS.map((c) => {
@@ -98,7 +101,14 @@ export function CopyDetailsSheet({ visible, code, suffix, onClose }: Props) {
               })}
             </View>
 
+              </>
+            ) : null}
+
             {/* ── Idioma ──────────────────────────────────────────────── */}
+            {/* El idioma va con el estado: ambos describen la copia física y
+                no tiene sentido enseñar uno sin el otro. */}
+            {isFeatureEnabled('condition') ? (
+              <>
             <Text style={s.section}>{t('copy.language')}</Text>
             <View style={s.chipRow}>
               {LANGUAGES.map((l) => {
@@ -117,7 +127,12 @@ export function CopyDetailsSheet({ visible, code, suffix, onClose }: Props) {
               })}
             </View>
 
+              </>
+            ) : null}
+
             {/* ── Gradeo ──────────────────────────────────────────────── */}
+            {isFeatureEnabled('grading') ? (
+              <>
             <View style={s.switchRow}>
               <Text style={s.section}>{t('copy.graded')}</Text>
               <Switch
@@ -167,7 +182,12 @@ export function CopyDetailsSheet({ visible, code, suffix, onClose }: Props) {
               </>
             ) : null}
 
+              </>
+            ) : null}
+
             {/* ── Coste base ──────────────────────────────────────────── */}
+            {isFeatureEnabled('costBasis') ? (
+              <>
             <Text style={s.section}>{t('copy.paid')}</Text>
             <View style={s.fieldRow}>
               <Text style={s.fieldLabel}>{currencySymbol()}</Text>
@@ -182,6 +202,8 @@ export function CopyDetailsSheet({ visible, code, suffix, onClose }: Props) {
               />
             </View>
             <Text style={s.hint}>{t('copy.paidHint')}</Text>
+              </>
+            ) : null}
           </ScrollView>
 
           <View style={s.footer}>
