@@ -1210,7 +1210,16 @@ def main():
             _LOCAL_INDEX_CACHE.clear()
         else:
             print(f"\n[!] Ya existe {INDEX_PATH}")
-            ans = input("    ¿Borrar el índice anterior y reconstruir desde cero? (s/n): ").strip().lower()
+            # Sin terminal (CI, cron, tubería) no hay a quién preguntar: `input`
+            # lanzaría EOFError y tumbaría el refresco. Se conserva el índice,
+            # que es la opción segura — la fase 1 lo sobrescribe igualmente con
+            # los datos nuevos, y así un fallo a mitad de scrape no deja al
+            # repositorio sin catálogo. Para borrarlo de verdad está --wipe.
+            if not sys.stdin.isatty():
+                print("    Sin terminal interactiva: se mantiene el índice existente.")
+                ans = "n"
+            else:
+                ans = input("    ¿Borrar el índice anterior y reconstruir desde cero? (s/n): ").strip().lower()
             if ans in ("s", "si", "yes", "y"):
                 print("    Eliminando...")
                 INDEX_PATH.unlink()
