@@ -25,6 +25,11 @@ export const es: Record<TKey, string> = {
   'home.vaultSince': 'desde {date}',
   'home.vaultTrackingStarts': 'El seguimiento empieza hoy — vuelve mañana',
   'home.priceDisclaimer': 'Los precios son estimaciones, no ofertas de compra o venta.',
+  'home.releases': 'Lanzamientos',
+  'home.daysShort': 'días',
+  'home.noUpcoming': 'Aún no hay fecha anunciada para el próximo set.',
+  'home.pnl': 'Ganancia / pérdida',
+  'home.pnlCost': 'sobre {cost} invertidos',
   'home.tf7d': '7D',
   'home.tf30d': '30D',
   'home.tfAll': 'Todo',
@@ -178,6 +183,11 @@ export const es: Record<TKey, string> = {
   'scan.undo': 'Deshacer',
   'scan.manualCode': 'Código',
   'scan.noMatch': 'Carta no reconocida',
+  'scan.viewProfile': 'Ver ficha de la carta',
+  'scan.addToDeck': 'Añadir a un mazo',
+  'scan.addToCollection': 'Añadir a colección',
+  'scan.viewPrice': 'Ver precio en Cardmarket',
+  'scan.keepScanning': 'Seguir escaneando',
 
   // Sets
   'sets.title': 'Sets',
@@ -205,6 +215,65 @@ export const es: Record<TKey, string> = {
 
   // Settings
   'settings.title': 'Ajustes',
+  // ─── Alertas de precio ───────────────────────────────────────────────────
+  'alert.title': 'Alerta de precio',
+  'alert.add': 'Alerta',
+  'alert.setTarget': 'Precio objetivo',
+  'alert.currentPrice': 'Precio actual',
+  'alert.remove': 'Quitar alerta',
+  'alert.triggered': '{n} cartas han llegado a tu precio',
+  'alert.noRealPrice': 'Esta carta aún no tiene precio de mercado, así que la alerta no puede saltar.',
+  'alert.hintPush': 'Recibirás una notificación cuando el precio baje a tu objetivo.',
+  'alert.hintInApp': 'Lo verás en Inicio cuando el precio baje a tu objetivo.',
+
+  // ─── Histórico de precio ─────────────────────────────────────────────────
+  'detail.priceHistory': 'Histórico de precio',
+  'detail.priceHistoryEmpty': 'La gráfica empieza a llenarse con la próxima actualización de precios.',
+  'detail.priceHistorySpan': 'en {n} actualizaciones · {pct}',
+
+  // ─── Escaneo en lote ─────────────────────────────────────────────────────
+  'scan.modeBulk': 'LOTE',
+  'scan.bulkQueue': 'Cartas escaneadas',
+  'scan.bulkQueueCount': '{n} cartas · {total} copias',
+  'scan.bulkEmpty': 'Apunta a tus cartas — se van acumulando aquí según se reconocen.',
+  'scan.bulkAddAll': 'Añadir {total} a la colección',
+
+  // ─── Binder público (enlace compartido) ──────────────────────────────────
+  'public.notFound': 'Aquí no hay nada',
+  'public.notFoundDesc': 'Este coleccionista no existe o no ha hecho público su binder.',
+  'public.cta': 'Lleva tu propia colección',
+  'public.share': 'Compartir mi binder',
+  'public.shareCopied': 'Enlace copiado',
+  'public.shareNeedsPublic': 'Pon tu colección en Público para que cualquiera pueda abrir el enlace.',
+
+  // ─── Propuestas de intercambio ───────────────────────────────────────────
+  'trade.propose': 'Proponer intercambio · {n}',
+  'trade.youProposed': 'Le propusiste un intercambio a {name}',
+  'trade.theyProposed': '{name} te propone un intercambio',
+  'trade.youGive': 'Das',
+  'trade.youGet': 'Recibes',
+  'trade.accept': 'Aceptar',
+  'trade.decline': 'Rechazar',
+  'trade.cancel': 'Cancelar oferta',
+  'trade.applyToCollection': 'Aplicar a mi colección',
+  'trade.applyHint': 'Hazlo cuando las cartas hayan cambiado de manos de verdad.',
+
+  // ─── Detalles de la copia (estado / idioma / gradeo / coste) ─────────────
+  'copy.title': 'Detalles de la copia',
+  'copy.add': 'Añadir detalles',
+  'copy.condition': 'Estado',
+  'copy.language': 'Idioma',
+  'copy.graded': 'Gradeada',
+  'copy.grade': 'Nota',
+  'copy.paid': 'Pagado por copia',
+  'copy.paidHint': 'Sirve para calcular tu ganancia o pérdida. Déjalo vacío si prefieres no llevar la cuenta.',
+
+  // ─── Divisa ──────────────────────────────────────────────────────────────
+  'settings.currency': 'Divisa',
+  'settings.currencyDesc': 'Los precios se recogen en euros y se convierten a una tasa fija.',
+  'settings.valueByCondition': 'Valorar según el estado',
+  'settings.valueByConditionDesc': 'Descuenta las cartas jugadas al sumar el valor de tu colección.',
+
   'settings.appearance': 'Tema',
   'settings.appearanceDesc': 'Elige el ambiente en el que se basa el aspecto de la app.',
   'settings.regularForm': 'Día Fantasma',

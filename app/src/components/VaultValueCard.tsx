@@ -17,6 +17,9 @@ import {
   recordDailySnapshot,
   subscribe as subValueHistory,
 } from '../lib/valueHistory';
+import { currencySymbol, formatEur } from '../lib/currency';
+import { getPortfolio } from '../lib/portfolio';
+import { subscribe as subCollection } from '../lib/collection';
 import { Sparkline } from './Sparkline';
 
 const SPARK_H = 64;
@@ -32,11 +35,9 @@ const TIMEFRAMES: { key: ValueTimeframe; label: 'home.tf7d' | 'home.tf30d' | 'ho
   { key: 'all', label: 'home.tfAll', days: ALL_DAYS },
 ];
 
-/** Agrupa miles con coma; muestra 2 decimales solo por debajo de 100€. */
-function fmtMoney(v: number): string {
-  const abs = Math.abs(v);
-  if (abs < 100) return abs.toFixed(2);
-  return abs.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+/** Importe en EUR → texto en la divisa activa, compacto y con millares. */
+function fmtMoney(eur: number): string {
+  return formatEur(eur, { compact: true, grouped: true });
 }
 
 /** 'YYYY-MM-DD' → fecha corta localizada ("Jun 3" / "3 jun"). */
@@ -56,6 +57,9 @@ export function VaultValueCard({ currentValue }: { currentValue: number }) {
   // Re-render cuando cambia el histórico o los settings (idioma/timeframe).
   useEffect(() => subValueHistory(bump), []);
   useEffect(() => subSettings(() => setTf(getSettings().valueTimeframe)), []);
+  // El P&L depende del coste base guardado en la colección, no del valor
+  // agregado que llega por prop — hay que escuchar la colección aparte.
+  useEffect(() => subCollection(bump), []);
 
   // Captura pasiva: registra el valor de hoy al montar / cuando cambie.
   // Evita el falso 0 previo a la hidratación de la colección (>0 guard).
@@ -70,6 +74,23 @@ export function VaultValueCard({ currentValue }: { currentValue: number }) {
 
   const onLayout = (e: LayoutChangeEvent) => setSparkW(e.nativeEvent.layout.width);
 
+  // ── P&L vs coste base ────────────────────────────────────────────────────
+  const portfolio = getPortfolio();
+  const pnl =
+    portfolio.trackedVariants > 0
+      ? {
+          profit: portfolio.profit,
+          profitPct: portfolio.profitPct,
+          costBasis: portfolio.costBasis,
+          color:
+            portfolio.profit > 0.005
+              ? colors.up
+              : portfolio.profit < -0.005
+              ? colors.down
+              : colors.textMut,
+        }
+      : null;
+
   // ── Delta badge ──────────────────────────────────────────────────────────
   let badge: React.ReactNode = null;
   if (delta) {
@@ -82,11 +103,11 @@ export function VaultValueCard({ currentValue }: { currentValue: number }) {
       ? 'rgba(239,93,107,0.14)'
       : colors.surface2;
     const arrow = isUp ? '↑' : isDown ? '↓' : '→';
-    const sign = isUp ? '+' : isDown ? '−' : '';
     badge = (
       <View style={[s.badge, { backgroundColor: dBg }]}>
         <Text style={[s.badgeText, { color: dColor }]}>
-          {arrow} {sign}€{fmtMoney(delta.amount)} · {Math.abs(delta.pct).toFixed(1)}%
+          {arrow} {formatEur(delta.amount, { compact: true, grouped: true, signed: true })} ·{' '}
+          {Math.abs(delta.pct).toFixed(1)}%
         </Text>
       </View>
     );
@@ -108,12 +129,12 @@ export function VaultValueCard({ currentValue }: { currentValue: number }) {
     <View
       style={s.card}
       accessibilityRole="summary"
-      accessibilityLabel={`${t('home.vaultA11y')}: €${fmtMoney(currentValue)}`}
+      accessibilityLabel={`${t('home.vaultA11y')}: ${fmtMoney(currentValue)}`}
     >
       <View style={s.topRow}>
         <View style={s.labelWrap}>
           <View style={s.coin}>
-            <Text style={s.coinText}>€</Text>
+            <Text style={s.coinText}>{currencySymbol()}</Text>
           </View>
           <Text style={s.label}>{t('home.vaultValue')}</Text>
         </View>
@@ -121,9 +142,25 @@ export function VaultValueCard({ currentValue }: { currentValue: number }) {
       </View>
 
       <View style={s.valueRow}>
-        <Text style={s.value}>€{fmtMoney(currentValue)}</Text>
+        <Text style={s.value}>{fmtMoney(currentValue)}</Text>
         {caption ? <Text style={s.caption}>{caption}</Text> : null}
       </View>
+
+      {/* P&L: sólo aparece cuando el usuario ha declarado algún coste de
+          compra. Sin coste base la fila no diría nada — ver lib/portfolio.ts. */}
+      {pnl ? (
+        <View style={s.pnlRow}>
+          <Text style={s.pnlLabel}>{t('home.pnl')}</Text>
+          <Text style={[s.pnlValue, { color: pnl.color }]}>
+            {formatEur(pnl.profit, { compact: true, grouped: true, signed: true })} ·{' '}
+            {pnl.profit >= 0 ? '+' : '−'}
+            {Math.abs(pnl.profitPct).toFixed(1)}%
+          </Text>
+          <Text style={s.pnlCost}>
+            {t('home.pnlCost', { cost: formatEur(pnl.costBasis, { compact: true, grouped: true }) })}
+          </Text>
+        </View>
+      ) : null}
 
       {/* Sparkline o estado first-run */}
       <View style={s.sparkWrap} onLayout={onLayout}>
@@ -224,6 +261,21 @@ const s = StyleSheet.create({
     letterSpacing: -0.8,
   },
   caption: {
+    color: colors.textDim,
+    fontSize: type.caption,
+    fontFamily: fonts.ui,
+  },
+  pnlRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 6 },
+  pnlLabel: {
+    color: colors.textMut,
+    fontSize: type.caption,
+    fontFamily: fonts.ui,
+  },
+  pnlValue: {
+    fontSize: type.caption,
+    fontFamily: fonts.uiSemi,
+  },
+  pnlCost: {
     color: colors.textDim,
     fontSize: type.caption,
     fontFamily: fonts.ui,

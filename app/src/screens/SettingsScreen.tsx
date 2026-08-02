@@ -16,15 +16,18 @@ import {
   getSettings,
   setColumns,
   setCountParallels,
+  setCurrency,
   setImagesDownloaded,
   setLanguage,
   setPlaysetSize,
   setShowAlternateArt,
+  setValueByCondition,
   setWishlistDefaultVariant,
   subscribe as subSettings,
   type Language,
   type WishlistDefaultVariant,
 } from '../lib/settings';
+import { CURRENCIES, CURRENCY_CODES } from '../lib/currency';
 import {
   prefetchAllImages,
   type PrefetchCancel,
@@ -148,6 +151,42 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             );
           })}
         </View>
+
+        {/* Currency — el catálogo se scrapea en EUR, el resto es conversión. */}
+        <Text style={s.sectionLabel}>{t('settings.currency')}</Text>
+        <Text style={s.desc}>{t('settings.currencyDesc')}</Text>
+        <View style={s.row}>
+          {CURRENCY_CODES.map((code) => {
+            const on = settings.currency === code;
+            return (
+              <Pressable
+                key={code}
+                style={({ pressed }) => [s.chip, on && s.chipOn, pressed && pressedStyle]}
+                onPress={() => setCurrency(code)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={code}
+              >
+                <Text style={[s.chipText, on && s.chipTextOn]}>
+                  {CURRENCIES[code].symbol} {code}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Value by condition */}
+        <Text style={s.sectionLabel}>{t('settings.valueByCondition')}</Text>
+        <Text style={s.desc}>{t('settings.valueByConditionDesc')}</Text>
+        <Pressable
+          style={[s.toggle, settings.valueByCondition && s.toggleOn]}
+          onPress={() => setValueByCondition(!settings.valueByCondition)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: settings.valueByCondition }}
+          accessibilityLabel={t('settings.valueByCondition')}
+        >
+          <View style={[s.knob, settings.valueByCondition && s.knobOn]} />
+        </Pressable>
 
         {/* Count parallels */}
         <Text style={s.sectionLabel}>{t('settings.countParallels')}</Text>

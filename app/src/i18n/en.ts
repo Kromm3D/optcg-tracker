@@ -24,6 +24,11 @@ export const en = {
   'home.vaultSince': 'since {date}',
   'home.vaultTrackingStarts': 'Tracking starts today — check back tomorrow',
   'home.priceDisclaimer': 'Prices are estimates, not offers to buy or sell.',
+  'home.releases': 'Set releases',
+  'home.daysShort': 'days',
+  'home.noUpcoming': 'No release date announced yet for the next set.',
+  'home.pnl': 'Profit / loss',
+  'home.pnlCost': 'on {cost} spent',
   'home.tf7d': '7D',
   'home.tf30d': '30D',
   'home.tfAll': 'All',
@@ -177,6 +182,11 @@ export const en = {
   'scan.undo': 'Undo',
   'scan.manualCode': 'Code',
   'scan.noMatch': 'Card not recognized',
+  'scan.viewProfile': 'View card profile',
+  'scan.addToDeck': 'Add to a deck',
+  'scan.addToCollection': 'Add to collection',
+  'scan.viewPrice': 'View price on Cardmarket',
+  'scan.keepScanning': 'Keep scanning',
 
   // Sets
   'sets.title': 'Sets',
@@ -204,6 +214,65 @@ export const en = {
 
   // Settings
   'settings.title': 'Settings',
+  // ─── Price alerts ────────────────────────────────────────────────────────
+  'alert.title': 'Price alert',
+  'alert.add': 'Alert',
+  'alert.setTarget': 'Target price',
+  'alert.currentPrice': 'Current price',
+  'alert.remove': 'Remove alert',
+  'alert.triggered': '{n} cards hit your target',
+  'alert.noRealPrice': 'No market price for this card yet, so the alert cannot fire.',
+  'alert.hintPush': "You'll get a notification when the price drops to your target.",
+  'alert.hintInApp': "You'll see it on Home when the price drops to your target.",
+
+  // ─── Price history ───────────────────────────────────────────────────────
+  'detail.priceHistory': 'Price history',
+  'detail.priceHistoryEmpty': 'The chart starts filling in from the next price update.',
+  'detail.priceHistorySpan': 'over {n} price updates · {pct}',
+
+  // ─── Bulk scan ───────────────────────────────────────────────────────────
+  'scan.modeBulk': 'BULK',
+  'scan.bulkQueue': 'Scanned cards',
+  'scan.bulkQueueCount': '{n} cards · {total} copies',
+  'scan.bulkEmpty': 'Point at your cards — they pile up here as they are recognised.',
+  'scan.bulkAddAll': 'Add {total} to collection',
+
+  // ─── Public binder (shared link) ─────────────────────────────────────────
+  'public.notFound': 'Nothing to see here',
+  'public.notFoundDesc': "This collector either doesn't exist or hasn't made their binder public.",
+  'public.cta': 'Track your own collection',
+  'public.share': 'Share my binder',
+  'public.shareCopied': 'Link copied',
+  'public.shareNeedsPublic': 'Set your collection to Public first so anyone can open the link.',
+
+  // ─── Trade offers ────────────────────────────────────────────────────────
+  'trade.propose': 'Propose trade · {n}',
+  'trade.youProposed': 'You proposed a trade to {name}',
+  'trade.theyProposed': '{name} proposed a trade',
+  'trade.youGive': 'You give',
+  'trade.youGet': 'You get',
+  'trade.accept': 'Accept',
+  'trade.decline': 'Decline',
+  'trade.cancel': 'Cancel offer',
+  'trade.applyToCollection': 'Apply to my collection',
+  'trade.applyHint': 'Do this once the cards have actually changed hands.',
+
+  // ─── Copy details (condition / language / grading / cost basis) ──────────
+  'copy.title': 'Copy details',
+  'copy.add': 'Add details',
+  'copy.condition': 'Condition',
+  'copy.language': 'Language',
+  'copy.graded': 'Graded',
+  'copy.grade': 'Grade',
+  'copy.paid': 'Paid per copy',
+  'copy.paidHint': 'Used to work out your profit or loss. Leave empty if you would rather not track it.',
+
+  // ─── Currency ────────────────────────────────────────────────────────────
+  'settings.currency': 'Currency',
+  'settings.currencyDesc': 'Prices are collected in euros and converted at a fixed rate.',
+  'settings.valueByCondition': 'Value by condition',
+  'settings.valueByConditionDesc': 'Discount played cards when adding up your vault.',
+
   'settings.appearance': 'Theme',
   'settings.appearanceDesc': "Pick the mood the app's look is based on.",
   'settings.regularForm': 'Ghost Day',

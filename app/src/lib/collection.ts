@@ -5,11 +5,13 @@
 // distinguir variantes de la misma carta (ej. "OP01-001" vs "OP01-001_p1").
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { CollectionItem } from '../types';
+import type { CardCondition, CardLanguage, CollectionItem, GradedInfo } from '../types';
 import { notifyLocalChange } from './syncBus';
 
-const STORAGE_KEY = 'optcg.collection.v2';
-const LEGACY_KEY = 'optcg.collection.v1';
+const STORAGE_KEY = 'optcg.collection.v3';
+/** v2 = igual shape que v3 salvo los metadatos físicos, todos opcionales. */
+const LEGACY_KEY = 'optcg.collection.v2';
+const LEGACY_KEY_V1 = 'optcg.collection.v1';
 
 type CollectionMap = Record<string, CollectionItem>;
 
@@ -21,10 +23,14 @@ let writeTimer: ReturnType<typeof setTimeout> | null = null;
 // Migración v1 → v2: el shape no cambia salvo el campo opcional `updatedAt`
 // (usado por la sync LWW). Los items legacy se sellan con un timestamp antiguo
 // (0) para que cualquier dato del servidor gane en el primer reconcile.
+// Migración v2 → v3: puramente aditiva (condition/language/graded/coste base,
+// todos opcionales) — un registro v2 ya es un registro v3 válido, así que la
+// conversión es una copia. Se bumpea la clave igualmente por convención, para
+// que un downgrade de la app no lea datos que no entiende.
 async function loadRaw(): Promise<CollectionMap> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
   if (raw) return JSON.parse(raw) as CollectionMap;
-  const legacy = await AsyncStorage.getItem(LEGACY_KEY);
+  const legacy = (await AsyncStorage.getItem(LEGACY_KEY)) ?? (await AsyncStorage.getItem(LEGACY_KEY_V1));
   if (legacy) {
     const map = JSON.parse(legacy) as CollectionMap;
     for (const k of Object.keys(map)) if (map[k].updatedAt == null) map[k].updatedAt = 0;
@@ -121,7 +127,9 @@ export async function setCount(
   if (count <= 0) {
     delete map[key];
   } else {
-    map[key] = { key, code, suffix, count, updatedAt: Date.now() };
+    // Se conservan los metadatos físicos del montón (condición, idioma,
+    // gradeo, coste base) — cambiar la cantidad no los invalida.
+    map[key] = { ...map[key], key, code, suffix, count, updatedAt: Date.now() };
   }
   write(map);
 }
@@ -139,10 +147,54 @@ export async function adjust(
   if (next <= 0) {
     delete newMap[key];
   } else {
-    newMap[key] = { key, code, suffix, count: next, updatedAt: Date.now() };
+    newMap[key] = { ...map[key], key, code, suffix, count: next, updatedAt: Date.now() };
   }
   write(newMap);
   return next;
+}
+
+// ─── Metadatos físicos del montón (condición, idioma, gradeo, coste) ────────
+
+/** Campos editables por el usuario en la hoja de detalles de una copia. */
+export interface CollectionMeta {
+  condition?: CardCondition;
+  language?: CardLanguage;
+  graded?: GradedInfo;
+  acquiredUnitPrice?: number;
+  acquiredAt?: number;
+}
+
+/** Lectura síncrona de los metadatos de una variante. `{}` si no hay item. */
+export function getMetaSync(code: string, suffix: string): CollectionMeta {
+  const it = cache?.[variantKey(code, suffix)];
+  if (!it) return {};
+  return {
+    condition: it.condition,
+    language: it.language,
+    graded: it.graded,
+    acquiredUnitPrice: it.acquiredUnitPrice,
+    acquiredAt: it.acquiredAt,
+  };
+}
+
+/** Fusiona metadatos sobre una variante. Pasar `undefined` en un campo lo deja
+ *  como estaba; para borrarlo, pasar `null`. No crea el item si no lo tienes. */
+export async function setMeta(
+  code: string,
+  suffix: string,
+  meta: { [K in keyof CollectionMeta]?: CollectionMeta[K] | null },
+): Promise<void> {
+  const map = await read();
+  const key = variantKey(code, suffix);
+  const existing = map[key];
+  if (!existing) return;
+  const next = { ...existing, updatedAt: Date.now() } as CollectionItem & Record<string, unknown>;
+  for (const [k, v] of Object.entries(meta)) {
+    if (v === undefined) continue;
+    if (v === null) delete next[k];
+    else next[k] = v;
+  }
+  write({ ...map, [key]: next });
 }
 
 /** Total de unidades en la colección (suma de todos los counts). */

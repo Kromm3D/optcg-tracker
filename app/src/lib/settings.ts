@@ -13,6 +13,10 @@ export type WishlistDefaultVariant = 'normal' | 'parallel';
 /** Ventana temporal seleccionada en el módulo de valor del vault (Home). */
 export type ValueTimeframe = '7d' | '30d' | 'all';
 
+/** Divisa de presentación. El catálogo se scrapea en EUR: el resto son
+ *  conversiones con tasa fija (ver lib/currency.ts). */
+export type CurrencyCode = 'EUR' | 'USD' | 'GBP' | 'JPY';
+
 export type Settings = {
   columns: 2 | 3 | 4 | 5;
   /** Idioma de la UI. */
@@ -32,6 +36,11 @@ export type Settings = {
   imagesDownloaded: boolean;
   /** Ventana temporal del módulo de valor del vault en Home. */
   valueTimeframe: ValueTimeframe;
+  /** Divisa en la que se muestran todos los importes. */
+  currency: CurrencyCode;
+  /** Si true, el valor del vault descuenta por el estado de las cartas
+   *  (una LP vale menos que una NM). Si false, todo se valora como NM. */
+  valueByCondition: boolean;
   /** Timestamp (ms) del último cambio. Usado por la sync LWW. */
   updatedAt?: number;
 };
@@ -45,6 +54,8 @@ const DEFAULTS: Settings = {
   showAlternateArt: false,
   imagesDownloaded: false,
   valueTimeframe: '7d',
+  currency: 'EUR',
+  valueByCondition: true,
 };
 
 let cache: Settings | null = null;
@@ -131,6 +142,16 @@ export async function setImagesDownloaded(v: boolean): Promise<void> {
 export async function setValueTimeframe(v: ValueTimeframe): Promise<void> {
   const current = await read();
   await write({ ...current, valueTimeframe: v });
+}
+
+export async function setCurrency(v: CurrencyCode): Promise<void> {
+  const current = await read();
+  await write({ ...current, currency: v });
+}
+
+export async function setValueByCondition(v: boolean): Promise<void> {
+  const current = await read();
+  await write({ ...current, valueByCondition: v });
 }
 
 /** Helper: pick the right variant suffix from a card based on the user's default setting. */
