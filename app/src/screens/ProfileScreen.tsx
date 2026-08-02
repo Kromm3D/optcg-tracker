@@ -4,7 +4,7 @@
 // Las pantallas destino (Account/Friends/Settings) son del stack raíz.
 
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ProfileScreenProps } from '../navigation';
 import { colors, fonts, radii, spacing, pressedStyle, pressedSurface } from '../theme';
@@ -13,8 +13,25 @@ import { useT } from '../lib/i18n';
 import type { TKey } from '../i18n/en';
 import { isSupabaseEnabled } from '../lib/supabase';
 import { getProfile, isSignedIn, subscribe as subAuth } from '../lib/auth';
+import { publicBinderUrl } from '../lib/publicBinder';
 
 type Row = { icon: string; title: TKey; desc: TKey; route: 'Account' | 'Friends' | 'Settings' };
+
+/** Comparte (nativo) o copia al portapapeles (web) el enlace al binder. */
+async function shareBinder(username: string): Promise<void> {
+  const url = publicBinderUrl(username);
+  if (Platform.OS === 'web') {
+    // `navigator.clipboard` sólo existe en contexto seguro; si no está, el
+    // fallo silencioso sería peor que no ofrecer nada, así que se avisa.
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      console.warn('[profile] clipboard unavailable; link:', url);
+    }
+    return;
+  }
+  await Share.share({ message: url, url });
+}
 
 export function ProfileScreen({ navigation }: ProfileScreenProps) {
   const t = useT();
@@ -88,6 +105,29 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
               <Icon name="chevR" size={18} color={colors.textMut} />
             </Pressable>
           ))}
+
+          {/* Compartir binder: sólo con sesión, porque el enlace es
+              /u/<username> y un invitado no tiene username que compartir. */}
+          {signedIn && profile?.username ? (
+            <Pressable
+              style={({ pressed }) => [s.navRow, pressed && pressedSurface]}
+              onPress={() => shareBinder(profile.username)}
+              accessibilityRole="button"
+              accessibilityLabel={t('public.share')}
+            >
+              <View style={s.navIcon}>
+                <Icon name="external" size={20} color={colors.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.navTitle}>{t('public.share')}</Text>
+                {/* El aviso es parte de la fila, no una sorpresa después:
+                    la visibilidad por defecto es 'friends' y sin cambiarla el
+                    enlace no le abre a nadie. */}
+                <Text style={s.navDesc} numberOfLines={2}>{t('public.shareNeedsPublic')}</Text>
+              </View>
+              <Icon name="chevR" size={18} color={colors.textMut} />
+            </Pressable>
+          ) : null}
         </View>
       </ScrollView>
     </View>

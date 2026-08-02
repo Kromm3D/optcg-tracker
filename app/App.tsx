@@ -38,6 +38,7 @@ import { WishlistDetailScreen }  from './src/screens/WishlistDetailScreen';
 import { AccountScreen }         from './src/screens/AccountScreen';
 import { FriendsScreen }         from './src/screens/FriendsScreen';
 import { FriendProfileScreen }   from './src/screens/FriendProfileScreen';
+import { PublicBinderScreen }    from './src/screens/PublicBinderScreen';
 import './src/lib/sync'; // side-effect: arranca el listener de login/logout para la sync
 import { Icon }             from './src/components/Icon';
 import { ToastProvider }    from './src/components/Toast';
@@ -218,6 +219,22 @@ function TabsScreen() {
 
 const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
+/**
+ * Deep links / rutas web. Sólo se mapea lo que tiene sentido abrir desde fuera:
+ * un binder público compartido y una ficha de carta. El resto de la app no
+ * lleva path a propósito — exponer URLs internas obliga a mantenerlas estables
+ * para siempre.
+ */
+const LINKING = {
+  prefixes: ['horohoro://', 'https://horohoro.tcg'],
+  config: {
+    screens: {
+      PublicBinder: 'u/:username',
+      Detail: 'card/:code',
+    },
+  },
+};
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Sora_500Medium,
@@ -260,7 +277,13 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ToastProvider>
-      <NavigationContainer ref={navigationRef} theme={NavTheme} onReady={syncFromNav} onStateChange={syncFromNav}>
+      <NavigationContainer
+        ref={navigationRef}
+        theme={NavTheme}
+        linking={LINKING}
+        onReady={syncFromNav}
+        onStateChange={syncFromNav}
+      >
         <StatusBar style="light" />
         {/* Carcasa centrada: en web limita el ancho (MAX_CONTENT_WIDTH) en vez
             de estirar la app de borde a borde; en nativo es un flex:1 normal. La
@@ -284,6 +307,7 @@ export default function App() {
           <Stack.Screen name="Account"        component={AccountScreen}        options={{ headerShown: false }} />
           <Stack.Screen name="Friends"        component={FriendsScreen}        options={{ headerShown: false }} />
           <Stack.Screen name="FriendProfile"  component={FriendProfileScreen}  options={{ headerShown: false }} />
+          <Stack.Screen name="PublicBinder"   component={PublicBinderScreen}   options={{ headerShown: false }} />
         </Stack.Navigator>
 
         {showTabBar && (
