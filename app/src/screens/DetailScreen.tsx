@@ -24,7 +24,16 @@ import { ColorDot } from '../components/ColorDot';
 import { RarityPip } from '../components/RarityPip';
 import { Counter } from '../components/Counter';
 import { resolveImageUris } from '../lib/images';
-import { adjust, getCount, getCountSync, subscribe as subColl } from '../lib/collection';
+import {
+  adjust,
+  getCount,
+  getCountSync,
+  getMetaSync,
+  subscribe as subColl,
+  type CollectionMeta,
+} from '../lib/collection';
+import { CopyDetailsSheet } from '../components/CopyDetailsSheet';
+import { PriceChart } from '../components/PriceChart';
 import { buildCardmarketVariantUrl } from '../lib/cardmarket';
 import {
   isInAnyWishlist,
@@ -243,6 +252,9 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
         </View>
       ) : null}
 
+      {/* Histórico de precio del arte actualmente visible */}
+      <PriceChart code={code} suffix={main?.suffix ?? ''} />
+
       {/* Cardmarket button — URL específica del arte actualmente visible */}
       <Pressable
         style={({ pressed }) => [s.cmBtn, pressed && pressedStyle]}
@@ -276,20 +288,34 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
 function VariantRow({ code, cardSet, variant }: { code: string; cardSet: string; variant: Variant }) {
   const t = useT();
   const [count, setCountState] = useState(0);
+  const [showCopyDetails, setShowCopyDetails] = useState(false);
+  // Se relee en cada cambio de colección para que la etiqueta refleje lo
+  // guardado en la hoja nada más cerrarla.
+  const [meta, setMetaState] = useState<CollectionMeta>({});
 
   useEffect(() => {
     let alive = true;
     getCount(code, variant.suffix).then((n) => {
       if (alive) setCountState(n);
     });
-    const unsub = subColl(() => {
-      if (alive) setCountState(getCountSync(code, variant.suffix));
-    });
+    const sync = () => {
+      if (!alive) return;
+      setCountState(getCountSync(code, variant.suffix));
+      setMetaState(getMetaSync(code, variant.suffix));
+    };
+    sync();
+    const unsub = subColl(sync);
     return () => {
       alive = false;
       unsub();
     };
   }, [code, variant.suffix]);
+
+  // Resumen compacto de los metadatos: "PSA 10" o "LP · JP". Vacío si el
+  // usuario no ha rellenado nada — no ensuciamos la fila con "sin datos".
+  const metaLabel = meta.graded
+    ? `${meta.graded.company} ${meta.graded.grade}`
+    : [meta.condition, meta.language].filter(Boolean).join(' · ');
 
   const { uri: url, fallback: urlFallback } = resolveImageUris(variant);
 
@@ -321,10 +347,30 @@ function VariantRow({ code, cardSet, variant }: { code: string; cardSet: string;
             size="sm"
             label={`${code} ${variant.label}`}
           />
+          {/* Los metadatos físicos sólo tienen sentido sobre copias que
+              existen: sin cartas del montón, no se ofrece la hoja. */}
+          {count > 0 ? (
+            <Pressable
+              onPress={() => setShowCopyDetails(true)}
+              hitSlop={HIT_SLOP}
+              style={({ pressed }) => [s.metaBtn, { marginLeft: 'auto' }, pressed && pressedStyle]}
+              accessibilityRole="button"
+              accessibilityLabel={t('copy.title')}
+            >
+              <Icon name="tag" size={13} color={metaLabel ? colors.accent : colors.textMut} />
+              <Text style={[s.metaBtnText, metaLabel ? { color: colors.accent } : null]}>
+                {metaLabel || t('copy.add')}
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable
             onPress={() => Linking.openURL(buildCardmarketVariantUrl(code, variant.suffix))}
             hitSlop={HIT_SLOP}
-            style={({ pressed }) => [s.counterBtn, { marginLeft: 'auto' }, pressed && pressedStyle]}
+            style={({ pressed }) => [
+              s.counterBtn,
+              count > 0 ? null : { marginLeft: 'auto' },
+              pressed && pressedStyle,
+            ]}
             accessibilityRole="link"
             accessibilityLabel={t('detail.priceCardmarket')}
           >
@@ -332,6 +378,13 @@ function VariantRow({ code, cardSet, variant }: { code: string; cardSet: string;
           </Pressable>
         </View>
       </View>
+
+      <CopyDetailsSheet
+        visible={showCopyDetails}
+        code={code}
+        suffix={variant.suffix}
+        onClose={() => setShowCopyDetails(false)}
+      />
     </View>
   );
 }
@@ -537,6 +590,20 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     gap: 8,
+  },
+  metaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    height: 30,
+    paddingHorizontal: 9,
+    borderRadius: 8,
+    backgroundColor: colors.surface2,
+  },
+  metaBtnText: {
+    fontSize: 11,
+    fontFamily: fonts.uiSemi,
+    color: colors.textMut,
   },
   counterBtn: {
     width: 30,

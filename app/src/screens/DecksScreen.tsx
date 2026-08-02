@@ -124,6 +124,18 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
                 <Icon name="external" size={18} color={colors.accent} />
                 <Text style={s.newRowText}>{t('decks.importSim')}</Text>
               </Pressable>
+              {/* Escanear desde Decks: al quitar el FAB central, el escáner
+                  sólo era alcanzable desde Browse/Binder/Home, y construir un
+                  mazo con las cartas en la mano es justo cuando hace falta. */}
+              <Pressable
+                style={({ pressed }) => [s.newRow, pressed && pressedStyle]}
+                onPress={() => navigation.navigate('Scan')}
+                accessibilityRole="button"
+                accessibilityLabel={t('home.scan')}
+              >
+                <Icon name="camera" size={18} color={colors.accent} />
+                <Text style={s.newRowText}>{t('home.scan')}</Text>
+              </Pressable>
             </View>
           }
           renderItem={({ item }) => (

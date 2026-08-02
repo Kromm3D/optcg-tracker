@@ -3,13 +3,180 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-07-15 (**B-14 root-caused and partially fixed** — the scanner's rectified crop isn't corner-precision-broken as first hypothesized (that fix was tried, disproved, and reverted); it's an **orientation** bug: the rectified card can come out rotated 90°/180°/270°, and the fixed ART_CROP band then crops the wrong region entirely. Fixed by trying all 4 rotations and keeping the best match; device-verified to correctly recover the true card (OP09-088) when previously it never did. Threshold recalibrated from a real measured data point. **Not fully solved**: wrong-orientation noise can coincidentally outscore the true match, so the top-ranked candidate isn't always correct yet — documented as remaining work. Typecheck-green.)
-**Current branch:** `main`
+**Last updated:** 2026-08-02 (**Competitive-gap push**: 13 features en 4 fases —
+metadatos físicos de colección + P&L + multi-divisa, trade offers, binder público,
+voto de frames + bulk scan, alertas de precio, calendario de sets, gráfica de
+precio. Typecheck verde, **nada verificado en dispositivo**. Ver la entrada
+fechada de abajo.)
+
+**Last updated (previous):** 2026-07-30 (**Scan action-sheet** — replaced the scanner's silent auto-add-to-collection with a post-match action sheet: view profile / add to deck / add to collection (qty stepper) / open Cardmarket price. Typecheck-green, **not yet device-verified** — device was disconnected mid-session, user asked to keep developing without testing for now. See dated entry below.)
+**Current branch:** `feature/scan-action-modes` (branched off `main`)
 **App version:** 0.1.0 (pre-release)
 
 ---
 
 ## Current uncommitted state (read before committing)
+
+### 2026-08-02 — Competitive-gap push: 13 features (typecheck-green, device-UNVERIFIED)
+
+Sesión abierta ("compara con la competencia y ejecuta el plan"). Primero se
+investigó el campo (Collectr, OP.TCG, Logia, OneCollector, MyOPCards) y salió
+un diagnóstico incómodo: **la feature estrella de todos los competidores es el
+escáner, que es justo lo que aquí no funciona** (B-14), y las tres cosas que
+esta app ya hace y ellos no — trade matching con amigos, "coste para completar"
+de la wishlist, export OPTCGSim — no son escáner. De ahí el orden de las fases:
+reforzar el foso propio antes que perseguir el suyo.
+
+**Fase 0 — deuda**
+- `.gitignore`: `metro.log`, `screen.png`, `*.screenshot.png`.
+- **B-06 RESUELTO**: `wishlists.ts` migra ahora la wishlist única pre-2026-06-06
+  (`optcg.wishlist.v1`, keyed por código, sin variantes) a una wishlist con
+  nombre. Tolera las dos formas que pudo tener aquel dato (array u objeto) y
+  **no borra la clave vieja**, por si la conversión sale mal.
+
+**Fase 1 — el modelo de datos que faltaba** (habilita el resto)
+- **`CollectionItem` gana metadatos físicos**: `condition` (NM/LP/MP/HP/DMG),
+  `language`, `graded {company, grade}`, `acquiredUnitPrice`, `acquiredAt`.
+  Clave `optcg.collection.v2` → **v3** (migración = copia; el cambio es
+  puramente aditivo, se bumpea por convención).
+  **Decisión de modelo, importante**: los metadatos son **por variante**, no
+  por copia. Separar por condición obligaría a cambiar la clave
+  `${code}${suffix}` que usan colección, trade, sync y las tablas de Supabase.
+  Documentado en `types.ts`. Los competidores sí separan por condición: si
+  algún día hace falta, es una migración grande, no un parche.
+  `setCount`/`adjust` ahora hacen spread del item previo — sin eso, un `+1`
+  borraba el estado y el coste del montón.
+- **Nuevo `lib/portfolio.ts`**: valor de mercado consciente del estado
+  (`CONDITION_MULTIPLIER`, `gradeMultiplier` en `prices.ts`) + **P&L contra el
+  coste base**. Sólo entran en el P&L las variantes con coste declarado —
+  mezclarlas con las que no lo tienen daría una cifra sin significado.
+  `HomeScreen` ya no suma `count × getPrice(base)`: usa `getPortfolio()`, que
+  recorre variante a variante (precio del parallel correcto).
+- **Nuevo `lib/currency.ts`**: EUR es la divisa base (es lo que scrapeamos) y
+  ésta es la única capa que traduce. Tasas **estáticas**, revisadas a mano.
+  `formatEur()` sustituye los `€` hardcodeados de `CardThumb`, `VaultValueCard`
+  y `WishlistDetailScreen`.
+- **Nuevo `components/CopyDetailsSheet.tsx`**, abierto desde el botón de la
+  fila de variante en `DetailScreen` (sólo si tienes copias).
+- Settings: selector de divisa + toggle "valorar según el estado".
+- **Supabase `0002_collection_metadata.sql`** (aplicada): columnas nuevas +
+  checks de dominio. `sync.ts` las transporta; cuando el servidor gana el LWW
+  se reemplaza el item **entero**, no campo a campo — fusionar resucitaría
+  datos que el usuario borró en el otro dispositivo.
+
+**Fase 1.5 — `.github/workflows/refresh-data.yml`**
+Refresco semanal que abre PR (nunca empuja a `main`: un scrape puede salir
+mal y eso debe verse en un diff). Dos jobs separados a propósito.
+**Aviso honesto**: `build_prices.py` hoy extrae **product_url, no precios** —
+los precios reales entran por el fallback de consola
+(`scrape_browser_console.js` → `import_browser_prices.py`). El job de precios
+sirve para refrescar URLs y como esqueleto; hacer que traiga precios de verdad
+es trabajo aparte, y Cloudflare puede bloquear a un runner de CI igualmente
+(por eso el paso de verificación descarta un resultado con <500 entradas).
+
+**Fase 2 — apostar por el diferenciador social**
+- **Trade offers** (`0003_trade_offers.sql` aplicada + `lib/tradeOffers.ts` +
+  UI en la pestaña Trade de `FriendProfileScreen`). El matching pasa de
+  informativo a accionable: se seleccionan cartas de ambos lados y se manda una
+  propuesta que el otro acepta/rechaza. Cabecera + líneas, con las cartas como
+  texto plano (una oferta es un registro histórico; no debe cambiar porque
+  alguien venda la carta). RLS: sólo los dos participantes la ven, y sólo se
+  puede proponer a un **amigo aceptado** (`are_friends`). Un trigger
+  `trade_offer_guard` valida las transiciones — RLS decide *quién*, el trigger
+  decide *qué*: el proponente no puede auto-aceptarse.
+  `applyAcceptedOffer()` ajusta la colección, y se llama **aparte de aceptar**:
+  aceptar es "trato hecho", las cartas cambian de manos días después.
+- **Binder público** (`0004_public_binder.sql` aplicada + `lib/publicBinder.ts`
+  + `screens/PublicBinderScreen.tsx` + `linking` en `App.tsx` → `/u/:username`).
+  `can_view()` ya devolvía true para 'public'; lo que faltaba era el **rol**:
+  todas las políticas de 0001 eran `to authenticated`, así que un enlace sólo
+  funcionaba para quien ya tenía cuenta. Se añaden políticas `to anon` con la
+  misma condición de visibilidad. Los perfiles visibles a `anon` se limitan a
+  quienes hayan hecho público *algo*, para no regalar enumeración de usuarios.
+  `PUBLIC_WEB_BASE` en `publicBinder.ts` está en `https://horohoro.tcg` —
+  **cambiar al dominio real al desplegar**.
+
+**Fase 3 — scanner**
+- **Nuevo `lib/scanVote.ts`**: la idea que B-14 dejó pendiente. El ruido no se
+  repite; un acierto real gana frame tras frame. En AUTO/BULK una carta no se
+  acepta hasta ganar 2 frames seguidos (ventana de 6 s). El voto es **por
+  código base** — dos parallels del mismo código comparten arte y alternarse
+  entre ellos no es desacuerdo. TAP no vota: es un disparo deliberado.
+  Puntos de consenso en la píldora de estado para que no parezca colgado.
+- **Modo BULK** (`components/BulkScanSheet.tsx`): escanea y encola sin
+  preguntar; al final se revisa la lista con steppers y se añade todo de una
+  vez. **La revisión no es opcional a propósito**: el escáner acierta lo
+  bastante para ahorrar tecleo, no para meter cartas a ciegas en la colección
+  de alguien.
+
+**Fase 4 — QoL**
+- Escáner alcanzable desde Decks (faltaba desde que se quitó el FAB).
+- **`components/ReleaseCalendar.tsx`** en Home: próximo set con cuenta atrás +
+  últimos 3. `setMeta` gana `setDateAsDate()` (parseo manual: `new Date()`
+  interpreta `DD/MM/YYYY` como MM/DD en locale en-US) y `setsByReleaseDate()`.
+  **Añadido OP17 "The World's Strongest Warriors", 28/08/2026** (verificado por
+  búsqueda web; JP 22/08, UK 26/08 — se usa la de EE.UU. por coherencia con la
+  tabla, que sigue el sitio EN). Sin fechas futuras el bloque se calla en vez
+  de extrapolar una cadencia trimestral.
+- **`priceHistory` v1 → v2**: además del snapshot previo, guarda una **serie**
+  por carta (máx. 26 publicaciones ≈ 6 meses). Sólo para las cartas que el
+  usuario tiene o desea — guardar las ~4600 variantes multiplicaría por 26 un
+  fichero que ya pesa. `components/PriceChart.tsx` la pinta en `DetailScreen`.
+- **`lib/priceAlerts.ts` + `PriceAlertSheet`**: precio objetivo por carta de
+  wishlist, banner de disparadas en Home. **`expo-notifications` NO está
+  instalado** (obliga a prebuild): el módulo se carga con `require()` perezoso
+  tras `isNotificationsAvailable()`, mismo contrato que `ocr`/`shareImage`, y
+  hasta que se instale el aviso es in-app. Instalarlo + prebuild activa el push
+  sin tocar este código. Las alertas sólo saltan con **precio real** — hacerlas
+  saltar con la estimación por rareza sería avisar de una oportunidad inventada.
+
+**Qué falta / riesgos conocidos**
+1. **Nada de esto se ha visto en un dispositivo ni en el preview web.** Es la
+   misma deuda que arrastraba el ScanResultSheet del 30/07 y la que produjo
+   B-11. Typecheck verde ≠ funciona.
+2. El P&L, el gráfico y las alertas dependen de `prices.json`, que **hoy no
+   tiene precios reales cargados** (sólo URLs). Hasta que se ejecute el
+   fallback de consola, casi todo cae en la estimación por rareza: el P&L será
+   ruido y las alertas no saltarán (por diseño).
+3. `voteStreak` sube la latencia de AUTO a ~2 frames (~3 s). Si en dispositivo
+   se hace pesado, `createScanVoter({ needed: 1 })` lo desactiva.
+4. Falta un aviso de ofertas entrantes fuera del perfil del amigo concreto —
+   hoy hay que entrar en su perfil para ver que te han propuesto algo.
+
+### 2026-07-30 — Scan action-sheet (device-unverified)
+
+Branch `feature/scan-action-modes`, off `main` (the earlier `feature/wishlist-acquired`
+4-commit stack is a separate, still-unmerged branch — see further down).
+
+Previously `ScanScreen.tsx` added a matched card straight to the collection
+(AUTO mode) or on shutter press (TAP mode), with only an Undo toast as the
+escape hatch. Per user request, scanning a card now always stops at a choice
+instead of committing automatically:
+
+- **New `components/ScanResultSheet.tsx`** — bottom sheet shown after a card
+  is matched, with 4 actions: view card profile, add to a deck, add to
+  collection, open the Cardmarket price link (`buildCardmarketVariantUrl`,
+  already existed).
+- **Reused `components/BulkTargetSheet.tsx`** (already built for bulk actions
+  elsewhere) for the "add to deck" and "add to collection" actions — it
+  already had the qty stepper + deck/wishlist picker, so no new stepper code
+  was written.
+- **`screens/ScanScreen.tsx`** — `handleCodeFound` no longer calls `adjust()`;
+  it now just resolves the card/variant, pauses the scanner (`pausedRef`),
+  and opens `ScanResultSheet`. New `matched` / `bulkTarget` state. The old
+  `lastAdded` Undo toast is kept, now triggered by `BulkTargetSheet`'s
+  `onDone` callback (only for the collection target, via
+  `getCountSync` to read the new count) instead of firing on every scan.
+  "View profile" navigates to `Detail` with `{ code, suffix }`.
+- New i18n keys (en/es): `scan.viewProfile`, `scan.addToDeck`,
+  `scan.addToCollection`, `scan.viewPrice`, `scan.keepScanning`.
+
+**Not yet verified**: this only exercises through the real camera + native
+detector on-device (Expo Go can't run OCR/detection). Typecheck is green but
+nobody has tapped through the sheet on a phone yet. Next session: reconnect
+the device, run through AUTO and TAP with the new sheet, confirm deck/
+collection/profile/price all work, then it's a normal review→commit.
+
 
 Everything from the previous refresh (scanner removal, price pipeline, vault
 value, Sets restyle, set-data fix, TR-rarity/sort/bulk/Decks-banner fixes) is

@@ -19,6 +19,7 @@ const SET_NAMES: Record<string, string> = {
   OP14: "The Azure Sea's Seven",
   OP15: "Adventure on Kami's Island",
   OP16: 'The Time of Battle',
+  OP17: "The World's Strongest Warriors",
   EB01: 'Memorial Collection',
   EB02: 'Anime 25th Collection',
   EB03: 'One Piece Heroines Edition',
@@ -61,6 +62,10 @@ const SET_DATES: Record<string, string> = {
   OP14: '16/01/2026',
   OP15: '03/04/2026',
   OP16: '12/06/2026',
+  // Aún no lanzado (a 02/08/2026). Primer set con lanzamiento mundial el mismo
+  // día; la fecha EN de EE.UU. es el 28/08 (JP 22/08, UK 26/08). Se usa la de
+  // EE.UU. por coherencia con el resto de la tabla, que sigue el sitio EN.
+  OP17: '28/08/2026',
   EB01: '03/05/2024',
   EB02: '09/05/2025',
   EB03: '20/02/2026',
@@ -76,4 +81,23 @@ export function setNameFor(code: string): string {
 /** Fecha de lanzamiento del set, o cadena vacia si no se conoce. */
 export function setDateFor(code: string): string {
   return SET_DATES[code] ?? '';
+}
+
+/** La misma fecha como `Date`, para ordenar y comparar. `null` si se desconoce.
+ *  Se parsea a mano porque `new Date('12/06/2026')` interpreta el formato como
+ *  MM/DD en runtimes con locale en-US — un bug silencioso de medio año. */
+export function setDateAsDate(code: string): Date | null {
+  const raw = SET_DATES[code];
+  if (!raw) return null;
+  const [d, m, y] = raw.split('/').map((n) => parseInt(n, 10));
+  if (!d || !m || !y) return null;
+  return new Date(y, m - 1, d);
+}
+
+/** Todos los sets con fecha conocida, del más reciente al más antiguo. */
+export function setsByReleaseDate(): Array<{ code: string; name: string; date: Date }> {
+  return Object.keys(SET_DATES)
+    .map((code) => ({ code, name: setNameFor(code), date: setDateAsDate(code)! }))
+    .filter((s) => s.date != null)
+    .sort((a, b) => b.date.getTime() - a.date.getTime());
 }
