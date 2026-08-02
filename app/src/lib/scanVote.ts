@@ -12,6 +12,17 @@
 // se procesa un frame nuevo cada ~1,5 s, así que exigir que el mismo código
 // gane varias veces seguidas es gratis en código y sólo cuesta latencia.
 //
+// ⚠ MEDIDO EN DISPOSITIVO (02/08/2026) — la premisa sólo se cumple a medias.
+// El votante filtra ruido *aleatorio* (temblor, encuadre), pero NO un sesgo
+// constante. Con la carta enfundada, Kouzuki Hiyori (EB01-013) se leyó como
+// Ten-Layer Igloo (OP10-018) y ganó la votación dos veces seguidas, limpiamente:
+// la funda baja el contraste en todos los frames por igual, así que el error se
+// repite y el consenso lo confirma en vez de descartarlo.
+//
+// Lo que sí separó los casos fue la puntuación **absoluta** (no el margen entre
+// el 1º y el 2º, que en B-14 ya se descartó): aciertos 0,79-0,85 frente a
+// falsos positivos 0,71-0,78. De ahí MIN_CONFIDENT_SCORE.
+//
 // Módulo puro y sin estado global: el llamante crea un votante y lo tira al
 // cerrar el escáner. Así es testeable sin cámara.
 
@@ -35,6 +46,20 @@ export interface VoterOptions {
 
 const DEFAULT_NEEDED = 2;
 const DEFAULT_WINDOW_MS = 6000;
+
+/**
+ * Suelo de confianza para dar una lectura por buena sin preguntar.
+ *
+ * Por debajo de esto la carta NO se rechaza —se pide confirmación—, porque el
+ * peor resultado posible del escáner no es "no te he entendido" sino meter en
+ * la colección una carta que no es sin que el usuario se entere.
+ *
+ * Calibrado con las lecturas de arriba: deja pasar el acierto más flojo (0,79)
+ * y corta los tres falsos positivos observados (0,71 / 0,73 / 0,78). El margen
+ * es estrecho, así que es un valor a revisar cuando haya más datos, no una
+ * constante física.
+ */
+export const MIN_CONFIDENT_SCORE = 0.8;
 
 export interface ScanVoter {
   /**

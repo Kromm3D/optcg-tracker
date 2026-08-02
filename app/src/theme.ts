@@ -51,6 +51,8 @@ const DARK = {
   ring: 'rgba(246,240,250,0.08)',
   up: '#4ec98b',
   down: '#ef5d6b',
+  // Aviso: ni error ni pérdida — "míralo antes de aceptar".
+  warn: '#e8b04b',
   // Wash translúcido de la barra flotante de tabs — un valor propio porque
   // necesita transparencia (no puede derivarse de `surface2`, que es sólido).
   tabBarWash: 'rgba(28,23,38,0.94)',
@@ -83,6 +85,7 @@ const LIGHT = {
   ring: 'rgba(45,26,58,0.08)',
   up: '#157048',
   down: '#c0334a',
+  warn: '#a86a12',
   tabBarWash: 'rgba(255,255,255,0.92)',
 };
 

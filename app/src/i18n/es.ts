@@ -183,6 +183,7 @@ export const es: Record<TKey, string> = {
   'scan.undo': 'Deshacer',
   'scan.manualCode': 'Código',
   'scan.noMatch': 'Carta no reconocida',
+  'scan.lowConfidence': 'Lectura poco fiable — las fundas y los foils la despistan. Comprueba la imagen antes de añadir.',
   'scan.viewProfile': 'Ver ficha de la carta',
   'scan.addToDeck': 'Añadir a un mazo',
   'scan.addToCollection': 'Añadir a colección',

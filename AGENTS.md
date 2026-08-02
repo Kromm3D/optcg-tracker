@@ -3,19 +3,104 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-08-02 (**Competitive-gap push**: 13 features en 4 fases —
+**Last updated:** 2026-08-02 (4) (**Primera sesión de verificación en dispositivo**
+de todo el competitive-gap push: perfiles OK, metadatos de copia OK, P&L OK. Se
+encontró y arregló **B-15**, un bug que llevaba tapando el escáner desde que
+existen los modos: el frame processor se quedaba con los callbacks del primer
+montaje, así que el escáner obedecía siempre al modo activo al abrir la pantalla.
+Añadido `MIN_CONFIDENT_SCORE` (0,80) tras medir falsos positivos por funda. Ver
+la entrada fechada de abajo.)
+
+**Last updated (previous):** 2026-08-02 (**Competitive-gap push**: 13 features en 4 fases —
 metadatos físicos de colección + P&L + multi-divisa, trade offers, binder público,
 voto de frames + bulk scan, alertas de precio, calendario de sets, gráfica de
 precio. Typecheck verde, **nada verificado en dispositivo**. Ver la entrada
 fechada de abajo.)
 
-**Last updated (previous):** 2026-07-30 (**Scan action-sheet** — replaced the scanner's silent auto-add-to-collection with a post-match action sheet: view profile / add to deck / add to collection (qty stepper) / open Cardmarket price. Typecheck-green, **not yet device-verified** — device was disconnected mid-session, user asked to keep developing without testing for now. See dated entry below.)
+**Last updated (older):** 2026-07-30 (**Scan action-sheet** — replaced the scanner's silent auto-add-to-collection with a post-match action sheet: view profile / add to deck / add to collection (qty stepper) / open Cardmarket price. Typecheck-green, **not yet device-verified** — device was disconnected mid-session, user asked to keep developing without testing for now. See dated entry below.)
 **Current branch:** `feature/scan-action-modes` (branched off `main`)
 **App version:** 0.1.0 (pre-release)
 
 ---
 
 ## Current uncommitted state (read before committing)
+
+### 2026-08-02 (4) — Sesión de verificación en dispositivo: B-15 (escáner sordo a los modos) + suelo de confianza (DEVICE-VERIFIED)
+
+Primera vez que el competitive-gap push se prueba en un teléfono real. Casi todo
+pasó a la primera; lo que no, escondía el bug más gordo del escáner hasta la fecha.
+
+**Verificado en dispositivo (Xiaomi, build debug arm64):**
+
+- **Perfiles Sencillo/Completo** — Sencillo esconde las cuatro piezas (P&L en
+  Home, gráfica de precio, botón de detalles de copia, alerta de wishlist).
+  Cambiar a Completo las devuelve. Los interruptores sueltos mandan sobre el
+  preset, y `setProfile` los limpia al cambiar de perfil (comprobado leyendo
+  `optcg.settings.v1` en el `RKStorage` del dispositivo: `profile=full`,
+  `featureOverrides={}`).
+- **Onboarding** — sale al primer arranque y persiste la elección.
+- **Metadatos de copia** — estado/idioma/precio pagado **sobreviven a un `+1`**.
+  Era el riesgo real: la primera versión los borraba al tocar la cantidad.
+- **P&L en Home** aparece en cuanto hay una carta con precio de compra.
+- **Calendario de sets** — OP17 con la cuenta atrás correcta.
+
+**B-15 (FIXED, device-verified) — el escáner obedecía siempre al modo de apertura.**
+
+Síntoma: en modo LOTE se abría la hoja de decisión y la cola no registraba nada.
+
+Causa: en `NativeScanCamera.tsx`, `useFrameProcessor` estaba memoizado con
+dependencias `[resize, forceCapture]`. Los callbacks `onStable`/`onQuad` se
+creaban con `Worklets.createRunOnJS` en el cuerpo del componente —nuevos en cada
+render— pero **no estaban en las dependencias**, así que el worklet conservaba
+para siempre los del primer montaje. Esos encerraban el `scanMode` inicial.
+
+Arreglo: estabilizar los callbacks (`useMemo(..., [])` + ref al callback vigente)
+y añadirlos a las dependencias. Meterlos en las dependencias *sin* estabilizarlos
+habría reconstruido el frame processor en cada render — justo lo que la lista
+corta intentaba evitar; por eso el arreglo es al revés de lo que sugiere el
+warning de exhaustive-deps.
+
+⚠ **Implicación retroactiva importante:** todo lo que se probó del escáner antes
+de hoy era **TAP disfrazado**, cualquiera que fuese el botón pulsado. AUTO nunca
+se había ejecutado de verdad. Al revisar sesiones antiguas de escáner, no dar por
+buena ninguna conclusión sobre AUTO/LOTE anterior a esta fecha.
+
+**Suelo de confianza `MIN_CONFIDENT_SCORE = 0.80` (`lib/scanVote.ts`).**
+
+Medido con cartas reales. Kouzuki Hiyori (EB01-013):
+
+| Condición | Lectura | Puntuación |
+|---|---|---|
+| sin funda | correcta | 0,836 · 0,844 · 0,854 |
+| con funda / doble funda | Ten-Layer Igloo (OP10-018) | 0,711 · 0,730 · 0,733 |
+
+Otros falsos positivos etiquetados por el usuario: OP13-097 a 0,78 y OP16-112 a
+0,71. Acierto más flojo observado: Kikunojo (OP14-023) a 0,792.
+
+Por debajo del umbral **no se rechaza la lectura: se pide confirmación** (hoja con
+aviso ámbar). El peor fallo posible del escáner no es "no te entiendo" sino meter
+en la colección una carta que no es sin que el usuario se entere.
+
+⚠ El margen entre el peor acierto (0,792) y el mejor falso positivo (0,784) es de
+**ocho milésimas**. Es una casualidad afortunada, no un margen. Esperar que algún
+acierto legítimo pida confirmación sin motivo, y **revisar el valor cuando haya
+más lecturas etiquetadas** — no tratarlo como constante.
+
+**Corrección a `scanVote.ts`: la premisa del módulo era falsa a medias.** Decía
+"el ruido no se repite". Con funda **sí** se repite: el Igloo ganó la votación de
+consenso dos veces seguidas, limpiamente, porque la funda baja el contraste en
+todos los frames por igual. El votante filtra ruido *aleatorio* (temblor,
+encuadre), no sesgos *constantes*. El comentario de cabecera ya lo dice, con el
+caso Hiyori/Igloo como evidencia. Tercera señal probada contra B-14: el margen
+1º-2º no sirvió, la repetición entre frames no sirve contra fundas, y la
+puntuación absoluta **sí** separa los casos — pero por muy poco.
+
+**Añadido al tema:** token `warn` (ámbar, claro y oscuro) e icono `alert`, que no
+existían. `colors.down` habría servido de apaño pero significa pérdida, no aviso.
+
+**Sigue abierto:** las fundas y los foils siguen sin identificarse bien. Esto no
+lo arregla, lo hace honesto. El arreglo de verdad es cambiar el descriptor
+(embedding en vez de promedio de color) — ver la investigación del escáner.
 
 ### 2026-08-02 (3) — El scraper ya trae PRECIOS + 2 bugs de parseo (verificado con tests)
 
@@ -76,7 +161,7 @@ que las cartas no valgan nada.
 prueban el parseo, no que Cloudflare deje pasar ni que la maquetación real sea
 la que asumo. Hasta esa ejecución, `prices.json` sigue sin precios.
 
-### 2026-08-02 (2) — Perfil de usuario: Sencillo / Completo (typecheck-green, device-UNVERIFIED)
+### 2026-08-02 (2) — Perfil de usuario: Sencillo / Completo (DEVICE-VERIFIED el 02/08/2026, ver entrada (4))
 
 Reacción del usuario a la tanda de features de abajo: la app cubre ya desde
 "cuántas cartas tengo" hasta gradeo y P&L, y **eso no le sirve a la misma
@@ -123,7 +208,7 @@ traen `profile: null` — así que le habría sacado el onboarding a gente que y
 lo respondió. Se añade `loadSettings(): Promise<Settings>` y `App.tsx` espera a
 la lectura real (`needsProfile === undefined` → splash).
 
-### 2026-08-02 — Competitive-gap push: 13 features (typecheck-green, device-UNVERIFIED)
+### 2026-08-02 — Competitive-gap push: 13 features (PARCIALMENTE device-verified el 02/08/2026 — ver entrada (4) para qué se probó y qué no)
 
 Sesión abierta ("compara con la competencia y ejecuta el plan"). Primero se
 investigó el campo (Collectr, OP.TCG, Logia, OneCollector, MyOPCards) y salió
@@ -2397,6 +2482,23 @@ plan). Static data (card index, prices, images) is never sent to Supabase.
   offline can be resurrected if B logs in and pushes first. Acceptable for v1.
 
 ## Known Bugs
+
+### B-16 — Escáner: fundas y foils producen falsos positivos — MITIGADO, NO ARREGLADO (2026-08-02, device-verified)
+- **Ficheros:** `app/src/lib/cardMatch.ts` (el descriptor), `app/src/lib/scanVote.ts`
+  (`MIN_CONFIDENT_SCORE`).
+- **Síntoma:** con la carta enfundada (y peor con doble funda), la identificación
+  devuelve otra carta con seguridad. Medido: Kouzuki Hiyori (EB01-013) leída como
+  Ten-Layer Igloo (OP10-018), 0,71-0,73 frente a 0,84 sin funda.
+- **Causa:** el descriptor compara promedios de color por regiones. La funda baja
+  el contraste de toda la imagen y comprime esos promedios hacia el centro del
+  rango, así que la carta se parece a cualquier otra tanto como a la suya. El foil
+  hace lo contrario: mete brillos que cambian según la inclinación.
+- **Mitigación actual:** el suelo de confianza 0,80 convierte el falso positivo
+  silencioso en una petición de confirmación. **No mejora la identificación.**
+- **Arreglo real pendiente:** cambiar el descriptor por un embedding, tal y como
+  concluyó la investigación del escáner. Es trabajo grande, no un parámetro.
+- **Aviso de calibración:** el 0,80 se apoya en cinco lecturas etiquetadas y deja
+  ocho milésimas entre el peor acierto y el mejor fallo. Recalibrar con más datos.
 
 ### B-14 — Scanner: rectified crop comes out rotated → wrong region hashed — PARTIALLY FIXED (2026-07-15)
 - **Files:** `app/src/lib/phash.ts` (`computeAhash` gained a `rotate` param),

@@ -19,11 +19,13 @@ type Props = {
   visible: boolean;
   card: Card | null;
   variant: Variant | null;
+  /** La lectura no llegó al suelo de confianza: puede no ser esta carta. */
+  lowConfidence?: boolean;
   onClose: () => void;
   onAction: (action: ScanResultAction) => void;
 };
 
-export function ScanResultSheet({ visible, card, variant, onClose, onAction }: Props) {
+export function ScanResultSheet({ visible, card, variant, lowConfidence, onClose, onAction }: Props) {
   const t = useT();
   const insets = useSafeAreaInsets();
 
@@ -46,6 +48,16 @@ export function ScanResultSheet({ visible, card, variant, onClose, onAction }: P
               <Text style={s.code}>{card.code}{variant.suffix}</Text>
             </View>
           </View>
+
+          {/* Lectura dudosa: el aviso va ANTES de las acciones, no como nota al
+              pie, porque su único trabajo es que mires la miniatura antes de
+              pulsar "añadir a la colección". */}
+          {lowConfidence && (
+            <View style={s.warn}>
+              <Icon name="alert" size={16} color={colors.warn} />
+              <Text style={s.warnText}>{t('scan.lowConfidence')}</Text>
+            </View>
+          )}
 
           <View style={s.actions}>
             <Pressable
@@ -123,6 +135,18 @@ const s = StyleSheet.create({
   headerInfo: { flex: 1, gap: 3 },
   name: { fontSize: 17, fontFamily: fonts.display, color: colors.text },
   code: { fontSize: 13, fontFamily: fonts.ui, color: colors.textMut },
+  warn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.warn,
+    borderRadius: radii.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  warnText: { flex: 1, fontSize: 13, fontFamily: fonts.ui, color: colors.text, lineHeight: 18 },
   actions: { gap: 8 },
   actionRow: {
     flexDirection: 'row',

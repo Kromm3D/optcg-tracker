@@ -182,6 +182,7 @@ export const en = {
   'scan.undo': 'Undo',
   'scan.manualCode': 'Code',
   'scan.noMatch': 'Card not recognized',
+  'scan.lowConfidence': "Not a confident read — sleeves and foils can fool it. Check the image before adding.",
   'scan.viewProfile': 'View card profile',
   'scan.addToDeck': 'Add to a deck',
   'scan.addToCollection': 'Add to collection',

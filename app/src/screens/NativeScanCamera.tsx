@@ -12,7 +12,7 @@
 //   → when the quad is stable ~300 ms → rectifyCardCrop → onCardReady(uri)
 // ScanScreen owns identification (matchTopK) + the confirmation flow.
 
-import React, { forwardRef, useImperativeHandle, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 // @ts-ignore — native deps; resolved only in the custom dev build.
@@ -77,11 +77,31 @@ function NativeScanCamera({ isActive, onCardReady, onQuadChange }, ref) {
     triggerCapture: () => { forceCapture.value = true; },
   }), [forceCapture]);
 
-  const onQuad   = Worklets.createRunOnJS((q: Quad | null) => {
-    setQuad(q);
-    onQuadChange?.(q != null);
+  // Los callbacks del worklet se crean UNA vez y leen la última versión desde
+  // una ref. Antes se recreaban en cada render y el frame processor —memoizado
+  // sin ellos en las dependencias— se quedaba con los del primer montaje: el
+  // escáner obedecía para siempre al modo activo al abrir la pantalla (B-15).
+  // Meterlos en las dependencias reconstruiría el worklet en cada render, así
+  // que la salida es estabilizarlos, no invalidar el processor.
+  const cardReadyRef  = useRef(onCardReady);
+  const quadChangeRef = useRef(onQuadChange);
+  useEffect(() => {
+    cardReadyRef.current  = onCardReady;
+    quadChangeRef.current = onQuadChange;
   });
-  const onStable = Worklets.createRunOnJS((uri: string) => onCardReady(uri));
+
+  const onQuad = useMemo(
+    () =>
+      Worklets.createRunOnJS((q: Quad | null) => {
+        setQuad(q);
+        quadChangeRef.current?.(q != null);
+      }),
+    [],
+  );
+  const onStable = useMemo(
+    () => Worklets.createRunOnJS((uri: string) => cardReadyRef.current(uri)),
+    [],
+  );
 
   const frameProcessor = useFrameProcessor(
     (frame: any) => {
@@ -130,7 +150,7 @@ function NativeScanCamera({ isActive, onCardReady, onQuadChange }, ref) {
         if (uri) onStable(uri);
       }
     },
-    [resize, forceCapture],
+    [resize, forceCapture, onQuad, onStable],
   );
 
   if (!device) {

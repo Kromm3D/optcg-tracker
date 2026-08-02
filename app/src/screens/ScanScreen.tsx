@@ -46,7 +46,7 @@ import { ScanResultSheet, type ScanResultAction } from '../components/ScanResult
 import { BulkTargetSheet, type BulkSelection } from '../components/BulkTargetSheet';
 import type { BulkTarget } from '../components/BulkActionBar';
 import { matchTopK } from '../lib/cardMatch';
-import { createScanVoter } from '../lib/scanVote';
+import { createScanVoter, MIN_CONFIDENT_SCORE } from '../lib/scanVote';
 import { isCardDetectAvailable } from '../lib/cardDetect';
 import { BulkScanSheet } from '../components/BulkScanSheet';
 import { useT } from '../lib/i18n';
@@ -147,7 +147,9 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
 
   // Carta identificada, pendiente de que el usuario elija qué hacer con ella
   // (ver ficha / añadir a mazo / añadir a colección / ver precio).
-  const [matched, setMatched] = useState<{ code: string; suffix: string; card: Card; variant: Variant } | null>(null);
+  const [matched, setMatched] = useState<
+    { code: string; suffix: string; card: Card; variant: Variant; lowConfidence?: boolean } | null
+  >(null);
   // Sub-hoja de BulkTargetSheet reutilizada para "añadir a mazo/colección".
   const [bulkTarget, setBulkTarget] = useState<BulkTarget | null>(null);
 
@@ -198,7 +200,7 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
   // modo (ver ficha / mazo / colección / precio) en ScanResultSheet.
 
   const handleCodeFound = useCallback(
-    async (rawCode: string, variantSuffix?: string) => {
+    async (rawCode: string, variantSuffix?: string, lowConfidence = false) => {
       const now = Date.now();
       if (now - lastScan.current < 800) return;
       lastScan.current = now;
@@ -212,7 +214,7 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
 
       pausedRef.current = true; // congelar el escáner mientras se decide
       setManualInput('');
-      setMatched({ code, suffix, card, variant });
+      setMatched({ code, suffix, card, variant, lowConfidence });
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     },
     [],
@@ -319,6 +321,15 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
       setVoteStreak(voterRef.current.streak());
       if (!winner) return;
       setVoteStreak(0);
+
+      // Lectura floja (funda, foil, mala luz): no se encola a ciegas ni se
+      // presenta como un hecho. Se abre la hoja marcada como dudosa para que
+      // el usuario mire la miniatura antes de aceptar. Ver MIN_CONFIDENT_SCORE.
+      const confident = winner.score >= MIN_CONFIDENT_SCORE;
+      if (!confident) {
+        handleCodeFound(winner.code, winner.suffix, true);
+        return;
+      }
 
       if (scanMode === 'bulk') {
         enqueue(winner.code, winner.suffix);
@@ -710,6 +721,7 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
         visible={!!matched}
         card={matched?.card ?? null}
         variant={matched?.variant ?? null}
+        lowConfidence={matched?.lowConfidence}
         onClose={handleSheetClose}
         onAction={handleSheetAction}
       />
