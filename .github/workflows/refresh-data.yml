@@ -1,4 +1,4 @@
-# Refresco semanal de los datos que la app consume desde el repo.
+# Refresco diario de los datos que la app consume desde el repo.
 #
 # Por qué existe: `data/index.json` y `data/prices.json` se sirven por jsDelivr
 # desde este repo, así que hasta ahora un set nuevo o un precio movido exigían
@@ -16,9 +16,8 @@ name: Refresh card data
 
 on:
   schedule:
-    # Lunes 04:17 UTC. Minuto impar a propósito: en punto es la hora de mayor
-    # cola en los runners compartidos de GitHub.
-    - cron: '17 4 * * 1'
+    # Diario 08:00 UTC.
+    - cron: '0 8 * * *'
   workflow_dispatch:
     inputs:
       prices:
