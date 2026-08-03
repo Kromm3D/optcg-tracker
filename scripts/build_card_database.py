@@ -470,13 +470,21 @@ def titlecase_set_name(raw):
         elif i > 0 and w.lower() in _LOWER_WORDS:
             out.append(w.lower())
         else:
-            # Se capitaliza por segmentos para respetar "O'HARA" → "O'Hara".
-            # El segmento corto sólo se baja a minúscula si NO es el primero:
-            # así el posesivo de "SEA'S" queda "Sea's", pero la palabra suelta
-            # "A" de "A Fist of Divine Speed" no se convierte en "a".
-            parts = w.split("'")
-            out.append("'".join(
-                p.capitalize() if (i2 == 0 or len(p) > 1) else p.lower()
+            # Se capitaliza por segmentos para respetar "O'HARA" → "O'Hara",
+            # "MONKEY.D.LUFFY" → "Monkey.D.Luffy", "RED/BLACK" → "Red/Black"
+            # y "-RED" → "-Red" (guion pegado sin espacio, visto en los
+            # starter decks bicolor). Un segmento de una sola letra sólo se
+            # baja a minúscula tras un apóstrofo (el posesivo de "SEA'S"
+            # queda "Sea's") — tras un punto o guion es una inicial
+            # ("Monkey.D.Luffy") y debe quedar en mayúscula.
+            seps = ("'", ".", "/", "-", '"')
+            parts = re.split(r"(['./\"-])", w)
+            out.append("".join(
+                p if p in seps
+                else (
+                    p.lower() if (i2 > 0 and len(p) == 1 and parts[i2 - 1] == "'")
+                    else p.capitalize()
+                )
                 for i2, p in enumerate(parts)
             ))
     return " ".join(out)
