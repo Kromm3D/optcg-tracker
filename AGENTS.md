@@ -3,7 +3,54 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-08-02 (4) (**Primera sesión de verificación en dispositivo**
+**Last updated:** 2026-08-04 (2) (**Cardmarket price scraper — resuelto de raíz, sin scraping**.
+El diagnóstico anterior (bloqueo de Cloudflare al runner de CI, ver más abajo)
+seguía en pie, pero el usuario encontró la solución real: Cardmarket publica a
+diario un catálogo + guía de precios por juego en un bucket S3 público —
+`downloads.s3.cardmarket.com/productCatalog/{productList,priceGuide}/..._18.json`
+(idGame=18 = One Piece, confirmado a mano) — **sin Cloudflare delante**, a
+diferencia del sitio web. Nuevo `scripts/build_prices_bulk.py`: descarga esos
+dos JSON con `requests` normal y corriente y cruza cada `idProduct` con
+nuestro código+suffix. El cruce no es trivial — Cardmarket cataloga cada
+reimpresión (structure decks, promos, box toppers...) como un producto
+distinto con el mismo nombre visible, y no hay ningún campo de variante en el
+JSON — así que se usa una heurística deliberadamente conservadora: por código,
+solo se empareja el grupo de `idProduct` de la edición MÁS ANTIGUA (`idExpansion`
+con el `dateAdded` mínimo), ordenados por `idProduct` ascendente contra las
+primeras N variantes del índice. Reimpresiones posteriores se dejan sin precio
+real en vez de arriesgarse a asignarlo mal. **Probado contra el feed real**
+(sí es alcanzable desde fuera, a diferencia del sitio principal): 3384 entradas
+con precio de 2665 códigos, verificado a mano con casos límite (Zoro OP01-001:
+normal 2,99€ trend vs parallel 630€ — coincide con el orden esperado; Luffy
+promo P-001_p2 a 7897€, que es el pre-release ultra-raro conocido de la
+comunidad, no un error). `data/prices.json` y `app/src/data/prices.json` ya
+están regenerados con datos reales de hoy — antes tenían 127 entradas viejas.
+`.github/workflows/refresh-data.yml`: el job de precios ahora llama a
+`build_prices_bulk.py` (sin `continue-on-error`, porque este SÍ debería
+funcionar siempre) después del scraper viejo `build_prices.py --browser --all`
+(se mantiene, `continue-on-error`, solo para `product_url` — el bulk feed no
+lo trae). Umbral de verificación subido a 2000 entradas con precio real.
+`scripts/scrape_browser_console.js` conserva la mejora de fase 2 de la entrada
+anterior (`__cmRefine()`) como fallback manual si el feed bulk deja de existir.
+Typecheck verde. **No commiteado** — mezclado con el cambio de tema pendiente
+en `feature/theme-perona-palette`; separar al commitear.)
+
+**Last updated (previous):** 2026-08-04 (**Cardmarket price scraper — diagnosticado, fallback manual mejorado**.
+El job diario de precios en CI lleva fallando *todos los días* desde que existe:
+no es un bug de parsing, es que Cloudflare bloquea al runner de GitHub Actions
+antes de servir la primera página (confirmado leyendo los logs de los últimos 4
+runs). El usuario trajo dos repos (DrankRock/AutoScrape, DrankRock/CMScrape —
+este último archivado a favor del primero) esperando que resolvieran esto;
+resultaron ser apps de escritorio pensadas para correr con IP residencial, así
+que no arreglan el problema de CI (bloqueo por reputación de IP, no por
+fingerprint de navegador). Se rescató la única pieza reutilizable — el selector
+`.info-list-container dl` de su `cardmarket_parser.py` — para una **fase 2
+opcional** en `scripts/scrape_browser_console.js` (`await __cmRefine()`).
+Superado por la entrada de arriba, que resuelve el problema de raíz en vez de
+solo mejorar el fallback manual — pero `__cmRefine()` sigue siendo útil si
+Cardmarket retira el feed bulk algún día.)
+
+**Last updated (previous):** 2026-08-02 (4) (**Primera sesión de verificación en dispositivo**
 de todo el competitive-gap push: perfiles OK, metadatos de copia OK, P&L OK. Se
 encontró y arregló **B-15**, un bug que llevaba tapando el escáner desde que
 existen los modos: el frame processor se quedaba con los callbacks del primer
@@ -11,19 +58,58 @@ montaje, así que el escáner obedecía siempre al modo activo al abrir la panta
 Añadido `MIN_CONFIDENT_SCORE` (0,80) tras medir falsos positivos por funda. Ver
 la entrada fechada de abajo.)
 
-**Last updated (previous):** 2026-08-02 (**Competitive-gap push**: 13 features en 4 fases —
+**Last updated (older):** 2026-08-02 (**Competitive-gap push**: 13 features en 4 fases —
 metadatos físicos de colección + P&L + multi-divisa, trade offers, binder público,
 voto de frames + bulk scan, alertas de precio, calendario de sets, gráfica de
 precio. Typecheck verde, **nada verificado en dispositivo**. Ver la entrada
 fechada de abajo.)
 
 **Last updated (older):** 2026-07-30 (**Scan action-sheet** — replaced the scanner's silent auto-add-to-collection with a post-match action sheet: view profile / add to deck / add to collection (qty stepper) / open Cardmarket price. Typecheck-green, **not yet device-verified** — device was disconnected mid-session, user asked to keep developing without testing for now. See dated entry below.)
-**Current branch:** `feature/scan-action-modes` (branched off `main`)
+**Current branch:** `feature/theme-perona-palette`
 **App version:** 0.1.0 (pre-release)
 
 ---
 
 ## Current uncommitted state (read before committing)
+
+### 2026-08-04 (2) — Cardmarket: precios reales sin scraping, via el feed bulk de Cardmarket
+
+Ficheros: `scripts/build_prices_bulk.py` (nuevo), `.github/workflows/refresh-data.yml`
+(job `prices` reescrito), `data/prices.json` + `app/src/data/prices.json`
+(regenerados con datos reales de hoy). Todo uncommitted en
+`feature/theme-perona-palette`, junto al cambio de tema pendiente y a la
+mejora de fase 2 de `scrape_browser_console.js` de la entrada anterior — son
+tres cambios independientes, separar en commits al revisar.
+
+- **`scripts/build_prices_bulk.py`** — descarga
+  `downloads.s3.cardmarket.com/productCatalog/{productList,priceGuide}/..._18.json`
+  (bucket público, sin Cloudflare) y empareja cada `idProduct` con
+  código+suffix de nuestro índice. La heurística de emparejamiento (por qué no
+  es un simple `idProduct == nuestra variante`, y cómo se resuelve tomando
+  solo el grupo de `idExpansion` más antiguo por código) está documentada en
+  el docstring del script — leerlo antes de tocarlo.
+- **Verificado contra el feed real** (SÍ es alcanzable desde aquí, a
+  diferencia de `www.cardmarket.com` que sigue devolviendo 403): 3384
+  entradas con precio de 2665 códigos, en la primera corrida. Casos límite
+  comprobados a mano: Zoro OP01-001 normal/parallel en el orden de precio
+  esperado; el promo ultra-raro Luffy P-001_p2 sale a 7897€, que es real (pre-release
+  conocido), no un bug de la heurística.
+- **`data/prices.json`** pasó de 127 entradas (caché vieja, todas de meses
+  atrás) a 3384 con datos de hoy. `product_url` de scrapes anteriores se
+  conserva (el bulk feed no lo trae, solo precios).
+- **`.github/workflows/refresh-data.yml`** — el job `prices` ahora corre
+  `build_prices_bulk.py` (sin `continue-on-error`: si esto falla es una señal
+  real) después de `build_prices.py --browser --all` (se mantiene tal cual,
+  `continue-on-error`, solo por `product_url` — ya no le pedimos precios).
+  Umbral del step de verificación subido de 500/50% a 2000 entradas con precio
+  real, acorde a lo que el feed bulk consigue de forma fiable.
+- `scripts/scrape_browser_console.js` conserva la fase 2 (`__cmRefine()`) de
+  la entrada anterior como fallback manual si el feed bulk desaparece algún
+  día — no se ha vuelto a tocar.
+- **No verificado en la app**: el JSON pasó `npm run typecheck` limpio y los
+  datos se ven correctos a ojo, pero nadie ha abierto la pantalla de detalle
+  de una carta en la app para confirmar que los precios nuevos se muestran
+  bien (dispositivo desconectado esta sesión, ver entradas anteriores).
 
 ### 2026-08-02 (6) — El workflow corrió por primera vez: 2 fallos reales, ambos arreglados (CI-VERIFIED)
 

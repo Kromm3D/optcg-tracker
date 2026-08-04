@@ -153,7 +153,7 @@ jobs:
             images
 
   prices:
-    name: Prices (Cardmarket, best effort)
+    name: Prices (Cardmarket)
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'schedule' || inputs.prices }}
     steps:
@@ -168,13 +168,22 @@ jobs:
           pip install requests cloudscraper beautifulsoup4 playwright
           playwright install --with-deps chromium
 
-      - name: Scrape Cardmarket
-        # --browser usa Playwright para pasar el desafío de Cloudflare. Aun así
-        # un runner de CI tiene bastantes papeletas de que lo bloqueen: por eso
-        # el paso es `continue-on-error` y hay una verificación explícita
-        # después. Un prices.json vacío merecido nunca debe llegar a un PR.
+      - name: Scrape Cardmarket product URLs (best effort)
+        # Cardmarket bloquea a Cloudflare casi siempre a un runner de CI —
+        # por eso este paso es continue-on-error y solo aporta product_url
+        # (el link "Ver en Cardmarket" de la app) cuando cuela. Los precios
+        # de verdad NO dependen de este paso, ver el siguiente.
         continue-on-error: true
         run: python scripts/build_prices.py --browser --all
+
+      - name: Fetch Cardmarket prices (bulk feed, no Cloudflare)
+        # Cardmarket publica a diario un catálogo + guía de precios por juego
+        # en un bucket S3 público, sin Cloudflare delante (a diferencia del
+        # sitio). Ver scripts/build_prices_bulk.py para el porqué y la
+        # heurística de emparejamiento código+variante. Este paso SÍ debe
+        # funcionar siempre — si falla, es una señal real (el feed cambió de
+        # sitio o de formato), no ruido de bot-detection.
+        run: python scripts/build_prices_bulk.py
 
       - name: Verify the scrape produced something usable
         id: verify
@@ -187,15 +196,11 @@ jobs:
           entries = json.loads(p.read_text(encoding='utf-8')).get('prices', {})
           priced = [e for e in entries.values() if e.get('low') or e.get('trend')]
           print(f'{len(entries)} entradas, {len(priced)} con precio')
-          # Umbral defensivo: el catálogo tiene ~4600 variantes. Si salen
-          # cuatro gatos, Cloudflare ganó y no queremos pisar el fichero bueno.
-          if len(entries) < 500:
-              print('Muy pocas entradas — se descarta el resultado'); sys.exit(1)
-          # Y se exige que la mayoría traiga precio: un scrape que devuelve
-          # todas las URLs pero ningún importe significa que el listado cambió
-          # de maquetación, no que las cartas no valgan nada.
-          if len(priced) < len(entries) * 0.5:
-              print('Demasiadas entradas sin precio — se descarta el resultado'); sys.exit(1)
+          # Umbral defensivo: el feed bulk cubre de forma fiable el print base
+          # (Normal+Parallel) de la inmensa mayoría de códigos — sobre 3300 en
+          # la primera prueba manual. Si cae muy por debajo, algo se rompió.
+          if len(priced) < 2000:
+              print('Muy pocas entradas con precio — se descarta el resultado'); sys.exit(1)
           PY
 
       - name: Open PR if prices moved

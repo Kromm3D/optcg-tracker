@@ -4,40 +4,54 @@
  * Pegar este script en la consola de Chrome DevTools mientras estás en
  * https://www.cardmarket.com/en/OnePiece/Products/Singles/<CUALQUIER_EXPANSION>
  *
- * El script navega automáticamente por todas las páginas de esa expansión,
- * extrae código y precio "From" del DOM (sin fetch adicional), y al final
- * muestra un JSON que puedes copiar y pasar a import_browser_prices.py.
+ * FASE 1 (automática al pegar el script) — recorre el listado de esa
+ * expansión, extrae código y product_url de cada carta, y hace un intento de
+ * precio "From" leyendo el texto alrededor del link (rápido: una carga de
+ * página cubre 20-30 cartas, pero es un heurístico y a veces no encuentra
+ * nada — ver más abajo).
+ *
+ * FASE 2 (opcional, manual: `await __cmRefine()`) — para las cartas que
+ * quedaron sin precio en la fase 1, visita la página de producto de cada una
+ * (con fetch(), reusando la sesión/cookies de esta pestaña — no dispara el
+ * challenge de Cloudflare porque ya lo pasaste al cargar esta página) y lee
+ * el precio del `<dl>` de info-list-container, que es una lista de pares
+ * etiqueta/valor ("From", "Trend"...) mucho más fiable que adivinar por
+ * proximidad. Esta técnica viene de cardmarket_parser.py en
+ * https://github.com/DrankRock/AutoScrape — la parte reutilizable de ese
+ * proyecto no es su bypass de Cloudflare (eso depende de la reputación de tu
+ * IP, no del código), es este selector.
  *
  * INSTRUCCIONES:
  *   1. Abre Chrome y ve a la página de singles de una expansión, p.ej.:
  *      https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition
  *   2. Abre DevTools (F12) → pestaña Console.
- *   3. Pega TODO este script y pulsa Enter.
- *   4. Espera a que termine (verás "DONE" en la consola).
- *   5. Copia el JSON resultante y guárdalo como data/browser_dump.json.
- *   6. Ejecuta: python scripts/import_browser_prices.py
+ *   3. Pega TODO este script y pulsa Enter. Espera a "FASE 1 · DONE".
+ *   4. (Opcional, recomendado) Ejecuta:  await __cmRefine()
+ *      Tarda más (una carga de página por carta pendiente) pero rellena los
+ *      huecos y añade `trend` (tendencia de precio), que la fase 1 nunca captura.
+ *   5. Ejecuta:  __cmDownload()   ← descarga browser_dump.json con todo lo
+ *      acumulado hasta ese momento (puedes llamarla en cualquier punto).
+ *   6. Copia el fichero descargado a data/browser_dump.json.
+ *   7. Ejecuta: python scripts/import_browser_prices.py
  *
- * Para scrapear varias expansiones, repite desde el paso 1 en cada una.
- * El script acumula resultados en window.__CM_PRICES y el JSON final
- * siempre incluye todo lo recogido hasta el momento.
+ * Para scrapear varias expansiones, repite desde el paso 1 en cada una — los
+ * resultados se acumulan en window.__CM_PRICES entre navegaciones dentro de
+ * la misma pestaña (se pierden si recargas o cierras la pestaña).
  */
 
 (async function scrapeCardmarket() {
-  const DELAY_MS = 2500;      // ms entre navegaciones de página
+  const DELAY_MS        = 2500; // ms entre navegaciones de página (fase 1)
+  const REFINE_DELAY_MS = 700;  // ms entre fetch() de producto (fase 2)
   const SLUG_RE  = /([A-Z]{1,4}\d{2}-\d{3})-V(\d+)/;
 
   // Cardmarket usa el formato del locale de la sesion, asi que hay que tragar
   // "1.234,56 €" y "1,234.56 €". El patron captura el numero con todos sus
   // separadores y la normalizacion decide cual es el decimal: el ultimo
   // separador seguido de exactamente dos digitos; el resto son millares.
-  //
-  // El patron anterior era /(\d{1,4}[.,]\d{2})/, que parte "1.234,56" en
-  // "1.23" — una carta de 1234 € se guardaba como 1,23 €. No revienta y el
-  // numero resultante es plausible, que es lo que lo hacia dificil de ver.
   function parsePrice(text) {
-    const m = text && text.match(/(\d[\d.,  ]*\d)\s*€/);
+    const m = text && text.match(/(\d[\d.,  ]*\d)\s*€/);
     if (!m) return null;
-    const raw = m[1].replace(/[  ]/g, '');
+    const raw = m[1].replace(/[  ]/g, '');
     const cut = Math.max(raw.lastIndexOf('.'), raw.lastIndexOf(','));
     const tail = cut === -1 ? '' : raw.slice(cut + 1);
     const value = (cut !== -1 && tail.length === 2)
@@ -87,7 +101,7 @@
 
       results[key] = {
         low,
-        trend:       null,
+        trend:       window.__CM_PRICES?.[key]?.trend ?? null,
         product_url: a.href.split('?')[0],
         updated:     new Date().toISOString().slice(0, 10),
       };
@@ -109,6 +123,104 @@
     return m ? parseInt(m[1]) : 1;
   }
 
+  // ── Fase 2: precio de una página de producto individual ────────────────
+  // Estructura tomada de cardmarket_parser.py (AutoScrape): un <dl> dentro de
+  // .info-list-container con pares <dt>etiqueta</dt><dd>valor</dd>. Mucho más
+  // fiable que el heurístico de "subir ancestros" de extractPageData, pero
+  // cuesta una carga de página por carta — por eso es una fase aparte y
+  // opcional, no el paso por defecto.
+  function parseProductPage(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const dl = doc.querySelector('.info-list-container dl');
+    if (!dl) return { low: null, trend: null };
+
+    const dts = [...dl.querySelectorAll('dt')];
+    const dds = [...dl.querySelectorAll('dd')];
+    let low = null, trend = null;
+
+    for (let i = 0; i < Math.min(dts.length, dds.length); i++) {
+      const label = dts[i].textContent.trim().toLowerCase();
+      const valueText = (dds[i].querySelector('span')?.textContent ?? dds[i].textContent).trim();
+
+      // "From" en varios idiomas por si la sesión no está en inglés.
+      if (low === null && ['from', 'de', 'ab', 'à partir de'].includes(label)) {
+        low = parsePrice(valueText);
+      }
+      if (trend === null && (label.includes('trend') || label.includes('tendance') || label.includes('tendenz'))) {
+        trend = parsePrice(valueText);
+      }
+    }
+    return { low, trend };
+  }
+
+  async function __cmRefine({ onlyMissing = true, limit = Infinity } = {}) {
+    if (!window.__CM_PRICES) {
+      console.error('[CM] No hay nada que refinar todavía — corre primero la fase 1 (pega el script en una página de listado).');
+      return;
+    }
+    const entries = Object.entries(window.__CM_PRICES)
+      .filter(([, v]) => v.product_url && (!onlyMissing || v.low == null))
+      .slice(0, limit);
+
+    if (entries.length === 0) {
+      console.log('[CM] Nada que refinar (todas las cartas ya tienen precio, o no hay product_url).');
+      return;
+    }
+
+    console.log(`[CM] Fase 2: refinando ${entries.length} carta(s) via página de producto...`);
+    let fixed = 0;
+    for (let i = 0; i < entries.length; i++) {
+      const [key, entry] = entries[i];
+      try {
+        const resp = await fetch(entry.product_url, { credentials: 'same-origin' });
+        if (resp.ok) {
+          const html = await resp.text();
+          const { low, trend } = parseProductPage(html);
+          if (low !== null) entry.low = low;
+          if (trend !== null) entry.trend = trend;
+          if (low !== null || trend !== null) fixed++;
+        } else {
+          console.warn(`  [${i + 1}/${entries.length}] ${key}: HTTP ${resp.status}`);
+        }
+      } catch (e) {
+        console.warn(`  [${i + 1}/${entries.length}] ${key}: ${e}`);
+      }
+      if (i % 10 === 0 || i === entries.length - 1) {
+        console.log(`  [${i + 1}/${entries.length}] ${key} — ${fixed} arregladas hasta ahora`);
+      }
+      await new Promise(r => setTimeout(r, REFINE_DELAY_MS));
+    }
+    console.log(`[CM] Fase 2 completa: ${fixed}/${entries.length} cartas obtuvieron precio nuevo.`);
+    console.log('[CM] Llama a __cmDownload() para descargar el resultado actualizado.');
+  }
+
+  function __cmDownload() {
+    const output = {
+      generated: new Date().toISOString(),
+      source:    'cardmarket.com/en/OnePiece (browser console)',
+      currency:  'EUR',
+      fetched:   Object.keys(window.__CM_PRICES || {}).length,
+      prices:    window.__CM_PRICES || {},
+    };
+    const json = JSON.stringify(output, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'browser_dump.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    console.log(`[CM] Descargado browser_dump.json (${output.fetched} entradas). Cópialo a data/browser_dump.json`);
+    console.log('[CM] Luego ejecuta:  python scripts/import_browser_prices.py');
+    return output;
+  }
+
+  // Exponer las funciones de fase 2 para llamarlas a mano tras la fase 1.
+  window.__cmRefine   = __cmRefine;
+  window.__cmDownload = __cmDownload;
+
   // ── Inicializar acumulador global ────────────────────────────────────────
   window.__CM_PRICES = window.__CM_PRICES || {};
 
@@ -120,7 +232,7 @@
   }
 
   console.log(`[CM] Expansión detectada: ${slug}`);
-  console.log('[CM] Iniciando extracción — NO cierres esta pestaña...');
+  console.log('[CM] Iniciando extracción (fase 1) — NO cierres esta pestaña...');
 
   let page = getCurrentPage();
 
@@ -151,34 +263,11 @@
     });
   }
 
-  // ── Generar JSON ─────────────────────────────────────────────────────────
-  const output = {
-    generated: new Date().toISOString(),
-    source:    'cardmarket.com/en/OnePiece (browser console)',
-    currency:  'EUR',
-    fetched:   Object.keys(window.__CM_PRICES).length,
-    prices:    window.__CM_PRICES,
-  };
-
-  const json = JSON.stringify(output, null, 2);
-
-  // Mostrar en consola y ofrecer descarga
-  console.log('\n[CM] ══ DONE ══');
-  console.log(`[CM] ${output.fetched} entradas recogidas de "${slug}"`);
-  console.log('[CM] Descargando browser_dump.json...');
-
-  const blob = new Blob([json], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'browser_dump.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
-  console.log('[CM] Fichero descargado. Cópialo a data/browser_dump.json');
-  console.log('[CM] Luego ejecuta:  python scripts/import_browser_prices.py');
-
-  return output;
+  const missing = Object.values(window.__CM_PRICES).filter(v => v.low == null).length;
+  console.log(`\n[CM] ══ FASE 1 · DONE ══`);
+  console.log(`[CM] ${Object.keys(window.__CM_PRICES).length} entradas recogidas de "${slug}" (${missing} sin precio)`);
+  if (missing > 0) {
+    console.log(`[CM] Para intentar rellenar esas ${missing}:  await __cmRefine()`);
+  }
+  console.log('[CM] Para descargar el JSON ahora mismo:  __cmDownload()');
 })();
