@@ -88,21 +88,23 @@ const RARITY_BASE: Record<string, number> = {
  * Prioridad:
  *   1. trend real para la clave exacta "{code}{suffix}"
  *   2. low real para la clave exacta
- *   3. trend real para la variante base "{code}"
- *   4. low real para la variante base
- *   5. Estimacion por rareza (fallback cuando prices.json esta vacio)
+ *   3. Estimacion por rareza
+ *
+ * NO cae al precio de la variante base ("{code}", sin suffix) cuando la
+ * variante concreta no tiene dato propio -- lo hacia antes, y con el
+ * matching nuevo (scripts/build_prices_bulk.py) eso significaba enseñar el
+ * precio de la Normal como si fuera el de un Parallel/alter sin verificar,
+ * marcado ademas como "precio real" por hasRealPrice(). Normal y Parallel
+ * pueden diferir en un orden de magnitud (ver Cavendish EB01-012 en
+ * AGENTS.md: 0,90€ vs 15,00€) — mejor una estimacion honesta que un precio
+ * real equivocado.
  */
 export function getPrice(card: Card, suffix: string = ''): number {
   const variantKey = `${card.code}${suffix}`;
-  const baseKey    = card.code;
 
   const exactEntry = PRICE_MAP[variantKey];
   if (exactEntry?.trend != null) return exactEntry.trend;
   if (exactEntry?.low   != null) return exactEntry.low;
-
-  const baseEntry = PRICE_MAP[baseKey];
-  if (baseEntry?.trend != null) return baseEntry.trend;
-  if (baseEntry?.low   != null) return baseEntry.low;
 
   const rarity = suffix
     ? card.variants.find(v => v.suffix === suffix)?.rarity ?? card.variants[0]?.rarity ?? 'C'
@@ -112,31 +114,24 @@ export function getPrice(card: Card, suffix: string = ''): number {
 
 /**
  * Precio "desde" (el mas barato disponible en el mercado) para una variante.
+ * Mismo criterio que getPrice(): sin fallback a la variante base.
  */
 export function getLowPrice(card: Card, suffix: string = ''): number {
   const variantKey = `${card.code}${suffix}`;
-  const baseKey    = card.code;
 
   const exactEntry = PRICE_MAP[variantKey];
   if (exactEntry?.low != null) return exactEntry.low;
-
-  const baseEntry = PRICE_MAP[baseKey];
-  if (baseEntry?.low != null) return baseEntry.low;
 
   return getPrice(card, suffix);
 }
 
 /**
  * True si el precio viene de datos reales de Cardmarket (no es una estimacion).
+ * Sin fallback a la variante base — ver getPrice().
  */
 export function hasRealPrice(card: Card, suffix: string = ''): boolean {
-  const variantKey = `${card.code}${suffix}`;
-  const exact = PRICE_MAP[variantKey];
-  const base  = PRICE_MAP[card.code];
-  return (
-    exact?.trend != null || exact?.low != null ||
-    base?.trend  != null || base?.low  != null
-  );
+  const exact = PRICE_MAP[`${card.code}${suffix}`];
+  return exact?.trend != null || exact?.low != null;
 }
 
 /**
@@ -203,11 +198,12 @@ export function gradeMultiplier(grade: number): number {
 
 /**
  * Precio REAL (trend, o low) para una clave exacta — sin el fallback por rareza
- * de getPrice(). Devuelve null si esa carta no tiene precio real cargado. Se usa
- * para calcular variaciones (% cambio): comparar estimaciones no tendría sentido.
+ * de getPrice() ni el fallback a la variante base de getPrice() (ver arriba).
+ * Devuelve null si esa carta no tiene precio real cargado. Se usa para
+ * calcular variaciones (% cambio): comparar estimaciones no tendría sentido.
  */
 export function realTrend(code: string, suffix: string = ''): number | null {
-  const e = PRICE_MAP[`${code}${suffix}`] ?? PRICE_MAP[code];
+  const e = PRICE_MAP[`${code}${suffix}`];
   if (!e) return null;
   return e.trend ?? e.low ?? null;
 }

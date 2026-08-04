@@ -110,6 +110,17 @@ def load_existing_prices():
 # seguro que uno demasiado ALTO, que contamina vault value / P&L del usuario).
 MAX_SWAP_PRICE = 100.0
 
+# Tope de distancia temporal entre las dos ediciones para considerarlas
+# pareja de idioma de LA MISMA edicion (y no una reimpresion posterior que
+# por casualidad tiene el mismo tamano de grupo y pasa el resto de filtros).
+# Puesto a mano tras medir la distribucion real de los 667 swaps que ya
+# pasaban consistencia+tope: hay un salto claro entre 90 dias (34% de los
+# casos) y 120 dias (11%) -- las parejas EN/JP reales se catalogan casi
+# siempre dentro de ese margen. Los 56 casos con mas de un año de diferencia
+# (hasta 932 dias en un caso real) son mucho mas compatibles con "reimpresion
+# no relacionada" que con "misma edicion, otro idioma".
+MAX_SWAP_GAP_DAYS = 180
+
 
 def _ordered_prices(group, price_by_id):
     """[precio, ...] de un grupo, en el mismo orden idProduct usado para
@@ -120,6 +131,10 @@ def _ordered_prices(group, price_by_id):
         entry = price_by_id.get(p["idProduct"]) or {}
         out.append(entry.get("low") or entry.get("trend") or 0.0)
     return out
+
+
+def _earliest_date(group):
+    return min(datetime.strptime(p["dateAdded"], "%Y-%m-%d %H:%M:%S") for p in group)
 
 
 def match_products_to_variants(products, variants_by_code, price_by_id):
@@ -141,7 +156,7 @@ def match_products_to_variants(products, variants_by_code, price_by_id):
     DOS primeras ediciones cronologicas de un codigo tienen el MISMO numero
     de productos (mismo patron Normal+Parallel = probable pareja de idiomas
     de la misma edicion), se hace el swap a la 2a edicion SOLO si se cumplen
-    dos condiciones a la vez:
+    TRES condiciones a la vez:
 
       1. Consistencia: CADA producto de la 2a edicion vale igual o mas que su
          correspondiente en la 1a (mismo orden por idProduct), y al menos uno
@@ -154,9 +169,20 @@ def match_products_to_variants(products, variants_by_code, price_by_id):
          una promo ultra-rara que por casualidad tenga el mismo tamano de
          grupo (Special Tournament Promos a 4500-6000€, o P-031 disparando a
          50000€) se cuela como si fuera la version inglesa normal.
+      3. Proximidad temporal: la 2a edicion se cataloga como mucho
+         MAX_SWAP_GAP_DAYS despues de la 1a. Sin esto, una reimpresion
+         genuinamente posterior (no una pareja de idioma) puede colarse si
+         por casualidad tiene el mismo tamano de grupo y pasa 1 y 2 -- medido
+         contra el catalogo completo, los 667 swaps que ya pasaban 1+2 tienen
+         un salto claro en la distribucion de distancia temporal entre 90 y
+         120 dias; el 8% restante llega hasta 932 dias de diferencia, mucho
+         mas compatible con "reimpresion no relacionada" que con "misma
+         edicion, otro idioma".
 
-    Si los tamanos difieren, o no se cumplen las dos condiciones, se mantiene
-    el comportamiento por defecto: usar solo la edicion mas antigua.
+    Si los tamanos difieren, o no se cumplen las tres condiciones, se
+    mantiene el comportamiento por defecto: usar solo la edicion mas antigua
+    -- es decir, la edicion "original" en el sentido de "la primera que
+    Cardmarket cataloga para ese codigo", nunca una reimpresion posterior.
 
     Se limita a comparar SOLO las dos primeras ediciones (nunca la 3a en
     adelante) por la misma razon que el tope: cuantas mas ediciones se
@@ -188,7 +214,9 @@ def match_products_to_variants(products, variants_by_code, price_by_id):
                 p2 = _ordered_prices(second_group, price_by_id)
                 consistent = all(b >= a for a, b in zip(p1, p2)) and any(b > a for a, b in zip(p1, p2))
                 within_cap = all(v <= MAX_SWAP_PRICE for v in p2)
-                if consistent and within_cap:
+                gap_days = (_earliest_date(second_group) - _earliest_date(first_group)).days
+                within_gap = gap_days <= MAX_SWAP_GAP_DAYS
+                if consistent and within_cap and within_gap:
                     base_expansion = second_expansion
 
         base_group = sorted(by_expansion[base_expansion], key=lambda p: p["idProduct"])

@@ -3,7 +3,38 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-08-04 (5) (**Precios en tiempo real desde el CDN, sin releases de la app**.
+**Last updated:** 2026-08-04 (6) (**Dos arreglos más de precios: fallback fantasma y tope temporal
+de idioma**. El usuario reportó "no acaba de pillar los precios bien" y, al
+explicarle cómo se lee `prices.json`, salió un bug de verdad en
+`lib/prices.ts`: `getPrice`/`getLowPrice`/`hasRealPrice`/`realTrend` caían al
+precio de la variante BASE (sin suffix) cuando la variante concreta no tenía
+dato propio — con el matching nuevo (que deliberadamente deja Parallels sin
+precio cuando no está seguro, ver entradas de abajo), eso significaba enseñar
+el precio de la Normal como si fuera el del Parallel, marcado además como
+"real" (no como estimación). Quitado el fallback de las 4 funciones de
+precio; se deja SOLO en `getProductUrl` (un link "casi correcto" a
+Cardmarket no hace daño, un número equivocado sí). Verificado en vivo:
+Boa Hancock ST03-013, 2º Parallel (sin precio propio) — antes habría
+enseñado €0,11 (el de la Normal) marcado como real; ahora la sección "PRICE
+HISTORY" desaparece directamente, cae a estimación por rareza solo donde
+corresponde (vault value).
+
+Segundo arreglo, en `scripts/build_prices_bulk.py`: el usuario pidió reforzar
+que el swap idioma-EN nunca cuele una reimpresión posterior. Auditado el gap
+temporal entre las dos ediciones de los 667 swaps ya aceptados (consistencia +
+tope de 100€): salto claro entre 90 días (34% de los casos) y 120 días (11%);
+56 casos llegaban hasta 932 días de diferencia — mucho más compatible con
+"reimpresión no relacionada colada por casualidad" que con "misma edición,
+otro idioma". Nuevo `MAX_SWAP_GAP_DAYS = 180`: si las dos ediciones se
+catalogan con más de 6 meses de diferencia, no se hace swap y se mantiene la
+edición original (más antigua). Verificado: ST06-004 (gap de 932 días) vuelve
+a su precio original (0,30€) en vez del swap sospechoso (5€); Cavendish
+(gap ~3 meses, dentro del margen) sigue con el inglés correcto.
+
+Typecheck verde en ambos. `data/prices.json` y `app/src/data/prices.json`
+regenerados otra vez.)
+
+**Last updated (previous):** 2026-08-04 (5) (**Precios en tiempo real desde el CDN, sin releases de la app**.
 El usuario preguntó si convenía mover esto a Supabase para poder actualizar a
 diario "sin estar haciendo pushes". Diagnóstico: el problema real no era el
 push en sí — era que `prices.json` se importaba de forma **estática** en el
