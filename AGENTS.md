@@ -3,7 +3,36 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-08-04 (3) (**Cardmarket price scraper — bug de idioma encontrado y corregido**.
+**Last updated:** 2026-08-04 (4) (**Cardmarket price scraper — riesgo de "alters"/parallels mal
+emparejados, encontrado y corregido**. El usuario preguntó explícitamente si el
+emparejamiento tenía en cuenta alters/variantes, no solo idioma — pregunta muy
+justificada: auditado contra el catálogo completo y **13 de 59 códigos con 3+
+variantes en la misma edición** (P-001, OP13-118/119/120, OP02-013, ST01-007...)
+salían con el precio en un orden que NO coincidía con Normal→Parallel→Parallel2→
+alter de nuestro índice — el emparejamiento por posición (1er producto de
+Cardmarket = Normal, 2o = Parallel...) asume que el orden `idProduct` de
+Cardmarket coincide con el orden de rareza del índice, y no siempre es así
+cuando hay un "SP CARD" (alt-art/manga) mezclado con los parallels normales de
+la misma edición. Mitigado en `match_products_to_variants()`: si los precios
+del grupo (en el orden idProduct) no son NO DECRECIENTES, se descarta todo el
+grupo salvo el primer producto (la Normal, que es fiable independientemente
+del orden interno del resto) — las demás variantes de ese código se quedan sin
+precio real en vez de arriesgar una asignación cruzada. Bajó la cobertura de
+3387 a 3289 `idProduct` emparejados (~3%), a cambio de cero violaciones de
+orden verificadas. **Bug adicional encontrado de paso**: `build_prices()`
+partía de `dict(existing)` y solo sobreescribía las claves tocadas por el
+mapping actual — cualquier variante que una corrida anterior hubiese
+emparejado mal (o que la nueva lógica decida ya no tocar) se quedaba con el
+precio viejo para siempre. Reescrito para reconstruir low/trend/updated desde
+cero en cada corrida a partir del mapping actual; solo `product_url` se
+conserva de `existing`. Verificado en vivo contra el feed real: OP02-013
+pasa de (39.99, **1**, 1600) — el 1€ intermedio era imposible de fiar — a solo
+Normal=39.99€, con `_p1`/`_p2` cayendo al estimado por rareza. Cavendish,
+Hancock y Zoro (casos de la entrada anterior) siguen correctos. Typecheck
+verde. `data/prices.json` y `app/src/data/prices.json` regenerados otra vez.
+Ver la entrada de abajo para el bug de idioma que motivó todo esto.)
+
+**Last updated (previous):** 2026-08-04 (3) (**Cardmarket price scraper — bug de idioma encontrado y corregido**.
 El usuario detectó a ojo que el precio de Cavendish EB01-012 no cuadraba y
 sospechó un problema de idiomas; se confirmó con una captura suya del sitio
 (10 versiones del mismo código: EB01 inglés vs EB01-JP no-inglés, The Best

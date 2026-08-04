@@ -193,6 +193,27 @@ def match_products_to_variants(products, variants_by_code, price_by_id):
 
         base_group = sorted(by_expansion[base_expansion], key=lambda p: p["idProduct"])
 
+        # Emparejar por POSICION (1er producto = Normal, 2o = Parallel, ...)
+        # asume que el orden idProduct de Cardmarket coincide con el orden de
+        # rareza de nuestro indice. Es cierto casi siempre, pero no cuando la
+        # edicion incluye un "alter" (SP CARD / manga rara) mezclado con los
+        # parallels normales: auditado contra el catalogo completo y ~1 de
+        # cada 5 codigos con 3+ variantes en la misma edicion NO sale con el
+        # precio subiendo en el mismo orden que nuestras variantes (ver
+        # AGENTS.md). Sin verificacion, eso significa que un alter carisimo
+        # podria terminar puesto en la Normal, o al reves.
+        #
+        # Mitigacion: si los precios del grupo, en ese orden, no son NO
+        # DECRECIENTES (Normal <= Parallel <= Parallel2 <= ...), no confiamos
+        # en la posicion mas alla del primer producto -- se descarta el resto
+        # del grupo y esas variantes se quedan sin precio real (caen al
+        # estimado por rareza) en vez de arriesgar una asignacion cruzada.
+        group_prices = _ordered_prices(base_group, price_by_id)
+        if len(base_group) >= 2 and any(
+            group_prices[i] > group_prices[i + 1] for i in range(len(group_prices) - 1)
+        ):
+            base_group = base_group[:1]
+
         suffixes = variants_by_code[code]
         for product, suffix in zip(base_group, suffixes):
             mapping[product["idProduct"]] = (code, suffix)
@@ -202,32 +223,44 @@ def match_products_to_variants(products, variants_by_code, price_by_id):
 
 
 def build_prices(mapping, price_guide, existing):
+    """
+    NO se parte de `dict(existing)` y se sobreescribe solo lo nuevo -- eso
+    dejaba low/trend viejos (de una version anterior del emparejamiento, o
+    directamente incorrectos) pegados para siempre en cualquier variante que
+    el emparejamiento actual decida NO tocar. Se reconstruye low/trend/updated
+    desde cero en cada corrida a partir de `mapping`; lo unico que se
+    conserva de `existing` es `product_url` (lo aporta build_prices.py, no
+    este script).
+    """
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    prices = dict(existing)  # conserva product_url ya conocido de scrapes anteriores
+    price_by_id = {entry["idProduct"]: entry for entry in price_guide}
+
+    target_for_key = {}
+    for id_product, (code, suffix) in mapping.items():
+        target_for_key[f"{code}{suffix}"] = id_product
+
+    prices = {}
     matched, priced = 0, 0
+    for key in set(existing) | set(target_for_key):
+        entry = {}
+        product_url = existing.get(key, {}).get("product_url")
+        if product_url:
+            entry["product_url"] = product_url
 
-    for entry in price_guide:
-        id_product = entry.get("idProduct")
-        target = mapping.get(id_product)
-        if not target:
-            continue
-        code, suffix = target
-        key = f"{code}{suffix}"
-        matched += 1
+        id_product = target_for_key.get(key)
+        if id_product is not None:
+            price_entry = price_by_id.get(id_product)
+            if price_entry:
+                matched += 1
+                low, trend = price_entry.get("low"), price_entry.get("trend")
+                if low is not None or trend is not None:
+                    priced += 1
+                    entry["low"] = low
+                    entry["trend"] = trend
+                    entry["updated"] = today
 
-        low   = entry.get("low")
-        trend = entry.get("trend")
-        if low is None and trend is None:
-            continue
-        priced += 1
-
-        prev = prices.get(key, {})
-        prices[key] = {
-            **prev,
-            "low":     low,
-            "trend":   trend,
-            "updated": today,
-        }
+        if entry:
+            prices[key] = entry
 
     return prices, matched, priced
 
