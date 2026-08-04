@@ -3,7 +3,51 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-08-04 (4) (**Cardmarket price scraper — riesgo de "alters"/parallels mal
+**Last updated:** 2026-08-04 (5) (**Precios en tiempo real desde el CDN, sin releases de la app**.
+El usuario preguntó si convenía mover esto a Supabase para poder actualizar a
+diario "sin estar haciendo pushes". Diagnóstico: el problema real no era el
+push en sí — era que `prices.json` se importaba de forma **estática** en el
+bundle (`import rawPrices from '../data/prices.json'`), así que aunque el CI
+metiera datos nuevos en el repo a diario, nadie los veía hasta el siguiente
+build de la app. `data/index.json` YA tenía resuelto este mismo problema
+(`lib/remoteIndex.ts`, comprueba el CDN de jsDelivr al arrancar) — se
+extendió el mismo patrón a precios en vez de meter Supabase (que además
+tiene el riesgo ya conocido de auto-pausa en el tier free, mal encaje para
+"datos de solo lectura iguales para todos").
+
+- **`lib/prices.ts`** — `PRICE_MAP`/`PRICES_META` pasan de `const` a `let`
+  (bindings vivos de ESM, mismo patrón que `CARDS` en `data/loadIndex.ts`) +
+  nueva `applyPricesPayload()` que las reasigna in situ. Todas las funciones
+  ya leían `PRICE_MAP[...]` dentro del cuerpo, no al importar, así que
+  cualquier pantalla que ya use `getPrice`/`getLowPrice`/etc. ve el precio
+  nuevo sin tocarla.
+- **Nuevo `lib/remotePrices.ts`** (`checkForPriceUpdate()`, llamado desde
+  `App.tsx` junto a `checkForUpdate()`) — a diferencia de `remoteIndex.ts`,
+  NO pide confirmación al usuario: un refresco de precios es solo reemplazar
+  números, así que se aplica solo en segundo plano. Dos pasos: (1) si hay un
+  payload cacheado en AsyncStorage más nuevo que el bundleado, se aplica
+  antes de tocar la red; (2) fetch a `${DATA_BASE_URL}/prices.json`, y si es
+  más nuevo (`generated` > el actual) y pasa el mismo umbral de 500 entradas
+  que usa el `verify` de CI, se aplica y se cachea para el próximo arranque.
+  Fallo silencioso en cualquier punto — el bundleado sigue sirviendo.
+- **Verificado en vivo, no solo compilado**: inyecté un payload falso en
+  `localStorage['optcg.remotePrices.v1']` con Cavendish a 999,99€ y recargué
+  — la pantalla de detalle pasó de €1,87 a **€999,99** sin ningún cambio de
+  código, confirmando que el binding vivo + `applyPricesPayload` funcionan de
+  verdad. Limpiado después; vuelve a €1,87.
+- **`.github/workflows/refresh-data.yml`** — el job `prices` ya NO abre PR:
+  si `verify` pasa, commitea y pushea `data/prices.json` +
+  `app/src/data/prices.json` directo a `main` (`permissions: contents: write`
+  ya estaba en el workflow). El job `catalog` sigue abriendo PR — ese sí
+  merece revisión humana (un cambio de maquetación en el sitio oficial se
+  manifiesta como cartas que desaparecen, no como una excepción). Trade-off
+  explícito: precios pierde el diff-antes-de-usuarios que tenía; se acepta
+  porque ya tiene su propio gate (umbral de entradas + heurística de
+  emparejamiento auditada en las dos entradas de abajo) y porque los precios
+  son de bajo riesgo comparados con el catálogo.
+- Typecheck verde. No se tocó Supabase para nada de esto.
+
+**Last updated (previous):** 2026-08-04 (4) (**Cardmarket price scraper — riesgo de "alters"/parallels mal
 emparejados, encontrado y corregido**. El usuario preguntó explícitamente si el
 emparejamiento tenía en cuenta alters/variantes, no solo idioma — pregunta muy
 justificada: auditado contra el catálogo completo y **13 de 59 códigos con 3+
@@ -123,7 +167,7 @@ precio. Typecheck verde, **nada verificado en dispositivo**. Ver la entrada
 fechada de abajo.)
 
 **Last updated (older):** 2026-07-30 (**Scan action-sheet** — replaced the scanner's silent auto-add-to-collection with a post-match action sheet: view profile / add to deck / add to collection (qty stepper) / open Cardmarket price. Typecheck-green, **not yet device-verified** — device was disconnected mid-session, user asked to keep developing without testing for now. See dated entry below.)
-**Current branch:** `feature/theme-perona-palette`
+**Current branch:** `price-tracking`
 **App version:** 0.1.0 (pre-release)
 
 ---

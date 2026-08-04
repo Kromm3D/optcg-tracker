@@ -48,6 +48,7 @@ import { ToastProvider }    from './src/components/Toast';
 import { colors, fonts, pressedStyle, HIT_SLOP } from './src/theme';
 import { useT }             from './src/lib/i18n';
 import { checkForUpdate, getPendingUpdate, subscribe as subRemoteIndex } from './src/lib/remoteIndex';
+import { checkForPriceUpdate } from './src/lib/remotePrices';
 import { initPriceHistory } from './src/lib/priceHistory';
 import { MAX_CONTENT_WIDTH } from './src/lib/layout';
 import type { TKey }        from './src/i18n/en';
@@ -267,6 +268,7 @@ export default function App() {
   useEffect(() => {
     if (fontsLoaded) {
       checkForUpdate();
+      void checkForPriceUpdate();
       void initPriceHistory();
     }
   }, [fontsLoaded]);

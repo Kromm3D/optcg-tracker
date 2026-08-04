@@ -1,26 +1,26 @@
 // Precios de mercado de cartas One Piece TCG.
 //
-// Fuente primaria: data/prices.json generado por scripts/build_prices.py
-// (scrapea Cardmarket, se actualiza semanalmente y se sirve via jsDelivr CDN).
+// Fuente primaria: data/prices.json generado por scripts/build_prices_bulk.py
+// (feed publico de Cardmarket, se actualiza a diario y se sirve via jsDelivr CDN).
 //
 // Fallback: estimacion por rareza cuando la carta no tiene precio real cargado.
 
 import type { Card } from '../types';
 
 // ---------------------------------------------------------------------------
-// Carga del fichero de precios (generado por build_prices.py)
+// Carga del fichero de precios (generado por build_prices_bulk.py)
 // ---------------------------------------------------------------------------
 
-interface PriceEntry {
+export interface PriceEntry {
   product_url?: string;
   updated?: string;
-  // Campos legacy — nunca escritos por build_prices.py pero tolerados para
-  // compatibilidad con entradas antiguas que pudiera tener el usuario.
+  // Campos legacy — nunca escritos por build_prices_bulk.py pero tolerados
+  // para compatibilidad con entradas antiguas que pudiera tener el usuario.
   trend?: number | null;
   low?: number | null;
 }
 
-interface PricesPayload {
+export interface PricesPayload {
   generated: string;
   source: string;
   currency: string;
@@ -31,17 +31,35 @@ interface PricesPayload {
 // @ts-ignore - evita que tsc infiera el tipo literal del JSON enorme
 import rawPrices from '../data/prices.json';
 
-const _payload = rawPrices as PricesPayload;
-
-/** Mapa variant_key -> { trend, low } cargado desde prices.json. */
-const PRICE_MAP: Record<string, PriceEntry> = _payload.prices ?? {};
+// `let` (bindings vivos de ESM), no `const`: lib/remotePrices.ts reasigna
+// esto in situ cuando encuentra un prices.json mas nuevo en el CDN. Los
+// modulos que hacen `import { PRICE_MAP... }`-style y leen el valor en el
+// momento de uso (no lo destructuran al importar) ven el cambio solos — de
+// ahi que todas las funciones de abajo lean `PRICE_MAP[...]` dentro del
+// cuerpo de la funcion, nunca en una constante capturada al importar.
+let PRICE_MAP: Record<string, PriceEntry> = (rawPrices as PricesPayload).prices ?? {};
 
 /** Metadatos del fichero de precios (para mostrar "actualizado el ..."). */
-export const PRICES_META = {
-  generated: _payload.generated ?? '',
-  source: _payload.source ?? '',
-  fetched: _payload.fetched ?? 0,
+export let PRICES_META = {
+  generated: (rawPrices as PricesPayload).generated ?? '',
+  source: (rawPrices as PricesPayload).source ?? '',
+  fetched: (rawPrices as PricesPayload).fetched ?? 0,
 };
+
+/**
+ * Aplica un payload de precios (descargado del CDN) in situ, reemplazando
+ * PRICE_MAP/PRICES_META. Ver lib/remotePrices.ts — a diferencia del indice de
+ * cartas, un refresco de precios es de bajo riesgo y se aplica sin pedir
+ * confirmacion al usuario.
+ */
+export function applyPricesPayload(payload: PricesPayload): void {
+  PRICE_MAP = payload.prices ?? {};
+  PRICES_META = {
+    generated: payload.generated ?? '',
+    source: payload.source ?? '',
+    fetched: payload.fetched ?? 0,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Estimacion de fallback por rareza

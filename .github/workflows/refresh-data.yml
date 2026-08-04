@@ -3,14 +3,21 @@
 # Por qué existe: `data/index.json` y `data/prices.json` se sirven por jsDelivr
 # desde este repo, así que hasta ahora un set nuevo o un precio movido exigían
 # que alguien se acordase de correr los scripts a mano. Este workflow lo hace
-# solo y abre un PR — nunca empuja a `main` directamente, porque los datos
-# scrapeados pueden salir mal (un cambio de HTML en origen, Cloudflare) y eso
-# debe verse en un diff antes de llegar a los usuarios.
+# solo.
 #
-# Dos jobs deliberadamente separados: el catálogo se scrapea del sitio oficial
-# y es fiable; los precios van contra Cardmarket, que tiene Cloudflare delante
-# y puede bloquear a un runner de CI. Que fallen los precios no debe impedir
-# que entre un set nuevo.
+# Dos jobs deliberadamente separados, y con distinta política de publicación:
+#   - catalog: abre un PR, nunca empuja a `main` directamente. El catálogo se
+#     scrapea del sitio oficial; un cambio de maquetación ahí se manifiesta
+#     como cartas que desaparecen o campos vacíos, no como una excepción, así
+#     que merece un diff visible antes de llegar a los usuarios.
+#   - prices: empuja a `main` directamente si pasa el paso `verify`. Los
+#     precios ya tienen su propio gate específico en Python (umbral de
+#     entradas + heurística de emparejamiento auditada, ver
+#     scripts/build_prices_bulk.py) y `lib/remotePrices.ts` los aplica en la
+#     app sin pedir confirmación al usuario — un PR pendiente de aprobar a
+#     diario era justo la fricción que se quería quitar. Que fallen los
+#     precios no debe impedir que entre un set nuevo (por eso van en jobs
+#     separados) ni bloquearse esperando una revisión manual.
 
 name: Refresh card data
 
@@ -203,18 +210,18 @@ jobs:
               print('Muy pocas entradas con precio — se descarta el resultado'); sys.exit(1)
           PY
 
-      - name: Open PR if prices moved
+      - name: Commit and push prices if they moved
+        # Directo a `main`, sin PR — ver el comentario de cabecera. `git diff
+        # --quiet` decide si hay algo que commitear; sin cambios (mismo precio
+        # que ayer) no se crea un commit vacío.
         if: steps.verify.outcome == 'success'
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: data/price-refresh
-          commit-message: 'chore(data): refresh Cardmarket prices'
-          title: 'chore(data): refresh Cardmarket prices'
-          body: |
-            Refresco automático de precios desde Cardmarket.
-
-            Al mergear esto, `lib/priceHistory.ts` toma el fichero anterior como
-            referencia y los deltas de precio de las tiles pasan a ser reales.
-          add-paths: |
-            data/prices.json
-            app/src/data/prices.json
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/prices.json app/src/data/prices.json
+          if git diff --cached --quiet; then
+            echo "Sin cambios en los precios."
+          else
+            git commit -m 'chore(data): refresh Cardmarket prices'
+            git push
+          fi
