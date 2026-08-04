@@ -1,20 +1,20 @@
 {
-  "generated": "2026-08-04T18:17:33Z",
+  "generated": "2026-08-04T19:04:20Z",
   "source": "cardmarket.com/en/OnePiece (bulk price guide, idGame=18)",
   "currency": "EUR",
   "fetched": 3384,
   "prices": {
     "EB03-001": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.11,
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nefeltari-Vivi-EB03-001-V1",
       "updated": "2026-08-04"
     },
     "EB03-001_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Nefeltari-Vivi-EB03-001-V2",
       "updated": "2026-08-04",
-      "low": 2.5,
-      "trend": 4.62
+      "low": 4.5,
+      "trend": 7.49
     },
     "EB03-002": {
       "low": 0.02,
@@ -68,11 +68,11 @@
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Hibari-EB03-008-V1",
       "updated": "2026-08-04",
       "low": 0.02,
-      "trend": 0.07
+      "trend": 0.17
     },
     "EB03-008_p1": {
-      "low": 3.99,
-      "trend": 4.57,
+      "low": 6.5,
+      "trend": 8.45,
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Hibari-EB03-008-V2",
       "updated": "2026-08-04"
     },
@@ -290,11 +290,11 @@
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Charlotte-Linlin-EB03-034-V1",
       "updated": "2026-08-04",
       "low": 0.02,
-      "trend": 0.09
+      "trend": 0.43
     },
     "EB03-034_p1": {
-      "low": 5,
-      "trend": 6.18,
+      "low": 8.99,
+      "trend": 15.09,
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Charlotte-Linlin-EB03-034-V2",
       "updated": "2026-08-04"
     },
@@ -338,11 +338,11 @@
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Kujyaku-EB03-041-V1",
       "updated": "2026-08-04",
       "low": 0.02,
-      "trend": 0.11
+      "trend": 0.22
     },
     "EB03-041_p1": {
-      "low": 3.5,
-      "trend": 4.78,
+      "low": 5,
+      "trend": 8.33,
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Kujyaku-EB03-041-V2",
       "updated": "2026-08-04"
     },
@@ -488,11 +488,11 @@
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Yamato-EB03-057-V1",
       "updated": "2026-08-04",
       "low": 0.02,
-      "trend": 0.13
+      "trend": 0.37
     },
     "EB03-057_p1": {
-      "low": 6.9,
-      "trend": 9.17,
+      "low": 10,
+      "trend": 12.86,
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Yamato-EB03-057-V2",
       "updated": "2026-08-04"
     },
@@ -535,26 +535,26 @@
     "EB03-062": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Trafalgar-Law-EB03-062-V1",
       "updated": "2026-08-04",
-      "low": 3,
-      "trend": 4.28
+      "low": 9,
+      "trend": 10.03
     },
     "EB03-062_p1": {
-      "low": 8.99,
-      "trend": 10.56,
+      "low": 18.9,
+      "trend": 20.19,
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Heroines-Edition/Trafalgar-Law-EB03-062-V2",
       "updated": "2026-08-04"
     },
     "EB01-056": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Charlotte-Flampe-EB01-056-V1",
       "updated": "2026-08-04",
-      "low": 0.02,
-      "trend": 0.15
+      "low": 0.74,
+      "trend": 2.24
     },
     "EB01-022": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Inazuma-EB01-022-V1",
       "updated": "2026-08-04",
-      "low": 0.05,
-      "trend": 0.47
+      "low": 0.08,
+      "trend": 0.87
     },
     "EB01-006": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Tony-TonyChopper-EB01-006-V1",
@@ -571,8 +571,8 @@
     "EB01-012": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Cavendish-EB01-012-V1",
       "updated": "2026-08-04",
-      "low": 0.02,
-      "trend": 0.12
+      "low": 0.9,
+      "trend": 1.87
     },
     "EB01-027": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Mr1DazBonez-EB01-027-V1",
@@ -584,55 +584,55 @@
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/T-Bone-EB01-049-V1",
       "updated": "2026-08-04",
       "low": 0.02,
-      "trend": 0.12
+      "trend": 0.48
     },
     "EB01-013": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Kouzuki-Hiyori-EB01-013-V1",
       "updated": "2026-08-04",
-      "low": 0.02,
-      "trend": 0.19
+      "low": 0.1,
+      "trend": 2.63
     },
     "EB01-021_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Hannyabal-EB01-021-V2",
       "updated": "2026-08-04",
-      "low": 3.9,
-      "trend": 5.71
+      "low": 16,
+      "trend": 16.86
     },
     "EB01-021": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Hannyabal-EB01-021-V1",
       "updated": "2026-08-04",
       "low": 0.02,
-      "trend": 0.12
+      "trend": 0.06
     },
     "EB01-061": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Mr2BonKureiBentham-EB01-061-V1",
       "updated": "2026-08-04",
-      "low": 0.5,
-      "trend": 1.04
+      "low": 8,
+      "trend": 9.55
     },
     "EB01-046": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Brook-EB01-046-V1",
       "updated": "2026-08-04",
-      "low": 0.1,
-      "trend": 0.02
+      "low": 0.15,
+      "trend": 0.46
     },
     "EB01-048_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Laboon-EB01-048-V2",
       "updated": "2026-08-04",
-      "low": 14.95,
-      "trend": 16.79
+      "low": 39.99,
+      "trend": 56.53
     },
     "EB01-034": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Ms-Wednesday-EB01-034-V1",
       "updated": "2026-08-04",
-      "low": 0.15,
-      "trend": 0.81
+      "low": 0.24,
+      "trend": 1.27
     },
     "EB01-001": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Kouzuki-Oden-EB01-001-V1",
       "updated": "2026-08-04",
       "low": 0.02,
-      "trend": 0.18
+      "trend": 0.06
     },
     "EB01-006_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Tony-TonyChopper-EB01-006-V2",
@@ -644,13 +644,13 @@
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Kyros-EB01-040-V1",
       "updated": "2026-08-04",
       "low": 0.02,
-      "trend": 0.16
+      "trend": 0.09
     },
     "EB01-052": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Viola-EB01-052-V1",
       "updated": "2026-08-04",
-      "low": 0.35,
-      "trend": 0.32
+      "low": 1.5,
+      "trend": 3.24
     },
     "EB01-057": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Shirahoshi-EB01-057-V1",
@@ -662,19 +662,19 @@
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Kalifa-EB01-031-V1",
       "updated": "2026-08-04",
       "low": 0.02,
-      "trend": 0.1
+      "trend": 0.06
     },
     "EB01-048": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Laboon-EB01-048-V1",
       "updated": "2026-08-04",
-      "low": 0.02,
-      "trend": 0.18
+      "low": 0.2,
+      "trend": 0.7
     },
     "EB01-034_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Ms-Wednesday-EB01-034-V2",
       "updated": "2026-08-04",
-      "low": 4,
-      "trend": 5.14
+      "low": 5,
+      "trend": 7.48
     },
     "EB01-003_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Kid-Killer-EB01-003-V2",
@@ -685,26 +685,26 @@
     "EB01-056_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Charlotte-Flampe-EB01-056-V2",
       "updated": "2026-08-04",
-      "low": 5.15,
-      "trend": 7.59
+      "low": 9,
+      "trend": 13.04
     },
     "EB01-046_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Brook-EB01-046-V2",
       "updated": "2026-08-04",
-      "low": 9.5,
-      "trend": 9.73
+      "low": 16,
+      "trend": 18.59
     },
     "EB01-012_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Cavendish-EB01-012-V2",
       "updated": "2026-08-04",
-      "low": 3.25,
-      "trend": 3.87
+      "low": 15,
+      "trend": 19.49
     },
     "EB01-022_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Inazuma-EB01-022-V2",
       "updated": "2026-08-04",
-      "low": 1,
-      "trend": 3.7
+      "low": 3.7,
+      "trend": 4.68
     },
     "EB01-027_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Mr1DazBonez-EB01-027-V2",
@@ -715,38 +715,38 @@
     "EB01-013_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Kouzuki-Hiyori-EB01-013-V2",
       "updated": "2026-08-04",
-      "low": 4.49,
-      "trend": 6.11
+      "low": 16.9,
+      "trend": 23.52
     },
     "EB01-001_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Kouzuki-Oden-EB01-001-V2",
       "updated": "2026-08-04",
-      "low": 11.95,
-      "trend": 15.9
+      "low": 42,
+      "trend": 41.01
     },
     "EB01-049_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/T-Bone-EB01-049-V2",
       "updated": "2026-08-04",
-      "low": 1.8,
-      "trend": 2.82
+      "low": 3.45,
+      "trend": 4.65
     },
     "EB01-061_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Mr2BonKureiBentham-EB01-061-V2",
       "updated": "2026-08-04",
-      "low": 21.5,
-      "trend": 22.58
+      "low": 65,
+      "trend": 80.63
     },
     "EB01-031_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Kalifa-EB01-031-V2",
       "updated": "2026-08-04",
-      "low": 2,
-      "trend": 3.56
+      "low": 2.4,
+      "trend": 3.79
     },
     "EB01-040_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Kyros-EB01-040-V2",
       "updated": "2026-08-04",
-      "low": 6.5,
-      "trend": 7.77
+      "low": 11.19,
+      "trend": 24.25
     },
     "EB01-057_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Shirahoshi-EB01-057-V2",
@@ -757,8 +757,8 @@
     "EB01-052_p1": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Viola-EB01-052-V2",
       "updated": "2026-08-04",
-      "low": 4,
-      "trend": 6.78
+      "low": 7.5,
+      "trend": 8.41
     },
     "EB01-006_p2": {
       "product_url": "https://www.cardmarket.com/en/OnePiece/Products/Singles/Memorial-Collection/Tony-TonyChopper-EB01-006-V3",
@@ -827,8 +827,8 @@
       "updated": "2026-08-04"
     },
     "OP01-005": {
-      "low": 0.02,
-      "trend": 0.21,
+      "low": 4.5,
+      "trend": 6.55,
       "updated": "2026-08-04"
     },
     "OP01-006_p1": {
@@ -877,13 +877,13 @@
       "updated": "2026-08-04"
     },
     "OP01-014": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 3.85,
+      "trend": 5.87,
       "updated": "2026-08-04"
     },
     "OP01-015": {
-      "low": 0.02,
-      "trend": 0.17,
+      "low": 0.15,
+      "trend": 0.46,
       "updated": "2026-08-04"
     },
     "OP01-016": {
@@ -897,8 +897,8 @@
       "updated": "2026-08-04"
     },
     "OP01-017": {
-      "low": 0.02,
-      "trend": 0.26,
+      "low": 40,
+      "trend": 53.15,
       "updated": "2026-08-04"
     },
     "OP01-018": {
@@ -912,8 +912,8 @@
       "updated": "2026-08-04"
     },
     "OP01-020": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.05,
+      "trend": 0.24,
       "updated": "2026-08-04"
     },
     "OP01-021": {
@@ -922,8 +922,8 @@
       "updated": "2026-08-04"
     },
     "OP01-022": {
-      "low": 0.02,
-      "trend": 0.13,
+      "low": 4,
+      "trend": 7.66,
       "updated": "2026-08-04"
     },
     "OP01-023": {
@@ -952,28 +952,28 @@
       "updated": "2026-08-04"
     },
     "OP01-026": {
-      "low": 0.5,
-      "trend": 0.85,
+      "low": 0.7,
+      "trend": 1.21,
       "updated": "2026-08-04"
     },
     "OP01-027": {
-      "low": 0.02,
-      "trend": 0.21,
+      "low": 0.1,
+      "trend": 0.31,
       "updated": "2026-08-04"
     },
     "OP01-028": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.09,
+      "trend": 0.29,
       "updated": "2026-08-04"
     },
     "OP01-029": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 2.74,
+      "trend": 2.96,
       "updated": "2026-08-04"
     },
     "OP01-030": {
-      "low": 0.02,
-      "trend": 0.4,
+      "low": 0.19,
+      "trend": 0.45,
       "updated": "2026-08-04"
     },
     "OP01-031": {
@@ -997,18 +997,18 @@
       "updated": "2026-08-04"
     },
     "OP01-034": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.05,
+      "trend": 0.22,
       "updated": "2026-08-04"
     },
     "OP01-034_p1": {
-      "low": 2.99,
-      "trend": 3.66,
+      "low": 12.99,
+      "trend": 26.61,
       "updated": "2026-08-04"
     },
     "OP01-035": {
-      "low": 0.02,
-      "trend": 0.12,
+      "low": 0.44,
+      "trend": 1.08,
       "updated": "2026-08-04"
     },
     "OP01-036": {
@@ -1022,33 +1022,33 @@
       "updated": "2026-08-04"
     },
     "OP01-038": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.05,
+      "trend": 0.36,
       "updated": "2026-08-04"
     },
     "OP01-039": {
-      "low": 0.02,
-      "trend": 0.23,
+      "low": 0.23,
+      "trend": 1.22,
       "updated": "2026-08-04"
     },
     "OP01-040": {
-      "low": 0.49,
-      "trend": 1.08,
+      "low": 1.95,
+      "trend": 3.42,
       "updated": "2026-08-04"
     },
     "OP01-040_p1": {
-      "low": 4.4,
-      "trend": 10.51,
+      "low": 26,
+      "trend": 39.02,
       "updated": "2026-08-04"
     },
     "OP01-041": {
-      "low": 0.02,
-      "trend": 0.18,
+      "low": 1.1,
+      "trend": 0.02,
       "updated": "2026-08-04"
     },
     "OP01-042": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.1,
+      "trend": 0.2,
       "updated": "2026-08-04"
     },
     "OP01-043": {
@@ -1057,8 +1057,8 @@
       "updated": "2026-08-04"
     },
     "OP01-044": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.05,
+      "trend": 0.21,
       "updated": "2026-08-04"
     },
     "OP01-045": {
@@ -1082,23 +1082,23 @@
       "updated": "2026-08-04"
     },
     "OP01-048": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.05,
+      "trend": 0.27,
       "updated": "2026-08-04"
     },
     "OP01-048_p1": {
-      "low": 3.9,
-      "trend": 4.13,
+      "low": 14.99,
+      "trend": 26.89,
       "updated": "2026-08-04"
     },
     "OP01-049": {
-      "low": 0.02,
-      "trend": 0.19,
+      "low": 0.2,
+      "trend": 0.61,
       "updated": "2026-08-04"
     },
     "OP01-050": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.09,
+      "trend": 0.25,
       "updated": "2026-08-04"
     },
     "OP01-051": {
@@ -1112,8 +1112,8 @@
       "updated": "2026-08-04"
     },
     "OP01-052": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.1,
+      "trend": 0.58,
       "updated": "2026-08-04"
     },
     "OP01-053": {
@@ -1122,8 +1122,8 @@
       "updated": "2026-08-04"
     },
     "OP01-054": {
-      "low": 0.02,
-      "trend": 0.37,
+      "low": 0.3,
+      "trend": 0.55,
       "updated": "2026-08-04"
     },
     "OP01-055": {
@@ -1132,23 +1132,23 @@
       "updated": "2026-08-04"
     },
     "OP01-056": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.1,
+      "trend": 0.2,
       "updated": "2026-08-04"
     },
     "OP01-057": {
-      "low": 0.1,
-      "trend": 0.75,
+      "low": 2,
+      "trend": 2.51,
       "updated": "2026-08-04"
     },
     "OP01-058": {
-      "low": 0.02,
-      "trend": 0.51,
+      "low": 0.75,
+      "trend": 0.84,
       "updated": "2026-08-04"
     },
     "OP01-059": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.07,
+      "trend": 0.19,
       "updated": "2026-08-04"
     },
     "OP01-060": {
@@ -1182,8 +1182,8 @@
       "updated": "2026-08-04"
     },
     "OP01-063": {
-      "low": 0.02,
-      "trend": 0.11,
+      "low": 0.1,
+      "trend": 0.17,
       "updated": "2026-08-04"
     },
     "OP01-064": {
@@ -1222,8 +1222,8 @@
       "updated": "2026-08-04"
     },
     "OP01-069": {
-      "low": 0.02,
-      "trend": 0.16,
+      "low": 0.1,
+      "trend": 0.22,
       "updated": "2026-08-04"
     },
     "OP01-070_p1": {
@@ -1237,8 +1237,8 @@
       "updated": "2026-08-04"
     },
     "OP01-071": {
-      "low": 0.02,
-      "trend": 0.14,
+      "low": 0.19,
+      "trend": 0.51,
       "updated": "2026-08-04"
     },
     "OP01-072": {
@@ -1257,8 +1257,8 @@
       "updated": "2026-08-04"
     },
     "OP01-074": {
-      "low": 0.02,
-      "trend": 0.16,
+      "low": 0.25,
+      "trend": 0.55,
       "updated": "2026-08-04"
     },
     "OP01-075": {
@@ -1292,8 +1292,8 @@
       "updated": "2026-08-04"
     },
     "OP01-079": {
-      "low": 0.02,
-      "trend": 0.3,
+      "low": 9,
+      "trend": 11.94,
       "updated": "2026-08-04"
     },
     "OP01-080": {
@@ -1317,38 +1317,38 @@
       "updated": "2026-08-04"
     },
     "OP01-084": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 10,
+      "trend": 12.44,
       "updated": "2026-08-04"
     },
     "OP01-085": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 0.1,
+      "trend": 0.25,
       "updated": "2026-08-04"
     },
     "OP01-086": {
-      "low": 0.02,
-      "trend": 0.19,
+      "low": 0.2,
+      "trend": 0.29,
       "updated": "2026-08-04"
     },
     "OP01-087": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.09,
+      "trend": 0.17,
       "updated": "2026-08-04"
     },
     "OP01-088": {
-      "low": 0.02,
-      "trend": 0.63,
+      "low": 0.2,
+      "trend": 0.41,
       "updated": "2026-08-04"
     },
     "OP01-089": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.05,
+      "trend": 0.22,
       "updated": "2026-08-04"
     },
     "OP01-090": {
-      "low": 0.02,
-      "trend": 0.13,
+      "low": 0.1,
+      "trend": 0.14,
       "updated": "2026-08-04"
     },
     "OP01-091": {
@@ -1412,8 +1412,8 @@
       "updated": "2026-08-04"
     },
     "OP01-098": {
-      "low": 0.02,
-      "trend": 0.13,
+      "low": 0.1,
+      "trend": 0.19,
       "updated": "2026-08-04"
     },
     "OP01-099": {
@@ -1422,13 +1422,13 @@
       "updated": "2026-08-04"
     },
     "OP01-100": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.2,
+      "trend": 0.47,
       "updated": "2026-08-04"
     },
     "OP01-101": {
-      "low": 0.02,
-      "trend": 0.19,
+      "low": 0.5,
+      "trend": 2.55,
       "updated": "2026-08-04"
     },
     "OP01-102": {
@@ -1457,8 +1457,8 @@
       "updated": "2026-08-04"
     },
     "OP01-106": {
-      "low": 0.02,
-      "trend": 0.17,
+      "low": 0.1,
+      "trend": 0.34,
       "updated": "2026-08-04"
     },
     "OP01-107": {
@@ -1467,8 +1467,8 @@
       "updated": "2026-08-04"
     },
     "OP01-108": {
-      "low": 0.02,
-      "trend": 0.14,
+      "low": 2.49,
+      "trend": 4.16,
       "updated": "2026-08-04"
     },
     "OP01-109": {
@@ -1492,13 +1492,13 @@
       "updated": "2026-08-04"
     },
     "OP01-112": {
-      "low": 0.02,
-      "trend": 0.21,
+      "low": 0.15,
+      "trend": 0.39,
       "updated": "2026-08-04"
     },
     "OP01-113": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.05,
+      "trend": 0.17,
       "updated": "2026-08-04"
     },
     "OP01-114": {
@@ -1512,13 +1512,13 @@
       "updated": "2026-08-04"
     },
     "OP01-116": {
-      "low": 0.02,
-      "trend": 0.13,
+      "low": 0.1,
+      "trend": 0.26,
       "updated": "2026-08-04"
     },
     "OP01-117": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.05,
+      "trend": 0.18,
       "updated": "2026-08-04"
     },
     "OP01-118": {
@@ -1527,8 +1527,8 @@
       "updated": "2026-08-04"
     },
     "OP01-119": {
-      "low": 0.45,
-      "trend": 1.11,
+      "low": 0.85,
+      "trend": 1.87,
       "updated": "2026-08-04"
     },
     "OP01-120": {
@@ -1632,13 +1632,13 @@
       "updated": "2026-08-04"
     },
     "ST01-010": {
-      "low": 0.99,
-      "trend": 3.82,
+      "low": 2.99,
+      "trend": 4.84,
       "updated": "2026-08-04"
     },
     "ST01-010_p1": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 70,
+      "trend": 114.82,
       "updated": "2026-08-04"
     },
     "ST01-011": {
@@ -1842,13 +1842,13 @@
       "updated": "2026-08-04"
     },
     "ST03-005": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.08,
+      "trend": 0.53,
       "updated": "2026-08-04"
     },
     "ST03-005_p1": {
-      "low": 3,
-      "trend": 6.24,
+      "low": 30,
+      "trend": 46.09,
       "updated": "2026-08-04"
     },
     "ST03-006": {
@@ -2152,8 +2152,8 @@
       "updated": "2026-08-04"
     },
     "P-016": {
-      "low": 0.49,
-      "trend": 1.26,
+      "low": 9.94,
+      "trend": 12.17,
       "updated": "2026-08-04"
     },
     "P-017": {
@@ -2182,8 +2182,8 @@
       "updated": "2026-08-04"
     },
     "P-022": {
-      "low": 3.49,
-      "trend": 6.99,
+      "low": 24.99,
+      "trend": 30.96,
       "updated": "2026-08-04"
     },
     "P-023": {
@@ -2232,8 +2232,8 @@
       "updated": "2026-08-04"
     },
     "ST05-004": {
-      "low": 0.39,
-      "trend": 0.8,
+      "low": 3.5,
+      "trend": 4.88,
       "updated": "2026-08-04"
     },
     "ST05-005": {
@@ -2252,8 +2252,8 @@
       "updated": "2026-08-04"
     },
     "ST05-008": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 1,
+      "trend": 3.5,
       "updated": "2026-08-04"
     },
     "ST05-009": {
@@ -2282,8 +2282,8 @@
       "updated": "2026-08-04"
     },
     "ST05-014": {
-      "low": 0.02,
-      "trend": 0.2,
+      "low": 1,
+      "trend": 2.04,
       "updated": "2026-08-04"
     },
     "ST05-015": {
@@ -2307,8 +2307,8 @@
       "updated": "2026-08-04"
     },
     "OP02-008": {
-      "low": 0.02,
-      "trend": 0.2,
+      "low": 0.8,
+      "trend": 1.29,
       "updated": "2026-08-04"
     },
     "OP02-002": {
@@ -2317,13 +2317,13 @@
       "updated": "2026-08-04"
     },
     "OP02-007": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 1.99,
+      "trend": 1.26,
       "updated": "2026-08-04"
     },
     "OP02-006": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 1.5,
+      "trend": 1.57,
       "updated": "2026-08-04"
     },
     "OP02-120": {
@@ -2332,8 +2332,8 @@
       "updated": "2026-08-04"
     },
     "OP02-010": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 1,
+      "trend": 1.41,
       "updated": "2026-08-04"
     },
     "OP02-011": {
@@ -2347,8 +2347,8 @@
       "updated": "2026-08-04"
     },
     "OP02-012": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.84,
+      "trend": 1.23,
       "updated": "2026-08-04"
     },
     "OP02-041": {
@@ -2357,8 +2357,8 @@
       "updated": "2026-08-04"
     },
     "OP02-003": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 2,
+      "trend": 2.22,
       "updated": "2026-08-04"
     },
     "OP02-004": {
@@ -2372,8 +2372,8 @@
       "updated": "2026-08-04"
     },
     "OP02-005": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.6,
+      "trend": 0.53,
       "updated": "2026-08-04"
     },
     "OP02-120_p1": {
@@ -2582,18 +2582,18 @@
       "updated": "2026-08-04"
     },
     "OP02-014": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.75,
+      "trend": 0.97,
       "updated": "2026-08-04"
     },
     "OP02-015": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 2.49,
+      "trend": 2.17,
       "updated": "2026-08-04"
     },
     "OP02-016": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 2.5,
+      "trend": 2.58,
       "updated": "2026-08-04"
     },
     "OP02-017_p1": {
@@ -2602,13 +2602,13 @@
       "updated": "2026-08-04"
     },
     "OP02-019": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.49,
+      "trend": 0.74,
       "updated": "2026-08-04"
     },
     "OP02-020": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.7,
+      "trend": 1.04,
       "updated": "2026-08-04"
     },
     "OP02-021": {
@@ -2617,18 +2617,18 @@
       "updated": "2026-08-04"
     },
     "OP02-022": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.9,
+      "trend": 1.55,
       "updated": "2026-08-04"
     },
     "OP02-023": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 1.4,
+      "trend": 1.87,
       "updated": "2026-08-04"
     },
     "OP02-024": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 9.5,
+      "trend": 9.75,
       "updated": "2026-08-04"
     },
     "OP02-025_p1": {
@@ -2642,18 +2642,18 @@
       "updated": "2026-08-04"
     },
     "OP02-027": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.19,
+      "trend": 0.59,
       "updated": "2026-08-04"
     },
     "OP02-028": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 4.5,
+      "trend": 5.12,
       "updated": "2026-08-04"
     },
     "OP02-029": {
-      "low": 0.02,
-      "trend": 0.28,
+      "low": 14.9,
+      "trend": 12.57,
       "updated": "2026-08-04"
     },
     "OP02-030_p1": {
@@ -2672,18 +2672,18 @@
       "updated": "2026-08-04"
     },
     "OP02-032": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 0.15,
+      "trend": 0.55,
       "updated": "2026-08-04"
     },
     "OP02-033": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 2.5,
+      "trend": 2.37,
       "updated": "2026-08-04"
     },
     "OP02-034": {
-      "low": 0.02,
-      "trend": 0.17,
+      "low": 45,
+      "trend": 21.13,
       "updated": "2026-08-04"
     },
     "OP02-036_p1": {
@@ -2692,23 +2692,23 @@
       "updated": "2026-08-04"
     },
     "OP02-037": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 25,
+      "trend": 25.06,
       "updated": "2026-08-04"
     },
     "OP02-038": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 1.3,
+      "trend": 2.59,
       "updated": "2026-08-04"
     },
     "OP02-039": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 2.99,
+      "trend": 2.76,
       "updated": "2026-08-04"
     },
     "OP02-040": {
-      "low": 0.02,
-      "trend": 0.17,
+      "low": 6,
+      "trend": 5.96,
       "updated": "2026-08-04"
     },
     "OP02-041_p1": {
@@ -2717,28 +2717,28 @@
       "updated": "2026-08-04"
     },
     "OP02-042": {
-      "low": 0.02,
-      "trend": 0.22,
+      "low": 14.99,
+      "trend": 27.93,
       "updated": "2026-08-04"
     },
     "OP02-043": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 90,
+      "trend": 30.67,
       "updated": "2026-08-04"
     },
     "OP02-044": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 1,
+      "trend": 1.57,
       "updated": "2026-08-04"
     },
     "OP02-045": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 1.2,
+      "trend": 1.92,
       "updated": "2026-08-04"
     },
     "OP02-046": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 0.28,
+      "trend": 0.76,
       "updated": "2026-08-04"
     },
     "OP02-047": {
@@ -2747,8 +2747,8 @@
       "updated": "2026-08-04"
     },
     "OP02-048": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.99,
+      "trend": 1.62,
       "updated": "2026-08-04"
     },
     "OP02-049_p1": {
@@ -2767,33 +2767,33 @@
       "updated": "2026-08-04"
     },
     "OP02-052": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 1.49,
+      "trend": 2.08,
       "updated": "2026-08-04"
     },
     "OP02-053": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 3,
+      "trend": 3.2,
       "updated": "2026-08-04"
     },
     "OP02-054": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 4.99,
+      "trend": 3.41,
       "updated": "2026-08-04"
     },
     "OP02-055": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 4,
+      "trend": 3.95,
       "updated": "2026-08-04"
     },
     "OP02-056": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 1,
+      "trend": 1.3,
       "updated": "2026-08-04"
     },
     "OP02-057": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.5,
+      "trend": 0.8,
       "updated": "2026-08-04"
     },
     "OP02-058_p1": {
@@ -2812,13 +2812,13 @@
       "updated": "2026-08-04"
     },
     "OP02-060": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 1,
+      "trend": 1.79,
       "updated": "2026-08-04"
     },
     "OP02-061": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.1,
+      "trend": 0.41,
       "updated": "2026-08-04"
     },
     "OP02-062_p1": {
@@ -2827,8 +2827,8 @@
       "updated": "2026-08-04"
     },
     "OP02-063": {
-      "low": 0.02,
-      "trend": 0.15,
+      "low": 0.45,
+      "trend": 0.29,
       "updated": "2026-08-04"
     },
     "OP02-064": {
@@ -2842,13 +2842,13 @@
       "updated": "2026-08-04"
     },
     "OP02-066": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 7.5,
+      "trend": 9.44,
       "updated": "2026-08-04"
     },
     "OP02-067": {
-      "low": 0.02,
-      "trend": 0.15,
+      "low": 1,
+      "trend": 1.73,
       "updated": "2026-08-04"
     },
     "OP02-068": {
@@ -2857,13 +2857,13 @@
       "updated": "2026-08-04"
     },
     "OP02-069": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 6.92,
+      "trend": 5.45,
       "updated": "2026-08-04"
     },
     "OP02-070": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 1.9,
+      "trend": 2.31,
       "updated": "2026-08-04"
     },
     "OP02-071_p1": {
@@ -2882,8 +2882,8 @@
       "updated": "2026-08-04"
     },
     "OP02-074": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.5,
+      "trend": 0.67,
       "updated": "2026-08-04"
     },
     "OP02-075": {
@@ -2897,33 +2897,33 @@
       "updated": "2026-08-04"
     },
     "OP02-077": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.8,
+      "trend": 1.32,
       "updated": "2026-08-04"
     },
     "OP02-078": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.25,
+      "trend": 0.41,
       "updated": "2026-08-04"
     },
     "OP02-079": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.3,
+      "trend": 0.68,
       "updated": "2026-08-04"
     },
     "OP02-080": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.95,
+      "trend": 1.19,
       "updated": "2026-08-04"
     },
     "OP02-081": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 2,
+      "trend": 2.35,
       "updated": "2026-08-04"
     },
     "OP02-082": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.4,
+      "trend": 0.61,
       "updated": "2026-08-04"
     },
     "OP02-083": {
@@ -2932,8 +2932,8 @@
       "updated": "2026-08-04"
     },
     "OP02-084": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.2,
+      "trend": 0.85,
       "updated": "2026-08-04"
     },
     "OP02-085_p1": {
@@ -2952,13 +2952,13 @@
       "updated": "2026-08-04"
     },
     "OP02-087": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.5,
+      "trend": 0.94,
       "updated": "2026-08-04"
     },
     "OP02-088": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.5,
+      "trend": 1.34,
       "updated": "2026-08-04"
     },
     "OP02-089": {
@@ -2967,18 +2967,18 @@
       "updated": "2026-08-04"
     },
     "OP02-090": {
-      "low": 0.02,
-      "trend": 0.12,
+      "low": 0.45,
+      "trend": 0.61,
       "updated": "2026-08-04"
     },
     "OP02-091": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.85,
+      "trend": 1.08,
       "updated": "2026-08-04"
     },
     "OP02-092": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 1.5,
+      "trend": 1.87,
       "updated": "2026-08-04"
     },
     "OP02-093_p1": {
@@ -2987,13 +2987,13 @@
       "updated": "2026-08-04"
     },
     "OP02-094": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.2,
+      "trend": 0.77,
       "updated": "2026-08-04"
     },
     "OP02-095": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.2,
+      "trend": 0.6,
       "updated": "2026-08-04"
     },
     "OP02-096_p1": {
@@ -3002,8 +3002,8 @@
       "updated": "2026-08-04"
     },
     "OP02-097": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.44,
+      "trend": 0.78,
       "updated": "2026-08-04"
     },
     "OP02-099_p1": {
@@ -3017,8 +3017,8 @@
       "updated": "2026-08-04"
     },
     "OP02-101": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.99,
+      "trend": 1.08,
       "updated": "2026-08-04"
     },
     "OP02-102": {
@@ -3032,8 +3032,8 @@
       "updated": "2026-08-04"
     },
     "OP02-104": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 1.49,
+      "trend": 1.69,
       "updated": "2026-08-04"
     },
     "OP02-105": {
@@ -3047,13 +3047,13 @@
       "updated": "2026-08-04"
     },
     "OP02-106": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 1.5,
+      "trend": 1.97,
       "updated": "2026-08-04"
     },
     "OP02-107": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.49,
+      "trend": 0.67,
       "updated": "2026-08-04"
     },
     "OP02-108": {
@@ -3067,8 +3067,8 @@
       "updated": "2026-08-04"
     },
     "OP02-109": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.5,
+      "trend": 0.96,
       "updated": "2026-08-04"
     },
     "OP02-110": {
@@ -3077,18 +3077,18 @@
       "updated": "2026-08-04"
     },
     "OP02-111": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.74,
+      "trend": 1.13,
       "updated": "2026-08-04"
     },
     "OP02-112": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 1.4,
+      "trend": 1.99,
       "updated": "2026-08-04"
     },
     "OP02-113": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.49,
+      "trend": 0.77,
       "updated": "2026-08-04"
     },
     "OP02-114_p1": {
@@ -3102,18 +3102,18 @@
       "updated": "2026-08-04"
     },
     "OP02-116": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.5,
+      "trend": 1.01,
       "updated": "2026-08-04"
     },
     "OP02-117": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.05,
+      "trend": 2.22,
       "updated": "2026-08-04"
     },
     "OP02-118": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.68,
+      "trend": 1.37,
       "updated": "2026-08-04"
     },
     "OP02-119": {
@@ -3132,8 +3132,8 @@
       "updated": "2026-08-04"
     },
     "ST06-004": {
-      "low": 0.3,
-      "trend": 0.94,
+      "low": 5,
+      "trend": 3.95,
       "updated": "2026-08-04"
     },
     "ST06-005": {
@@ -3152,8 +3152,8 @@
       "updated": "2026-08-04"
     },
     "ST06-008": {
-      "low": 0.02,
-      "trend": 0.21,
+      "low": 1.5,
+      "trend": 2.75,
       "updated": "2026-08-04"
     },
     "ST06-009": {
@@ -3162,8 +3162,8 @@
       "updated": "2026-08-04"
     },
     "ST06-010": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.5,
+      "trend": 1.26,
       "updated": "2026-08-04"
     },
     "ST06-011": {
@@ -3467,8 +3467,8 @@
       "updated": "2026-08-04"
     },
     "OP03-002": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.75,
+      "trend": 1.1,
       "updated": "2026-08-04"
     },
     "OP03-003": {
@@ -3477,43 +3477,43 @@
       "updated": "2026-08-04"
     },
     "OP03-004": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.3,
+      "trend": 0.5,
       "updated": "2026-08-04"
     },
     "OP03-005": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 1,
+      "trend": 2.57,
       "updated": "2026-08-04"
     },
     "OP03-006": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.3,
+      "trend": 0.46,
       "updated": "2026-08-04"
     },
     "OP03-007": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.15,
+      "trend": 0.55,
       "updated": "2026-08-04"
     },
     "OP03-008": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 7,
+      "trend": 8.86,
       "updated": "2026-08-04"
     },
     "OP03-009": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.49,
+      "trend": 1.12,
       "updated": "2026-08-04"
     },
     "OP03-010": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.5,
+      "trend": 0.91,
       "updated": "2026-08-04"
     },
     "OP03-011": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 2.5,
+      "trend": 2.23,
       "updated": "2026-08-04"
     },
     "OP03-012": {
@@ -3522,48 +3522,48 @@
       "updated": "2026-08-04"
     },
     "OP03-014": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 4.99,
+      "trend": 3.36,
       "updated": "2026-08-04"
     },
     "OP03-015": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 1.45,
+      "trend": 1.74,
       "updated": "2026-08-04"
     },
     "OP03-016": {
-      "low": 0.02,
-      "trend": 0.13,
+      "low": 0.29,
+      "trend": 1.07,
       "updated": "2026-08-04"
     },
     "OP03-017": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 4.9,
+      "trend": 5.9,
       "updated": "2026-08-04"
     },
     "OP03-019": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.8,
+      "trend": 1.05,
       "updated": "2026-08-04"
     },
     "OP03-020": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 1.49,
+      "trend": 1.43,
       "updated": "2026-08-04"
     },
     "OP03-023": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.4,
+      "trend": 0.63,
       "updated": "2026-08-04"
     },
     "OP03-026": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 1.99,
+      "trend": 2.21,
       "updated": "2026-08-04"
     },
     "OP03-027": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.49,
+      "trend": 0.9,
       "updated": "2026-08-04"
     },
     "OP03-028": {
@@ -3572,8 +3572,8 @@
       "updated": "2026-08-04"
     },
     "OP03-029": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 1.5,
+      "trend": 3.07,
       "updated": "2026-08-04"
     },
     "OP03-030": {
@@ -3582,38 +3582,38 @@
       "updated": "2026-08-04"
     },
     "OP03-031": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.39,
+      "trend": 0.73,
       "updated": "2026-08-04"
     },
     "OP03-032": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 1.99,
+      "trend": 2.5,
       "updated": "2026-08-04"
     },
     "OP03-033": {
-      "low": 0.02,
-      "trend": 0.12,
+      "low": 4.4,
+      "trend": 4.16,
       "updated": "2026-08-04"
     },
     "OP03-034": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 1,
+      "trend": 1.53,
       "updated": "2026-08-04"
     },
     "OP03-035": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.15,
+      "trend": 0.53,
       "updated": "2026-08-04"
     },
     "OP03-036": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.25,
+      "trend": 0.53,
       "updated": "2026-08-04"
     },
     "OP03-037": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.1,
+      "trend": 0.58,
       "updated": "2026-08-04"
     },
     "OP03-038": {
@@ -3622,8 +3622,8 @@
       "updated": "2026-08-04"
     },
     "OP03-039": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 2,
+      "trend": 2.95,
       "updated": "2026-08-04"
     },
     "OP03-040_p1": {
@@ -3632,13 +3632,13 @@
       "updated": "2026-08-04"
     },
     "OP03-042": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.41,
+      "trend": 0.71,
       "updated": "2026-08-04"
     },
     "OP03-043": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.2,
+      "trend": 0.66,
       "updated": "2026-08-04"
     },
     "OP03-044": {
@@ -3647,28 +3647,28 @@
       "updated": "2026-08-04"
     },
     "OP03-045": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 2,
+      "trend": 2.15,
       "updated": "2026-08-04"
     },
     "OP03-046": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.2,
+      "trend": 0.4,
       "updated": "2026-08-04"
     },
     "OP03-048": {
-      "low": 0.02,
-      "trend": 0.3,
+      "low": 13,
+      "trend": 20.6,
       "updated": "2026-08-04"
     },
     "OP03-049": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.95,
+      "trend": 1.11,
       "updated": "2026-08-04"
     },
     "OP03-050": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 2.99,
+      "trend": 3.11,
       "updated": "2026-08-04"
     },
     "OP03-051": {
@@ -3677,48 +3677,48 @@
       "updated": "2026-08-04"
     },
     "OP03-052": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.09,
+      "trend": 0.48,
       "updated": "2026-08-04"
     },
     "OP03-053": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.2,
+      "trend": 0.57,
       "updated": "2026-08-04"
     },
     "OP03-054": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 4.3,
+      "trend": 8.22,
       "updated": "2026-08-04"
     },
     "OP03-055": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 1,
+      "trend": 1.4,
       "updated": "2026-08-04"
     },
     "OP03-056": {
-      "low": 0.02,
-      "trend": 0.24,
+      "low": 17.5,
+      "trend": 17.27,
       "updated": "2026-08-04"
     },
     "OP03-057": {
-      "low": 0.02,
-      "trend": 0.16,
+      "low": 1.18,
+      "trend": 4.61,
       "updated": "2026-08-04"
     },
     "OP03-059": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 1,
+      "trend": 1.8,
       "updated": "2026-08-04"
     },
     "OP03-060": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 6,
+      "trend": 6.91,
       "updated": "2026-08-04"
     },
     "OP03-061": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.1,
+      "trend": 0.65,
       "updated": "2026-08-04"
     },
     "OP03-062": {
@@ -3727,28 +3727,28 @@
       "updated": "2026-08-04"
     },
     "OP03-063": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 1,
+      "trend": 1.77,
       "updated": "2026-08-04"
     },
     "OP03-064": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.1,
+      "trend": 0.75,
       "updated": "2026-08-04"
     },
     "OP03-065": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.49,
+      "trend": 0.55,
       "updated": "2026-08-04"
     },
     "OP03-067": {
-      "low": 0.02,
-      "trend": 0.11,
+      "low": 0.5,
+      "trend": 0.91,
       "updated": "2026-08-04"
     },
     "OP03-068": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.5,
+      "trend": 0.73,
       "updated": "2026-08-04"
     },
     "OP03-069": {
@@ -3757,8 +3757,8 @@
       "updated": "2026-08-04"
     },
     "OP03-070": {
-      "low": 0.02,
-      "trend": 0.18,
+      "low": 60,
+      "trend": 82.27,
       "updated": "2026-08-04"
     },
     "OP03-071": {
@@ -3772,23 +3772,23 @@
       "updated": "2026-08-04"
     },
     "OP03-073": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.25,
+      "trend": 0.56,
       "updated": "2026-08-04"
     },
     "OP03-074": {
-      "low": 0.02,
-      "trend": 0.36,
+      "low": 9,
+      "trend": 9.14,
       "updated": "2026-08-04"
     },
     "OP03-075": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.39,
+      "trend": 0.84,
       "updated": "2026-08-04"
     },
     "OP03-079": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.99,
+      "trend": 0.02,
       "updated": "2026-08-04"
     },
     "OP03-081_p1": {
@@ -3797,38 +3797,38 @@
       "updated": "2026-08-04"
     },
     "OP03-082": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.99,
+      "trend": 1.3,
       "updated": "2026-08-04"
     },
     "OP03-083": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.15,
+      "trend": 0.54,
       "updated": "2026-08-04"
     },
     "OP03-084": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.2,
+      "trend": 2.86,
       "updated": "2026-08-04"
     },
     "OP03-085": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.2,
+      "trend": 0.84,
       "updated": "2026-08-04"
     },
     "OP03-087": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.4,
+      "trend": 0.54,
       "updated": "2026-08-04"
     },
     "OP03-088": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 4.5,
+      "trend": 3.93,
       "updated": "2026-08-04"
     },
     "OP03-089": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.5,
+      "trend": 0.04,
       "updated": "2026-08-04"
     },
     "OP03-090": {
@@ -3837,28 +3837,28 @@
       "updated": "2026-08-04"
     },
     "OP03-091": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.15,
+      "trend": 0.36,
       "updated": "2026-08-04"
     },
     "OP03-093": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 1.49,
+      "trend": 1.51,
       "updated": "2026-08-04"
     },
     "OP03-094": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 18,
+      "trend": 15.2,
       "updated": "2026-08-04"
     },
     "OP03-095": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.49,
+      "trend": 1.22,
       "updated": "2026-08-04"
     },
     "OP03-096": {
-      "low": 0.02,
-      "trend": 0.14,
+      "low": 19.95,
+      "trend": 12.59,
       "updated": "2026-08-04"
     },
     "OP03-097": {
@@ -3867,18 +3867,18 @@
       "updated": "2026-08-04"
     },
     "OP03-098": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 2.7,
+      "trend": 2.85,
       "updated": "2026-08-04"
     },
     "OP03-100": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.45,
+      "trend": 0.58,
       "updated": "2026-08-04"
     },
     "OP03-101": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.4,
+      "trend": 0.76,
       "updated": "2026-08-04"
     },
     "OP03-102": {
@@ -3887,33 +3887,33 @@
       "updated": "2026-08-04"
     },
     "OP03-103": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.1,
+      "trend": 0.55,
       "updated": "2026-08-04"
     },
     "OP03-104": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 1.9,
+      "trend": 2.49,
       "updated": "2026-08-04"
     },
     "OP03-105": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 1.5,
+      "trend": 1.63,
       "updated": "2026-08-04"
     },
     "OP03-106": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.49,
+      "trend": 0.74,
       "updated": "2026-08-04"
     },
     "OP03-107": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.4,
+      "trend": 0.85,
       "updated": "2026-08-04"
     },
     "OP03-109": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.19,
+      "trend": 0.48,
       "updated": "2026-08-04"
     },
     "OP03-110": {
@@ -3922,8 +3922,8 @@
       "updated": "2026-08-04"
     },
     "OP03-111": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.3,
+      "trend": 0.56,
       "updated": "2026-08-04"
     },
     "OP03-115": {
@@ -3932,18 +3932,18 @@
       "updated": "2026-08-04"
     },
     "OP03-116": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 4.99,
+      "trend": 3.8,
       "updated": "2026-08-04"
     },
     "OP03-117": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 1,
+      "trend": 1.26,
       "updated": "2026-08-04"
     },
     "OP03-118": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 5.95,
+      "trend": 5.1,
       "updated": "2026-08-04"
     },
     "OP03-119": {
@@ -3952,13 +3952,13 @@
       "updated": "2026-08-04"
     },
     "OP03-120": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.2,
+      "trend": 0.73,
       "updated": "2026-08-04"
     },
     "OP03-121": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 1,
+      "trend": 1.68,
       "updated": "2026-08-04"
     },
     "OP03-122_p2": {
@@ -4072,8 +4072,8 @@
       "updated": "2026-08-04"
     },
     "ST08-002": {
-      "low": 0.4,
-      "trend": 0.71,
+      "low": 5.99,
+      "trend": 8.43,
       "updated": "2026-08-04"
     },
     "ST08-003": {
@@ -4142,68 +4142,68 @@
       "updated": "2026-08-04"
     },
     "ST09-001": {
-      "low": 1.6,
-      "trend": 4.73,
+      "low": 1.99,
+      "trend": 3.78,
       "updated": "2026-08-04"
     },
     "ST09-002": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.05,
+      "trend": 0.19,
       "updated": "2026-08-04"
     },
     "ST09-003": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.12,
+      "trend": 0.16,
       "updated": "2026-08-04"
     },
     "ST09-004": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.1,
+      "trend": 0.09,
       "updated": "2026-08-04"
     },
     "ST09-005": {
-      "low": 0.1,
-      "trend": 0.63,
+      "low": 0.77,
+      "trend": 1.09,
       "updated": "2026-08-04"
     },
     "ST09-006": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.05,
+      "trend": 0.04,
       "updated": "2026-08-04"
     },
     "ST09-007": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.1,
+      "trend": 0.17,
       "updated": "2026-08-04"
     },
     "ST09-008": {
-      "low": 0.02,
+      "low": 0.05,
       "trend": 0.05,
       "updated": "2026-08-04"
     },
     "ST09-009": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.05,
+      "trend": 0.12,
       "updated": "2026-08-04"
     },
     "ST09-010": {
-      "low": 0.1,
-      "trend": 0.48,
+      "low": 0.25,
+      "trend": 0.56,
       "updated": "2026-08-04"
     },
     "ST09-011": {
-      "low": 0.02,
+      "low": 0.05,
       "trend": 0.1,
       "updated": "2026-08-04"
     },
     "ST09-012": {
-      "low": 0.02,
-      "trend": 0.12,
+      "low": 27.9,
+      "trend": 29.16,
       "updated": "2026-08-04"
     },
     "ST09-013": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 0.1,
+      "trend": 0.14,
       "updated": "2026-08-04"
     },
     "ST09-014": {
@@ -4212,8 +4212,8 @@
       "updated": "2026-08-04"
     },
     "ST09-015": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.05,
+      "trend": 0.13,
       "updated": "2026-08-04"
     },
     "P-043": {
@@ -4263,12 +4263,12 @@
     },
     "P-053": {
       "low": 0.02,
-      "trend": 0.16,
+      "trend": 0.27,
       "updated": "2026-08-04"
     },
     "P-054": {
-      "low": 0.4,
-      "trend": 0.63,
+      "low": 5.94,
+      "trend": 8.95,
       "updated": "2026-08-04"
     },
     "P-055": {
@@ -4343,22 +4343,22 @@
     },
     "OP04-028": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.13,
       "updated": "2026-08-04"
     },
     "OP04-028_p1": {
-      "low": 2,
-      "trend": 2.45,
+      "low": 2.35,
+      "trend": 6.42,
       "updated": "2026-08-04"
     },
     "OP04-030": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.12,
       "updated": "2026-08-04"
     },
     "OP04-030_p1": {
-      "low": 1.8,
-      "trend": 2.83,
+      "low": 2,
+      "trend": 4.56,
       "updated": "2026-08-04"
     },
     "OP04-031": {
@@ -4473,12 +4473,12 @@
     },
     "OP04-100": {
       "low": 0.02,
-      "trend": 0.18,
+      "trend": 0.1,
       "updated": "2026-08-04"
     },
     "OP04-100_p1": {
-      "low": 2.9,
-      "trend": 5.12,
+      "low": 4,
+      "trend": 3.92,
       "updated": "2026-08-04"
     },
     "OP04-104": {
@@ -4527,28 +4527,28 @@
       "updated": "2026-08-04"
     },
     "OP04-003": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 1.9,
+      "trend": 2.11,
       "updated": "2026-08-04"
     },
     "OP04-004": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.29,
+      "trend": 0.7,
       "updated": "2026-08-04"
     },
     "OP04-005": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.5,
+      "trend": 0.71,
       "updated": "2026-08-04"
     },
     "OP04-006": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 0.75,
+      "trend": 0.92,
       "updated": "2026-08-04"
     },
     "OP04-007": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.99,
+      "trend": 2.37,
       "updated": "2026-08-04"
     },
     "OP04-008": {
@@ -4557,33 +4557,33 @@
       "updated": "2026-08-04"
     },
     "OP04-009": {
-      "low": 0.02,
-      "trend": 0.11,
+      "low": 21.95,
+      "trend": 3.55,
       "updated": "2026-08-04"
     },
     "OP04-010": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 25,
+      "trend": 8.84,
       "updated": "2026-08-04"
     },
     "OP04-011": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 22.5,
+      "trend": 25.73,
       "updated": "2026-08-04"
     },
     "OP04-012": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.15,
+      "trend": 0.73,
       "updated": "2026-08-04"
     },
     "OP04-014": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 45,
+      "trend": 31.81,
       "updated": "2026-08-04"
     },
     "OP04-015": {
-      "low": 0.02,
-      "trend": 0.14,
+      "low": 0.05,
+      "trend": 0.19,
       "updated": "2026-08-04"
     },
     "OP04-016": {
@@ -4592,33 +4592,33 @@
       "updated": "2026-08-04"
     },
     "OP04-017": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 9,
+      "trend": 3.55,
       "updated": "2026-08-04"
     },
     "OP04-018": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.4,
+      "trend": 0.74,
       "updated": "2026-08-04"
     },
     "OP04-021": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 1.5,
+      "trend": 1.31,
       "updated": "2026-08-04"
     },
     "OP04-022": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.7,
+      "trend": 1.54,
       "updated": "2026-08-04"
     },
     "OP04-023": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.2,
+      "trend": 0.47,
       "updated": "2026-08-04"
     },
     "OP04-025": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.12,
+      "trend": 0.28,
       "updated": "2026-08-04"
     },
     "OP04-026": {
@@ -4627,28 +4627,28 @@
       "updated": "2026-08-04"
     },
     "OP04-027": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.12,
+      "trend": 0.64,
       "updated": "2026-08-04"
     },
     "OP04-029": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.15,
+      "trend": 0.19,
       "updated": "2026-08-04"
     },
     "OP04-032": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 3,
+      "trend": 3.77,
       "updated": "2026-08-04"
     },
     "OP04-033": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.95,
+      "trend": 1.18,
       "updated": "2026-08-04"
     },
     "OP04-034": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.39,
+      "trend": 1.22,
       "updated": "2026-08-04"
     },
     "OP04-035": {
@@ -4657,28 +4657,28 @@
       "updated": "2026-08-04"
     },
     "OP04-036": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.18,
+      "trend": 0.75,
       "updated": "2026-08-04"
     },
     "OP04-037": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 1.2,
+      "trend": 2.31,
       "updated": "2026-08-04"
     },
     "OP04-038": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.4,
+      "trend": 0.82,
       "updated": "2026-08-04"
     },
     "OP04-041": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 1.45,
+      "trend": 1.13,
       "updated": "2026-08-04"
     },
     "OP04-042": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.2,
+      "trend": 0.4,
       "updated": "2026-08-04"
     },
     "OP04-043": {
@@ -4692,23 +4692,23 @@
       "updated": "2026-08-04"
     },
     "OP04-046": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.5,
+      "trend": 0.9,
       "updated": "2026-08-04"
     },
     "OP04-047": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.05,
+      "trend": 0.38,
       "updated": "2026-08-04"
     },
     "OP04-048": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 1.95,
+      "trend": 2.53,
       "updated": "2026-08-04"
     },
     "OP04-049": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.5,
+      "trend": 0.93,
       "updated": "2026-08-04"
     },
     "OP04-050": {
@@ -4717,23 +4717,23 @@
       "updated": "2026-08-04"
     },
     "OP04-052": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.35,
+      "trend": 0.47,
       "updated": "2026-08-04"
     },
     "OP04-053": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 0.64,
+      "trend": 1.02,
       "updated": "2026-08-04"
     },
     "OP04-054": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.14,
+      "trend": 0.26,
       "updated": "2026-08-04"
     },
     "OP04-055": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.3,
+      "trend": 0.54,
       "updated": "2026-08-04"
     },
     "OP04-056": {
@@ -4742,23 +4742,23 @@
       "updated": "2026-08-04"
     },
     "OP04-057": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 1.9,
+      "trend": 2.3,
       "updated": "2026-08-04"
     },
     "OP04-059": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.35,
+      "trend": 0.96,
       "updated": "2026-08-04"
     },
     "OP04-061": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.1,
+      "trend": 0.42,
       "updated": "2026-08-04"
     },
     "OP04-062": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.14,
+      "trend": 0.32,
       "updated": "2026-08-04"
     },
     "OP04-063": {
@@ -4767,8 +4767,8 @@
       "updated": "2026-08-04"
     },
     "OP04-065": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.15,
+      "trend": 0.59,
       "updated": "2026-08-04"
     },
     "OP04-066": {
@@ -4777,33 +4777,33 @@
       "updated": "2026-08-04"
     },
     "OP04-067": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.2,
+      "trend": 0.3,
       "updated": "2026-08-04"
     },
     "OP04-068": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.25,
+      "trend": 0.45,
       "updated": "2026-08-04"
     },
     "OP04-069": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 1,
+      "trend": 1.23,
       "updated": "2026-08-04"
     },
     "OP04-070": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.6,
+      "trend": 0.5,
       "updated": "2026-08-04"
     },
     "OP04-071": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.95,
+      "trend": 1.17,
       "updated": "2026-08-04"
     },
     "OP04-073": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.48,
+      "trend": 0.57,
       "updated": "2026-08-04"
     },
     "OP04-074": {
@@ -4812,33 +4812,33 @@
       "updated": "2026-08-04"
     },
     "OP04-075": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.3,
+      "trend": 0.88,
       "updated": "2026-08-04"
     },
     "OP04-076": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.15,
+      "trend": 0.64,
       "updated": "2026-08-04"
     },
     "OP04-077": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.44,
+      "trend": 0.71,
       "updated": "2026-08-04"
     },
     "OP04-078": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.17,
+      "trend": 0.32,
       "updated": "2026-08-04"
     },
     "OP04-079": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.47,
+      "trend": 0.94,
       "updated": "2026-08-04"
     },
     "OP04-080": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 2.75,
+      "trend": 2.93,
       "updated": "2026-08-04"
     },
     "OP04-081": {
@@ -4847,28 +4847,28 @@
       "updated": "2026-08-04"
     },
     "OP04-084": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.5,
+      "trend": 1.46,
       "updated": "2026-08-04"
     },
     "OP04-085": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 1,
+      "trend": 3.57,
       "updated": "2026-08-04"
     },
     "OP04-086": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.05,
+      "trend": 0.3,
       "updated": "2026-08-04"
     },
     "OP04-087": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 2.99,
+      "trend": 2.48,
       "updated": "2026-08-04"
     },
     "OP04-088": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 1.2,
+      "trend": 1.43,
       "updated": "2026-08-04"
     },
     "OP04-089": {
@@ -4877,8 +4877,8 @@
       "updated": "2026-08-04"
     },
     "OP04-091": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 1.82,
+      "trend": 1.61,
       "updated": "2026-08-04"
     },
     "OP04-092": {
@@ -4887,8 +4887,8 @@
       "updated": "2026-08-04"
     },
     "OP04-093": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 4.04,
+      "trend": 5.77,
       "updated": "2026-08-04"
     },
     "OP04-094": {
@@ -4897,23 +4897,23 @@
       "updated": "2026-08-04"
     },
     "OP04-095": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.29,
+      "trend": 0.61,
       "updated": "2026-08-04"
     },
     "OP04-096": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 2.99,
+      "trend": 2.39,
       "updated": "2026-08-04"
     },
     "OP04-097": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.3,
+      "trend": 0.76,
       "updated": "2026-08-04"
     },
     "OP04-098": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.7,
+      "trend": 1.02,
       "updated": "2026-08-04"
     },
     "OP04-099": {
@@ -4922,8 +4922,8 @@
       "updated": "2026-08-04"
     },
     "OP04-101": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 1.99,
+      "trend": 2.18,
       "updated": "2026-08-04"
     },
     "OP04-102": {
@@ -4932,8 +4932,8 @@
       "updated": "2026-08-04"
     },
     "OP04-103": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 2,
+      "trend": 2.66,
       "updated": "2026-08-04"
     },
     "OP04-105": {
@@ -4942,53 +4942,53 @@
       "updated": "2026-08-04"
     },
     "OP04-106": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.14,
+      "trend": 0.43,
       "updated": "2026-08-04"
     },
     "OP04-107": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.45,
+      "trend": 0.9,
       "updated": "2026-08-04"
     },
     "OP04-108": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 0.69,
+      "trend": 1.06,
       "updated": "2026-08-04"
     },
     "OP04-109": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.3,
+      "trend": 0.65,
       "updated": "2026-08-04"
     },
     "OP04-110": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.45,
+      "trend": 0.58,
       "updated": "2026-08-04"
     },
     "OP04-111": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.99,
+      "trend": 1.13,
       "updated": "2026-08-04"
     },
     "OP04-113": {
-      "low": 0.02,
-      "trend": 0.02,
+      "low": 0.25,
+      "trend": 0.47,
       "updated": "2026-08-04"
     },
     "OP04-114": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.5,
+      "trend": 0.66,
       "updated": "2026-08-04"
     },
     "OP04-115": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.19,
+      "trend": 0.31,
       "updated": "2026-08-04"
     },
     "OP04-116": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 1.9,
+      "trend": 1.35,
       "updated": "2026-08-04"
     },
     "OP04-117": {
@@ -4998,22 +4998,22 @@
     },
     "OP05-001": {
       "low": 0.02,
-      "trend": 0.07,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP05-001_p1": {
-      "low": 7,
-      "trend": 5.86,
+      "low": 14.5,
+      "trend": 17.54,
       "updated": "2026-08-04"
     },
     "OP05-002": {
       "low": 0.02,
-      "trend": 0.24,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP05-002_p1": {
-      "low": 9,
-      "trend": 9.05,
+      "low": 18.99,
+      "trend": 19.4,
       "updated": "2026-08-04"
     },
     "OP05-003": {
@@ -5033,22 +5033,22 @@
     },
     "OP05-006": {
       "low": 0.02,
-      "trend": 0.23,
+      "trend": 0.58,
       "updated": "2026-08-04"
     },
     "OP05-006_p1": {
-      "low": 3,
-      "trend": 4.05,
+      "low": 3.89,
+      "trend": 4.18,
       "updated": "2026-08-04"
     },
     "OP05-007": {
       "low": 0.02,
-      "trend": 0.3,
+      "trend": 0.23,
       "updated": "2026-08-04"
     },
     "OP05-007_p1": {
-      "low": 1.5,
-      "trend": 3.66,
+      "low": 1.9,
+      "trend": 2.58,
       "updated": "2026-08-04"
     },
     "OP05-008": {
@@ -5088,12 +5088,12 @@
     },
     "OP05-015": {
       "low": 0.02,
-      "trend": 0.02,
+      "trend": 0.3,
       "updated": "2026-08-04"
     },
     "OP05-015_p1": {
-      "low": 3.49,
-      "trend": 3.61,
+      "low": 4.5,
+      "trend": 6.13,
       "updated": "2026-08-04"
     },
     "OP05-016": {
@@ -5128,12 +5128,12 @@
     },
     "OP05-022": {
       "low": 0.02,
-      "trend": 0.15,
+      "trend": 0.04,
       "updated": "2026-08-04"
     },
     "OP05-022_p1": {
-      "low": 9.9,
-      "trend": 10.15,
+      "low": 15,
+      "trend": 15.86,
       "updated": "2026-08-04"
     },
     "OP05-023": {
@@ -5238,12 +5238,12 @@
     },
     "OP05-041": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.05,
       "updated": "2026-08-04"
     },
     "OP05-041_p1": {
-      "low": 8.88,
-      "trend": 13.61,
+      "low": 24.85,
+      "trend": 30.4,
       "updated": "2026-08-04"
     },
     "OP05-042": {
@@ -5353,12 +5353,12 @@
     },
     "OP05-060": {
       "low": 0.02,
-      "trend": 0.1,
+      "trend": 0.11,
       "updated": "2026-08-04"
     },
     "OP05-060_p1": {
-      "low": 59,
-      "trend": 109.72,
+      "low": 99,
+      "trend": 119.32,
       "updated": "2026-08-04"
     },
     "OP05-061": {
@@ -5393,12 +5393,12 @@
     },
     "OP05-067": {
       "low": 0.02,
-      "trend": 0.17,
+      "trend": 0.19,
       "updated": "2026-08-04"
     },
     "OP05-067_p1": {
-      "low": 13.95,
-      "trend": 9.26,
+      "low": 17.5,
+      "trend": 23.53,
       "updated": "2026-08-04"
     },
     "OP05-068": {
@@ -5523,12 +5523,12 @@
     },
     "OP05-088": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.21,
       "updated": "2026-08-04"
     },
     "OP05-088_p1": {
-      "low": 2,
-      "trend": 5.25,
+      "low": 4.5,
+      "trend": 6.12,
       "updated": "2026-08-04"
     },
     "OP05-089": {
@@ -5557,13 +5557,13 @@
       "updated": "2026-08-04"
     },
     "OP05-093": {
-      "low": 0.02,
-      "trend": 0.43,
+      "low": 0.05,
+      "trend": 0.45,
       "updated": "2026-08-04"
     },
     "OP05-093_p1": {
-      "low": 2.5,
-      "trend": 4.59,
+      "low": 4.5,
+      "trend": 5.36,
       "updated": "2026-08-04"
     },
     "OP05-094": {
@@ -5588,12 +5588,12 @@
     },
     "OP05-098": {
       "low": 0.02,
-      "trend": 0.1,
+      "trend": 0.08,
       "updated": "2026-08-04"
     },
     "OP05-098_p1": {
-      "low": 14.5,
-      "trend": 14.98,
+      "low": 33.98,
+      "trend": 46.41,
       "updated": "2026-08-04"
     },
     "OP05-099": {
@@ -5623,12 +5623,12 @@
     },
     "OP05-102": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.16,
       "updated": "2026-08-04"
     },
     "OP05-102_p1": {
-      "low": 1,
-      "trend": 2.51,
+      "low": 1.99,
+      "trend": 3.25,
       "updated": "2026-08-04"
     },
     "OP05-103": {
@@ -5707,13 +5707,13 @@
       "updated": "2026-08-04"
     },
     "OP05-118": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 1,
+      "trend": 2.01,
       "updated": "2026-08-04"
     },
     "OP05-118_p1": {
-      "low": 3.5,
-      "trend": 7.14,
+      "low": 8,
+      "trend": 9.96,
       "updated": "2026-08-04"
     },
     "OP05-119": {
@@ -5767,13 +5767,13 @@
       "updated": "2026-08-04"
     },
     "ST10-003": {
-      "low": 0.4,
-      "trend": 2.72,
+      "low": 1,
+      "trend": 1.48,
       "updated": "2026-08-04"
     },
     "ST10-004": {
-      "low": 0.02,
-      "trend": 0.15,
+      "low": 0.03,
+      "trend": 0.18,
       "updated": "2026-08-04"
     },
     "ST10-005": {
@@ -5782,8 +5782,8 @@
       "updated": "2026-08-04"
     },
     "ST10-006": {
-      "low": 0.5,
-      "trend": 1,
+      "low": 0.69,
+      "trend": 1.46,
       "updated": "2026-08-04"
     },
     "ST10-007": {
@@ -5822,28 +5822,28 @@
       "updated": "2026-08-04"
     },
     "ST10-015": {
-      "low": 0.04,
-      "trend": 1.47,
+      "low": 0.15,
+      "trend": 0.25,
       "updated": "2026-08-04"
     },
     "ST10-016": {
-      "low": 0.02,
-      "trend": 0.13,
+      "low": 0.15,
+      "trend": 0.25,
       "updated": "2026-08-04"
     },
     "ST10-017": {
-      "low": 0.02,
-      "trend": 0.13,
+      "low": 0.04,
+      "trend": 0.12,
       "updated": "2026-08-04"
     },
     "OP06-001": {
       "low": 0.02,
-      "trend": 0.11,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP06-001_p1": {
-      "low": 15,
-      "trend": 36.24,
+      "low": 24.49,
+      "trend": 27.41,
       "updated": "2026-08-04"
     },
     "OP06-002": {
@@ -5872,13 +5872,13 @@
       "updated": "2026-08-04"
     },
     "OP06-007": {
-      "low": 0.02,
-      "trend": 0.28,
+      "low": 0.14,
+      "trend": 1.01,
       "updated": "2026-08-04"
     },
     "OP06-007_p1": {
-      "low": 16.99,
-      "trend": 12.87,
+      "low": 18.5,
+      "trend": 14.55,
       "updated": "2026-08-04"
     },
     "OP06-008": {
@@ -5953,12 +5953,12 @@
     },
     "OP06-020": {
       "low": 0.02,
-      "trend": 0.2,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP06-020_p1": {
-      "low": 3.5,
-      "trend": 4.7,
+      "low": 8.8,
+      "trend": 11.16,
       "updated": "2026-08-04"
     },
     "OP06-021": {
@@ -5973,12 +5973,12 @@
     },
     "OP06-022": {
       "low": 0.02,
-      "trend": 0.29,
+      "trend": 0.05,
       "updated": "2026-08-04"
     },
     "OP06-022_p1": {
-      "low": 24.99,
-      "trend": 33.14,
+      "low": 45,
+      "trend": 48.49,
       "updated": "2026-08-04"
     },
     "OP06-023": {
@@ -6088,22 +6088,22 @@
     },
     "OP06-042": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.1,
       "updated": "2026-08-04"
     },
     "OP06-042_p1": {
-      "low": 16.99,
-      "trend": 27.18,
+      "low": 24.99,
+      "trend": 26.97,
       "updated": "2026-08-04"
     },
     "OP06-043": {
-      "low": 0.04,
-      "trend": 0.16,
+      "low": 0.05,
+      "trend": 1.47,
       "updated": "2026-08-04"
     },
     "OP06-043_p1": {
-      "low": 1.9,
-      "trend": 2.78,
+      "low": 8,
+      "trend": 9.58,
       "updated": "2026-08-04"
     },
     "OP06-044": {
@@ -6138,12 +6138,12 @@
     },
     "OP06-050": {
       "low": 0.02,
-      "trend": 0.11,
+      "trend": 0.65,
       "updated": "2026-08-04"
     },
     "OP06-050_p1": {
-      "low": 3,
-      "trend": 3.83,
+      "low": 5.5,
+      "trend": 9.57,
       "updated": "2026-08-04"
     },
     "OP06-051": {
@@ -6182,8 +6182,8 @@
       "updated": "2026-08-04"
     },
     "OP06-058": {
-      "low": 0.02,
-      "trend": 0.19,
+      "low": 0.99,
+      "trend": 3.34,
       "updated": "2026-08-04"
     },
     "OP06-059": {
@@ -6308,22 +6308,22 @@
     },
     "OP06-080": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.07,
       "updated": "2026-08-04"
     },
     "OP06-080_p1": {
-      "low": 7.5,
-      "trend": 10.61,
+      "low": 10,
+      "trend": 14.74,
       "updated": "2026-08-04"
     },
     "OP06-081": {
       "low": 0.02,
-      "trend": 0.14,
+      "trend": 0.12,
       "updated": "2026-08-04"
     },
     "OP06-081_p1": {
-      "low": 1.5,
-      "trend": 3.25,
+      "low": 1.9,
+      "trend": 2.41,
       "updated": "2026-08-04"
     },
     "OP06-082": {
@@ -6348,12 +6348,12 @@
     },
     "OP06-086": {
       "low": 0.02,
-      "trend": 0.07,
+      "trend": 0.51,
       "updated": "2026-08-04"
     },
     "OP06-086_p1": {
-      "low": 5.95,
-      "trend": 10.61,
+      "low": 8,
+      "trend": 13.63,
       "updated": "2026-08-04"
     },
     "OP06-087": {
@@ -6462,13 +6462,13 @@
       "updated": "2026-08-04"
     },
     "OP06-106": {
-      "low": 0.02,
-      "trend": 0.17,
+      "low": 1.5,
+      "trend": 2.16,
       "updated": "2026-08-04"
     },
     "OP06-106_p1": {
-      "low": 10,
-      "trend": 9.63,
+      "low": 14,
+      "trend": 15.19,
       "updated": "2026-08-04"
     },
     "OP06-107": {
@@ -6517,8 +6517,8 @@
       "updated": "2026-08-04"
     },
     "OP06-115": {
-      "low": 0.02,
-      "trend": 0.12,
+      "low": 0.1,
+      "trend": 1.07,
       "updated": "2026-08-04"
     },
     "OP06-116": {
@@ -6547,13 +6547,13 @@
       "updated": "2026-08-04"
     },
     "OP06-119": {
-      "low": 0.5,
-      "trend": 1.06,
+      "low": 1.5,
+      "trend": 3.98,
       "updated": "2026-08-04"
     },
     "OP06-119_p1": {
-      "low": 23,
-      "trend": 21.83,
+      "low": 23.95,
+      "trend": 29,
       "updated": "2026-08-04"
     },
     "P-045": {
@@ -6612,8 +6612,8 @@
       "updated": "2026-08-04"
     },
     "ST12-001": {
-      "low": 4.88,
-      "trend": 9.99,
+      "low": 12,
+      "trend": 11.42,
       "updated": "2026-08-04"
     },
     "ST12-002": {
@@ -6622,8 +6622,8 @@
       "updated": "2026-08-04"
     },
     "ST12-003": {
-      "low": 2.99,
-      "trend": 4.23,
+      "low": 4,
+      "trend": 5.59,
       "updated": "2026-08-04"
     },
     "ST12-004": {
@@ -6657,8 +6657,8 @@
       "updated": "2026-08-04"
     },
     "ST12-010": {
-      "low": 0.23,
-      "trend": 0.46,
+      "low": 4.9,
+      "trend": 6.07,
       "updated": "2026-08-04"
     },
     "ST12-011": {
@@ -6778,12 +6778,12 @@
     },
     "ST13-009": {
       "low": 0.02,
-      "trend": 0.09,
+      "trend": 0.13,
       "updated": "2026-08-04"
     },
     "ST13-009_p1": {
-      "low": 6.45,
-      "trend": 8.66,
+      "low": 7,
+      "trend": 11.6,
       "updated": "2026-08-04"
     },
     "ST13-010": {
@@ -6832,8 +6832,8 @@
       "updated": "2026-08-04"
     },
     "ST13-014_p1": {
-      "low": 17.94,
-      "trend": 17.73,
+      "low": 27.98,
+      "trend": 35.65,
       "updated": "2026-08-04"
     },
     "ST13-015": {
@@ -6857,8 +6857,8 @@
       "updated": "2026-08-04"
     },
     "ST13-017": {
-      "low": 0.05,
-      "trend": 0.22,
+      "low": 1,
+      "trend": 2.46,
       "updated": "2026-08-04"
     },
     "ST13-018": {
@@ -6877,8 +6877,8 @@
       "updated": "2026-08-04"
     },
     "P-046": {
-      "low": 9.99,
-      "trend": 17.56,
+      "low": 25,
+      "trend": 31.06,
       "updated": "2026-08-04"
     },
     "EB01-002": {
@@ -6957,8 +6957,8 @@
       "updated": "2026-08-04"
     },
     "EB01-023": {
-      "low": 0.02,
-      "trend": 0.18,
+      "low": 0.2,
+      "trend": 1.39,
       "updated": "2026-08-04"
     },
     "EB01-024": {
@@ -6977,8 +6977,8 @@
       "updated": "2026-08-04"
     },
     "EB01-028": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.03,
+      "trend": 1.94,
       "updated": "2026-08-04"
     },
     "EB01-029": {
@@ -7062,8 +7062,8 @@
       "updated": "2026-08-04"
     },
     "EB01-051": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.08,
+      "trend": 0.4,
       "updated": "2026-08-04"
     },
     "EB01-053": {
@@ -7087,8 +7087,8 @@
       "updated": "2026-08-04"
     },
     "EB01-059": {
-      "low": 0.02,
-      "trend": 0.19,
+      "low": 1.5,
+      "trend": 3.04,
       "updated": "2026-08-04"
     },
     "EB01-060": {
@@ -7098,12 +7098,12 @@
     },
     "OP07-001": {
       "low": 0.02,
-      "trend": 0.21,
+      "trend": 0.04,
       "updated": "2026-08-04"
     },
     "OP07-001_p1": {
-      "low": 10,
-      "trend": 11.82,
+      "low": 17.51,
+      "trend": 21.44,
       "updated": "2026-08-04"
     },
     "OP07-002": {
@@ -7178,12 +7178,12 @@
     },
     "OP07-015": {
       "low": 0.02,
-      "trend": 0.23,
+      "trend": 0.3,
       "updated": "2026-08-04"
     },
     "OP07-015_p1": {
-      "low": 4.98,
-      "trend": 5.42,
+      "low": 8,
+      "trend": 11.14,
       "updated": "2026-08-04"
     },
     "OP07-016": {
@@ -7203,12 +7203,12 @@
     },
     "OP07-019": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.08,
       "updated": "2026-08-04"
     },
     "OP07-019_p1": {
-      "low": 18.59,
-      "trend": 25.35,
+      "low": 33,
+      "trend": 35.97,
       "updated": "2026-08-04"
     },
     "OP07-020": {
@@ -7223,12 +7223,12 @@
     },
     "OP07-022": {
       "low": 0.02,
-      "trend": 0.15,
+      "trend": 0.84,
       "updated": "2026-08-04"
     },
     "OP07-022_p1": {
-      "low": 3.45,
-      "trend": 3.65,
+      "low": 14.9,
+      "trend": 21.55,
       "updated": "2026-08-04"
     },
     "OP07-023": {
@@ -7268,12 +7268,12 @@
     },
     "OP07-029": {
       "low": 0.02,
-      "trend": 0.21,
+      "trend": 0.35,
       "updated": "2026-08-04"
     },
     "OP07-029_p1": {
-      "low": 2.45,
-      "trend": 3.48,
+      "low": 2.67,
+      "trend": 4.02,
       "updated": "2026-08-04"
     },
     "OP07-030": {
@@ -7367,13 +7367,13 @@
       "updated": "2026-08-04"
     },
     "OP07-046": {
-      "low": 0.02,
-      "trend": 0.12,
+      "low": 0.15,
+      "trend": 1.14,
       "updated": "2026-08-04"
     },
     "OP07-046_p1": {
-      "low": 2.5,
-      "trend": 3.59,
+      "low": 3,
+      "trend": 4.35,
       "updated": "2026-08-04"
     },
     "OP07-047": {
@@ -7442,8 +7442,8 @@
       "updated": "2026-08-04"
     },
     "OP07-057": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 0.05,
+      "trend": 1.02,
       "updated": "2026-08-04"
     },
     "OP07-058": {
@@ -7453,12 +7453,12 @@
     },
     "OP07-059": {
       "low": 0.02,
-      "trend": 0.02,
+      "trend": 0.05,
       "updated": "2026-08-04"
     },
     "OP07-059_p1": {
-      "low": 7,
-      "trend": 8.3,
+      "low": 18.99,
+      "trend": 17.46,
       "updated": "2026-08-04"
     },
     "OP07-060": {
@@ -7482,13 +7482,13 @@
       "updated": "2026-08-04"
     },
     "OP07-064": {
-      "low": 0.02,
-      "trend": 0.15,
+      "low": 0.2,
+      "trend": 1.26,
       "updated": "2026-08-04"
     },
     "OP07-064_p1": {
-      "low": 7.9,
-      "trend": 9.21,
+      "low": 11.95,
+      "trend": 14.24,
       "updated": "2026-08-04"
     },
     "OP07-065": {
@@ -7523,22 +7523,22 @@
     },
     "OP07-071": {
       "low": 0.02,
-      "trend": 0.07,
+      "trend": 0.16,
       "updated": "2026-08-04"
     },
     "OP07-071_p1": {
-      "low": 2,
-      "trend": 2.82,
+      "low": 3.99,
+      "trend": 4.55,
       "updated": "2026-08-04"
     },
     "OP07-072": {
-      "low": 0.02,
-      "trend": 0.43,
+      "low": 0.2,
+      "trend": 0.89,
       "updated": "2026-08-04"
     },
     "OP07-072_p1": {
-      "low": 3.4,
-      "trend": 4.43,
+      "low": 5.49,
+      "trend": 6.92,
       "updated": "2026-08-04"
     },
     "OP07-073": {
@@ -7568,12 +7568,12 @@
     },
     "OP07-079": {
       "low": 0.02,
-      "trend": 0.09,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP07-079_p1": {
-      "low": 7.5,
-      "trend": 10.56,
+      "low": 13,
+      "trend": 16.74,
       "updated": "2026-08-04"
     },
     "OP07-080": {
@@ -7662,18 +7662,18 @@
       "updated": "2026-08-04"
     },
     "OP07-096": {
-      "low": 0.02,
-      "trend": 0.11,
+      "low": 0.1,
+      "trend": 1.82,
       "updated": "2026-08-04"
     },
     "OP07-097": {
       "low": 0.02,
-      "trend": 0.09,
+      "trend": 0.07,
       "updated": "2026-08-04"
     },
     "OP07-097_p1": {
-      "low": 17.99,
-      "trend": 18.22,
+      "low": 25,
+      "trend": 30.19,
       "updated": "2026-08-04"
     },
     "OP07-098": {
@@ -7723,12 +7723,12 @@
     },
     "OP07-107": {
       "low": 0.02,
-      "trend": 0.15,
+      "trend": 0.2,
       "updated": "2026-08-04"
     },
     "OP07-107_p1": {
-      "low": 4.45,
-      "trend": 5.12,
+      "low": 4.66,
+      "trend": 5.87,
       "updated": "2026-08-04"
     },
     "OP07-108": {
@@ -7792,23 +7792,23 @@
       "updated": "2026-08-04"
     },
     "OP07-118": {
-      "low": 0.35,
-      "trend": 0.97,
+      "low": 0.95,
+      "trend": 1.36,
       "updated": "2026-08-04"
     },
     "OP07-118_p1": {
-      "low": 4.95,
-      "trend": 8.87,
+      "low": 6.9,
+      "trend": 7.95,
       "updated": "2026-08-04"
     },
     "OP07-119": {
-      "low": 0.5,
-      "trend": 0.75,
+      "low": 1,
+      "trend": 1.72,
       "updated": "2026-08-04"
     },
     "OP07-119_p1": {
-      "low": 7.49,
-      "trend": 16.87,
+      "low": 10,
+      "trend": 15.85,
       "updated": "2026-08-04"
     },
     "OP07-075": {
@@ -7818,22 +7818,22 @@
     },
     "OP08-001": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.07,
       "updated": "2026-08-04"
     },
     "OP08-001_p1": {
-      "low": 25.98,
-      "trend": 26.38,
+      "low": 64.99,
+      "trend": 110.08,
       "updated": "2026-08-04"
     },
     "OP08-002": {
       "low": 0.02,
-      "trend": 0.1,
+      "trend": 0.04,
       "updated": "2026-08-04"
     },
     "OP08-002_p1": {
-      "low": 4.69,
-      "trend": 7.16,
+      "low": 14,
+      "trend": 16.98,
       "updated": "2026-08-04"
     },
     "OP08-003": {
@@ -7857,13 +7857,13 @@
       "updated": "2026-08-04"
     },
     "OP08-007": {
-      "low": 0.02,
-      "trend": 0.37,
+      "low": 0.1,
+      "trend": 0.65,
       "updated": "2026-08-04"
     },
     "OP08-007_p1": {
-      "low": 11.85,
-      "trend": 20.22,
+      "low": 19.9,
+      "trend": 24.75,
       "updated": "2026-08-04"
     },
     "OP08-008": {
@@ -7903,12 +7903,12 @@
     },
     "OP08-015": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.11,
       "updated": "2026-08-04"
     },
     "OP08-015_p1": {
-      "low": 1.65,
-      "trend": 2.88,
+      "low": 1.7,
+      "trend": 2.92,
       "updated": "2026-08-04"
     },
     "OP08-016": {
@@ -7938,12 +7938,12 @@
     },
     "OP08-021": {
       "low": 0.02,
-      "trend": 0.17,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP08-021_p1": {
-      "low": 7,
-      "trend": 9.07,
+      "low": 17.5,
+      "trend": 16.01,
       "updated": "2026-08-04"
     },
     "OP08-022": {
@@ -7952,13 +7952,13 @@
       "updated": "2026-08-04"
     },
     "OP08-023": {
-      "low": 0.02,
-      "trend": 0.21,
+      "low": 0.39,
+      "trend": 1.11,
       "updated": "2026-08-04"
     },
     "OP08-023_p1": {
-      "low": 5.99,
-      "trend": 6.7,
+      "low": 12.45,
+      "trend": 11.08,
       "updated": "2026-08-04"
     },
     "OP08-024": {
@@ -8027,8 +8027,8 @@
       "updated": "2026-08-04"
     },
     "OP08-036": {
-      "low": 0.02,
-      "trend": 0.2,
+      "low": 4.75,
+      "trend": 7.79,
       "updated": "2026-08-04"
     },
     "OP08-037": {
@@ -8063,12 +8063,12 @@
     },
     "OP08-043": {
       "low": 0.1,
-      "trend": 0.37,
+      "trend": 0.61,
       "updated": "2026-08-04"
     },
     "OP08-043_p1": {
-      "low": 3.9,
-      "trend": 6.07,
+      "low": 6,
+      "trend": 7.5,
       "updated": "2026-08-04"
     },
     "OP08-045": {
@@ -8082,8 +8082,8 @@
       "updated": "2026-08-04"
     },
     "OP08-047": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.49,
+      "trend": 1.48,
       "updated": "2026-08-04"
     },
     "OP08-048": {
@@ -8108,12 +8108,12 @@
     },
     "OP08-052": {
       "low": 0.02,
-      "trend": 0.04,
+      "trend": 0.09,
       "updated": "2026-08-04"
     },
     "OP08-052_p1": {
-      "low": 4.5,
-      "trend": 5.98,
+      "low": 5.9,
+      "trend": 7.55,
       "updated": "2026-08-04"
     },
     "OP08-053": {
@@ -8138,22 +8138,22 @@
     },
     "OP08-057": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.07,
       "updated": "2026-08-04"
     },
     "OP08-057_p1": {
-      "low": 5,
-      "trend": 6.72,
+      "low": 14,
+      "trend": 16.28,
       "updated": "2026-08-04"
     },
     "OP08-058": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.05,
       "updated": "2026-08-04"
     },
     "OP08-058_p1": {
-      "low": 14.8,
-      "trend": 20.64,
+      "low": 25,
+      "trend": 32.78,
       "updated": "2026-08-04"
     },
     "OP08-059": {
@@ -8198,12 +8198,12 @@
     },
     "OP08-067": {
       "low": 0.02,
-      "trend": 0.09,
+      "trend": 0.27,
       "updated": "2026-08-04"
     },
     "OP08-067_p1": {
-      "low": 4,
-      "trend": 7.07,
+      "low": 8.99,
+      "trend": 10.71,
       "updated": "2026-08-04"
     },
     "OP08-068": {
@@ -8212,13 +8212,13 @@
       "updated": "2026-08-04"
     },
     "OP08-069": {
-      "low": 0.09,
-      "trend": 0.26,
+      "low": 0.2,
+      "trend": 1.49,
       "updated": "2026-08-04"
     },
     "OP08-069_p1": {
-      "low": 3.65,
-      "trend": 4.56,
+      "low": 7.99,
+      "trend": 9.88,
       "updated": "2026-08-04"
     },
     "OP08-070": {
@@ -8242,13 +8242,13 @@
       "updated": "2026-08-04"
     },
     "OP08-074": {
-      "low": 0.03,
-      "trend": 0.27,
+      "low": 0.05,
+      "trend": 0.58,
       "updated": "2026-08-04"
     },
     "OP08-074_p1": {
-      "low": 3,
-      "trend": 5.54,
+      "low": 4.99,
+      "trend": 11.31,
       "updated": "2026-08-04"
     },
     "OP08-075": {
@@ -8283,12 +8283,12 @@
     },
     "OP08-080": {
       "low": 0.02,
-      "trend": 0.04,
+      "trend": 0.12,
       "updated": "2026-08-04"
     },
     "OP08-080_p1": {
-      "low": 1.5,
-      "trend": 1.77,
+      "low": 2,
+      "trend": 3.16,
       "updated": "2026-08-04"
     },
     "OP08-081": {
@@ -8308,12 +8308,12 @@
     },
     "OP08-084": {
       "low": 0.05,
-      "trend": 0.27,
+      "trend": 0.44,
       "updated": "2026-08-04"
     },
     "OP08-084_p1": {
-      "low": 1.99,
-      "trend": 2.85,
+      "low": 3,
+      "trend": 3.07,
       "updated": "2026-08-04"
     },
     "OP08-085": {
@@ -8383,12 +8383,12 @@
     },
     "OP08-098": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.05,
       "updated": "2026-08-04"
     },
     "OP08-098_p1": {
-      "low": 6,
-      "trend": 7.08,
+      "low": 13.99,
+      "trend": 16.29,
       "updated": "2026-08-04"
     },
     "OP08-099": {
@@ -8422,13 +8422,13 @@
       "updated": "2026-08-04"
     },
     "OP08-105": {
-      "low": 0.04,
-      "trend": 0.38,
+      "low": 0.2,
+      "trend": 1.29,
       "updated": "2026-08-04"
     },
     "OP08-105_p1": {
-      "low": 4.49,
-      "trend": 6.15,
+      "low": 7,
+      "trend": 15.98,
       "updated": "2026-08-04"
     },
     "OP08-106": {
@@ -8458,12 +8458,12 @@
     },
     "OP08-110": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.13,
       "updated": "2026-08-04"
     },
     "OP08-110_p1": {
-      "low": 1.4,
-      "trend": 2.32,
+      "low": 2.5,
+      "trend": 3.21,
       "updated": "2026-08-04"
     },
     "OP08-111": {
@@ -8522,13 +8522,13 @@
       "updated": "2026-08-04"
     },
     "OP08-119": {
-      "low": 1.7,
-      "trend": 2.21,
+      "low": 3.83,
+      "trend": 5.98,
       "updated": "2026-08-04"
     },
     "OP08-119_p1": {
-      "low": 5,
-      "trend": 6.04,
+      "low": 11,
+      "trend": 12.51,
       "updated": "2026-08-04"
     },
     "P-017_p1": {
@@ -8542,8 +8542,8 @@
       "updated": "2026-08-04"
     },
     "P-068": {
-      "low": 0.2,
-      "trend": 0.69,
+      "low": 0.59,
+      "trend": 0.85,
       "updated": "2026-08-04"
     },
     "P-076": {
@@ -8558,12 +8558,12 @@
     },
     "PRB01-001": {
       "low": 0.02,
-      "trend": 0.09,
+      "trend": 0.21,
       "updated": "2026-08-04"
     },
     "PRB01-001_p1": {
-      "low": 20.49,
-      "trend": 31.33,
+      "low": 60,
+      "trend": 112.19,
       "updated": "2026-08-04"
     },
     "OP08-044": {
@@ -8663,22 +8663,22 @@
     },
     "OP09-001": {
       "low": 0.02,
-      "trend": 0.02,
+      "trend": 0.12,
       "updated": "2026-08-04"
     },
     "OP09-001_p1": {
-      "low": 17,
-      "trend": 20.39,
+      "low": 35,
+      "trend": 40.92,
       "updated": "2026-08-04"
     },
     "OP09-002": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.16,
       "updated": "2026-08-04"
     },
     "OP09-002_p1": {
-      "low": 1.3,
-      "trend": 2.33,
+      "low": 3.69,
+      "trend": 5.41,
       "updated": "2026-08-04"
     },
     "OP09-003": {
@@ -8727,13 +8727,13 @@
       "updated": "2026-08-04"
     },
     "OP09-009": {
-      "low": 0.02,
-      "trend": 0.21,
+      "low": 0.05,
+      "trend": 0.87,
       "updated": "2026-08-04"
     },
     "OP09-009_p1": {
-      "low": 1.5,
-      "trend": 2.04,
+      "low": 5,
+      "trend": 6.38,
       "updated": "2026-08-04"
     },
     "OP09-010": {
@@ -8798,12 +8798,12 @@
     },
     "OP09-022": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP09-022_p1": {
-      "low": 3,
-      "trend": 4.9,
+      "low": 5,
+      "trend": 9.75,
       "updated": "2026-08-04"
     },
     "OP09-023": {
@@ -8868,12 +8868,12 @@
     },
     "OP09-034": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.07,
       "updated": "2026-08-04"
     },
     "OP09-034_p1": {
-      "low": 2,
-      "trend": 2.42,
+      "low": 2.5,
+      "trend": 3.69,
       "updated": "2026-08-04"
     },
     "OP09-035": {
@@ -8888,12 +8888,12 @@
     },
     "OP09-037": {
       "low": 0.02,
-      "trend": 0.13,
+      "trend": 0.28,
       "updated": "2026-08-04"
     },
     "OP09-037_p1": {
-      "low": 0.99,
-      "trend": 1.3,
+      "low": 1.98,
+      "trend": 2.8,
       "updated": "2026-08-04"
     },
     "OP09-038": {
@@ -8918,12 +8918,12 @@
     },
     "OP09-042": {
       "low": 0.02,
-      "trend": 0.05,
+      "trend": 0.08,
       "updated": "2026-08-04"
     },
     "OP09-042_p1": {
-      "low": 12,
-      "trend": 17.1,
+      "low": 21,
+      "trend": 25.54,
       "updated": "2026-08-04"
     },
     "OP09-043": {
@@ -8943,12 +8943,12 @@
     },
     "OP09-046": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.22,
       "updated": "2026-08-04"
     },
     "OP09-046_p1": {
-      "low": 2.79,
-      "trend": 3.24,
+      "low": 2.99,
+      "trend": 4.62,
       "updated": "2026-08-04"
     },
     "OP09-047": {
@@ -8958,12 +8958,12 @@
     },
     "OP09-048": {
       "low": 0.02,
-      "trend": 0.05,
+      "trend": 0.36,
       "updated": "2026-08-04"
     },
     "OP09-048_p1": {
-      "low": 2,
-      "trend": 2.41,
+      "low": 2.5,
+      "trend": 4.71,
       "updated": "2026-08-04"
     },
     "OP09-049": {
@@ -8973,12 +8973,12 @@
     },
     "OP09-050": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.1,
       "updated": "2026-08-04"
     },
     "OP09-050_p1": {
-      "low": 3.99,
-      "trend": 5.9,
+      "low": 6.93,
+      "trend": 10.38,
       "updated": "2026-08-04"
     },
     "OP09-051": {
@@ -9048,22 +9048,22 @@
     },
     "OP09-061": {
       "low": 0.02,
-      "trend": 0.09,
+      "trend": 0.13,
       "updated": "2026-08-04"
     },
     "OP09-061_p1": {
-      "low": 40,
-      "trend": 62.18,
+      "low": 85,
+      "trend": 117.4,
       "updated": "2026-08-04"
     },
     "OP09-062": {
       "low": 0.02,
-      "trend": 0.07,
+      "trend": 0.08,
       "updated": "2026-08-04"
     },
     "OP09-062_p1": {
-      "low": 11.9,
-      "trend": 7.72,
+      "low": 25,
+      "trend": 34.46,
       "updated": "2026-08-04"
     },
     "OP09-063": {
@@ -9078,12 +9078,12 @@
     },
     "OP09-065": {
       "low": 0.02,
-      "trend": 0.18,
+      "trend": 0.34,
       "updated": "2026-08-04"
     },
     "OP09-065_p1": {
-      "low": 2,
-      "trend": 2.58,
+      "low": 3.8,
+      "trend": 5.11,
       "updated": "2026-08-04"
     },
     "OP09-066": {
@@ -9103,12 +9103,12 @@
     },
     "OP09-069": {
       "low": 0.02,
-      "trend": 0.04,
+      "trend": 0.2,
       "updated": "2026-08-04"
     },
     "OP09-069_p1": {
-      "low": 4,
-      "trend": 5.19,
+      "low": 5,
+      "trend": 7.91,
       "updated": "2026-08-04"
     },
     "OP09-070": {
@@ -9123,12 +9123,12 @@
     },
     "OP09-072": {
       "low": 0.02,
-      "trend": 0.07,
+      "trend": 0.38,
       "updated": "2026-08-04"
     },
     "OP09-072_p1": {
-      "low": 1,
-      "trend": 1.53,
+      "low": 6,
+      "trend": 7.19,
       "updated": "2026-08-04"
     },
     "OP09-073": {
@@ -9177,8 +9177,8 @@
       "updated": "2026-08-04"
     },
     "OP09-081_p1": {
-      "low": 9,
-      "trend": 11.99,
+      "low": 26,
+      "trend": 32.35,
       "updated": "2026-08-04"
     },
     "OP09-082": {
@@ -9303,12 +9303,12 @@
     },
     "OP09-103": {
       "low": 0.02,
-      "trend": 0.15,
+      "trend": 0.21,
       "updated": "2026-08-04"
     },
     "OP09-103_p1": {
-      "low": 0.9,
-      "trend": 1.57,
+      "low": 2,
+      "trend": 2.96,
       "updated": "2026-08-04"
     },
     "OP09-104": {
@@ -9328,12 +9328,12 @@
     },
     "OP09-107": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.79,
       "updated": "2026-08-04"
     },
     "OP09-107_p1": {
-      "low": 6.5,
-      "trend": 9.26,
+      "low": 14.5,
+      "trend": 15.57,
       "updated": "2026-08-04"
     },
     "OP09-108": {
@@ -9417,8 +9417,8 @@
       "updated": "2026-08-04"
     },
     "P-071": {
-      "low": 0.03,
-      "trend": 0.29,
+      "low": 35,
+      "trend": 48.56,
       "updated": "2026-08-04"
     },
     "P-074": {
@@ -9457,8 +9457,8 @@
       "updated": "2026-08-04"
     },
     "ST16-001": {
-      "low": 0.15,
-      "trend": 0.59,
+      "low": 0.95,
+      "trend": 1,
       "updated": "2026-08-04"
     },
     "ST16-002": {
@@ -9492,13 +9492,13 @@
       "updated": "2026-08-04"
     },
     "ST17-003": {
-      "low": 0.02,
-      "trend": 0.21,
+      "low": 0.09,
+      "trend": 0.19,
       "updated": "2026-08-04"
     },
     "ST17-004": {
-      "low": 4.89,
-      "trend": 6.08,
+      "low": 4.95,
+      "trend": 6.29,
       "updated": "2026-08-04"
     },
     "ST17-005": {
@@ -9512,8 +9512,8 @@
       "updated": "2026-08-04"
     },
     "ST18-002": {
-      "low": 0.02,
-      "trend": 0.12,
+      "low": 0.15,
+      "trend": 0.18,
       "updated": "2026-08-04"
     },
     "ST18-003": {
@@ -9522,13 +9522,13 @@
       "updated": "2026-08-04"
     },
     "ST18-004": {
-      "low": 1,
-      "trend": 1.47,
+      "low": 2.3,
+      "trend": 3.03,
       "updated": "2026-08-04"
     },
     "ST18-005": {
-      "low": 1.1,
-      "trend": 1.5,
+      "low": 3,
+      "trend": 5.21,
       "updated": "2026-08-04"
     },
     "ST19-001": {
@@ -9542,13 +9542,13 @@
       "updated": "2026-08-04"
     },
     "ST19-003": {
-      "low": 0.35,
-      "trend": 0.76,
+      "low": 1,
+      "trend": 1.42,
       "updated": "2026-08-04"
     },
     "ST19-004": {
-      "low": 0.3,
-      "trend": 0.76,
+      "low": 2,
+      "trend": 0.31,
       "updated": "2026-08-04"
     },
     "ST19-005": {
@@ -9557,8 +9557,8 @@
       "updated": "2026-08-04"
     },
     "ST20-001": {
-      "low": 0.3,
-      "trend": 1.25,
+      "low": 0.5,
+      "trend": 0.97,
       "updated": "2026-08-04"
     },
     "ST20-002": {
@@ -9572,8 +9572,8 @@
       "updated": "2026-08-04"
     },
     "ST20-004": {
-      "low": 0.02,
-      "trend": 0.16,
+      "low": 1.49,
+      "trend": 0.92,
       "updated": "2026-08-04"
     },
     "ST20-005": {
@@ -9593,32 +9593,32 @@
     },
     "OP10-001": {
       "low": 0.02,
-      "trend": 0.15,
+      "trend": 0.05,
       "updated": "2026-08-04"
     },
     "OP10-001_p1": {
-      "low": 4.95,
-      "trend": 6.4,
+      "low": 10,
+      "trend": 12.66,
       "updated": "2026-08-04"
     },
     "OP10-002": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.05,
       "updated": "2026-08-04"
     },
     "OP10-002_p1": {
-      "low": 4.48,
-      "trend": 5.4,
+      "low": 6,
+      "trend": 7.04,
       "updated": "2026-08-04"
     },
     "OP10-003": {
       "low": 0.02,
-      "trend": 0.15,
+      "trend": 0.08,
       "updated": "2026-08-04"
     },
     "OP10-003_p1": {
-      "low": 6.8,
-      "trend": 5.49,
+      "low": 11,
+      "trend": 13.38,
       "updated": "2026-08-04"
     },
     "OP10-004": {
@@ -9627,13 +9627,13 @@
       "updated": "2026-08-04"
     },
     "OP10-005": {
-      "low": 0.02,
-      "trend": 0.36,
+      "low": 1.45,
+      "trend": 4.22,
       "updated": "2026-08-04"
     },
     "OP10-005_p1": {
-      "low": 3.8,
-      "trend": 5.61,
+      "low": 8.9,
+      "trend": 12.55,
       "updated": "2026-08-04"
     },
     "OP10-006": {
@@ -9688,12 +9688,12 @@
     },
     "OP10-016": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.55,
       "updated": "2026-08-04"
     },
     "OP10-016_p1": {
-      "low": 2.89,
-      "trend": 4.09,
+      "low": 3.9,
+      "trend": 4.02,
       "updated": "2026-08-04"
     },
     "OP10-017": {
@@ -9708,12 +9708,12 @@
     },
     "OP10-019": {
       "low": 0.02,
-      "trend": 0.1,
+      "trend": 0.18,
       "updated": "2026-08-04"
     },
     "OP10-019_p1": {
-      "low": 29,
-      "trend": 44.71,
+      "low": 50,
+      "trend": 68.02,
       "updated": "2026-08-04"
     },
     "OP10-020": {
@@ -9728,12 +9728,12 @@
     },
     "OP10-022": {
       "low": 0.02,
-      "trend": 0.11,
+      "trend": 0.09,
       "updated": "2026-08-04"
     },
     "OP10-022_p1": {
-      "low": 6,
-      "trend": 8.8,
+      "low": 17,
+      "trend": 21.56,
       "updated": "2026-08-04"
     },
     "OP10-023": {
@@ -9772,13 +9772,13 @@
       "updated": "2026-08-04"
     },
     "OP10-030": {
-      "low": 0.09,
-      "trend": 0.21,
+      "low": 0.1,
+      "trend": 1.86,
       "updated": "2026-08-04"
     },
     "OP10-030_p1": {
-      "low": 6,
-      "trend": 6.81,
+      "low": 11,
+      "trend": 14.94,
       "updated": "2026-08-04"
     },
     "OP10-031": {
@@ -9787,13 +9787,13 @@
       "updated": "2026-08-04"
     },
     "OP10-032": {
-      "low": 0.02,
-      "trend": 0.35,
+      "low": 0.05,
+      "trend": 0.61,
       "updated": "2026-08-04"
     },
     "OP10-032_p1": {
-      "low": 2.8,
-      "trend": 4.35,
+      "low": 4,
+      "trend": 5.46,
       "updated": "2026-08-04"
     },
     "OP10-033": {
@@ -9848,12 +9848,12 @@
     },
     "OP10-042": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.08,
       "updated": "2026-08-04"
     },
     "OP10-042_p1": {
-      "low": 9,
-      "trend": 11.79,
+      "low": 19.98,
+      "trend": 21.87,
       "updated": "2026-08-04"
     },
     "OP10-043": {
@@ -9868,22 +9868,22 @@
     },
     "OP10-045": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 1.77,
       "updated": "2026-08-04"
     },
     "OP10-045_p1": {
-      "low": 3.9,
-      "trend": 4.79,
+      "low": 9.99,
+      "trend": 12.03,
       "updated": "2026-08-04"
     },
     "OP10-046": {
       "low": 0.02,
-      "trend": 0.28,
+      "trend": 0.12,
       "updated": "2026-08-04"
     },
     "OP10-046_p1": {
-      "low": 2,
-      "trend": 2.69,
+      "low": 2.49,
+      "trend": 4.19,
       "updated": "2026-08-04"
     },
     "OP10-047": {
@@ -9938,12 +9938,12 @@
     },
     "OP10-058": {
       "low": 0.02,
-      "trend": 0.28,
+      "trend": 0.48,
       "updated": "2026-08-04"
     },
     "OP10-058_p1": {
-      "low": 6,
-      "trend": 6.53,
+      "low": 7.5,
+      "trend": 9.36,
       "updated": "2026-08-04"
     },
     "OP10-059": {
@@ -9988,12 +9988,12 @@
     },
     "OP10-067": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.17,
       "updated": "2026-08-04"
     },
     "OP10-067_p1": {
-      "low": 2.99,
-      "trend": 4.4,
+      "low": 6,
+      "trend": 6.77,
       "updated": "2026-08-04"
     },
     "OP10-068": {
@@ -10012,23 +10012,23 @@
       "updated": "2026-08-04"
     },
     "OP10-071": {
-      "low": 0.02,
-      "trend": 0.2,
+      "low": 0.7,
+      "trend": 1.73,
       "updated": "2026-08-04"
     },
     "OP10-071_p1": {
-      "low": 4,
-      "trend": 5.66,
+      "low": 9.49,
+      "trend": 10.15,
       "updated": "2026-08-04"
     },
     "OP10-072": {
-      "low": 0.02,
-      "trend": 0.25,
+      "low": 0.4,
+      "trend": 1.39,
       "updated": "2026-08-04"
     },
     "OP10-072_p1": {
-      "low": 6.99,
-      "trend": 7.92,
+      "low": 10,
+      "trend": 12.55,
       "updated": "2026-08-04"
     },
     "OP10-073": {
@@ -10077,13 +10077,13 @@
       "updated": "2026-08-04"
     },
     "OP10-082": {
-      "low": 0.02,
-      "trend": 0.32,
+      "low": 0.6,
+      "trend": 2.07,
       "updated": "2026-08-04"
     },
     "OP10-082_p1": {
-      "low": 9.95,
-      "trend": 12.89,
+      "low": 17.5,
+      "trend": 18.42,
       "updated": "2026-08-04"
     },
     "OP10-083": {
@@ -10123,12 +10123,12 @@
     },
     "OP10-090": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.08,
       "updated": "2026-08-04"
     },
     "OP10-090_p1": {
-      "low": 1.45,
-      "trend": 3.01,
+      "low": 2,
+      "trend": 3.34,
       "updated": "2026-08-04"
     },
     "OP10-091": {
@@ -10173,12 +10173,12 @@
     },
     "OP10-099": {
       "low": 0.02,
-      "trend": 0.14,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP10-099_p1": {
-      "low": 7.9,
-      "trend": 12.17,
+      "low": 21.95,
+      "trend": 26.82,
       "updated": "2026-08-04"
     },
     "OP10-100": {
@@ -10238,22 +10238,22 @@
     },
     "OP10-111": {
       "low": 0.02,
-      "trend": 0.18,
+      "trend": 0.17,
       "updated": "2026-08-04"
     },
     "OP10-111_p1": {
-      "low": 6,
-      "trend": 9.07,
+      "low": 11,
+      "trend": 15.11,
       "updated": "2026-08-04"
     },
     "OP10-112": {
       "low": 0.03,
-      "trend": 0.32,
+      "trend": 0.63,
       "updated": "2026-08-04"
     },
     "OP10-112_p1": {
-      "low": 3.6,
-      "trend": 5.03,
+      "low": 7.99,
+      "trend": 12.56,
       "updated": "2026-08-04"
     },
     "OP10-113": {
@@ -10282,13 +10282,13 @@
       "updated": "2026-08-04"
     },
     "OP10-118": {
-      "low": 1.7,
-      "trend": 1.98,
+      "low": 2.3,
+      "trend": 3.72,
       "updated": "2026-08-04"
     },
     "OP10-118_p1": {
-      "low": 20,
-      "trend": 28.22,
+      "low": 38,
+      "trend": 36.43,
       "updated": "2026-08-04"
     },
     "OP10-119": {
@@ -10388,12 +10388,12 @@
     },
     "EB02-003": {
       "low": 0.02,
-      "trend": 0.13,
+      "trend": 0.15,
       "updated": "2026-08-04"
     },
     "EB02-003_p1": {
-      "low": 13.79,
-      "trend": 18.29,
+      "low": 29.01,
+      "trend": 33.13,
       "updated": "2026-08-04"
     },
     "EB02-004": {
@@ -10407,13 +10407,13 @@
       "updated": "2026-08-04"
     },
     "EB02-006": {
-      "low": 0.49,
-      "trend": 1.07,
+      "low": 1.9,
+      "trend": 4.68,
       "updated": "2026-08-04"
     },
     "EB02-006_p1": {
-      "low": 8,
-      "trend": 13.16,
+      "low": 20,
+      "trend": 22.88,
       "updated": "2026-08-04"
     },
     "EB02-007": {
@@ -10442,13 +10442,13 @@
       "updated": "2026-08-04"
     },
     "EB02-011": {
-      "low": 0.02,
-      "trend": 0.19,
+      "low": 0.65,
+      "trend": 1.73,
       "updated": "2026-08-04"
     },
     "EB02-011_p1": {
-      "low": 2.9,
-      "trend": 3.27,
+      "low": 4.99,
+      "trend": 5.6,
       "updated": "2026-08-04"
     },
     "EB02-012": {
@@ -10467,13 +10467,13 @@
       "updated": "2026-08-04"
     },
     "EB02-015": {
-      "low": 0.09,
-      "trend": 0.25,
+      "low": 0.3,
+      "trend": 0.99,
       "updated": "2026-08-04"
     },
     "EB02-015_p1": {
-      "low": 3.79,
-      "trend": 5.37,
+      "low": 7.8,
+      "trend": 10.08,
       "updated": "2026-08-04"
     },
     "EB02-016": {
@@ -10482,13 +10482,13 @@
       "updated": "2026-08-04"
     },
     "EB02-017": {
-      "low": 0.02,
-      "trend": 0.12,
+      "low": 2.2,
+      "trend": 4.18,
       "updated": "2026-08-04"
     },
     "EB02-017_p1": {
-      "low": 27.4,
-      "trend": 31.98,
+      "low": 67.99,
+      "trend": 83.79,
       "updated": "2026-08-04"
     },
     "EB02-018": {
@@ -10513,12 +10513,12 @@
     },
     "EB02-022": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.15,
       "updated": "2026-08-04"
     },
     "EB02-022_p1": {
-      "low": 7,
-      "trend": 9.57,
+      "low": 20,
+      "trend": 24.23,
       "updated": "2026-08-04"
     },
     "EB02-023": {
@@ -10537,13 +10537,13 @@
       "updated": "2026-08-04"
     },
     "EB02-026": {
-      "low": 0.1,
-      "trend": 0.61,
+      "low": 1,
+      "trend": 2.4,
       "updated": "2026-08-04"
     },
     "EB02-026_p1": {
-      "low": 8.5,
-      "trend": 10.24,
+      "low": 17,
+      "trend": 17.98,
       "updated": "2026-08-04"
     },
     "EB02-027": {
@@ -10587,23 +10587,23 @@
       "updated": "2026-08-04"
     },
     "EB02-035": {
-      "low": 0.4,
-      "trend": 1.54,
+      "low": 5,
+      "trend": 8.64,
       "updated": "2026-08-04"
     },
     "EB02-035_p1": {
-      "low": 12,
-      "trend": 19.32,
+      "low": 20,
+      "trend": 36.14,
       "updated": "2026-08-04"
     },
     "EB02-036": {
       "low": 0.02,
-      "trend": 0.1,
+      "trend": 0.22,
       "updated": "2026-08-04"
     },
     "EB02-036_p1": {
-      "low": 7,
-      "trend": 9.41,
+      "low": 20,
+      "trend": 37.11,
       "updated": "2026-08-04"
     },
     "EB02-037": {
@@ -10642,23 +10642,23 @@
       "updated": "2026-08-04"
     },
     "EB02-044": {
-      "low": 0.05,
-      "trend": 0.31,
+      "low": 0.4,
+      "trend": 1.8,
       "updated": "2026-08-04"
     },
     "EB02-044_p1": {
-      "low": 3.49,
-      "trend": 4.35,
+      "low": 6.25,
+      "trend": 7.64,
       "updated": "2026-08-04"
     },
     "EB02-045": {
-      "low": 0.02,
-      "trend": 0.29,
+      "low": 0.25,
+      "trend": 1.01,
       "updated": "2026-08-04"
     },
     "EB02-045_p1": {
-      "low": 6.5,
-      "trend": 7.91,
+      "low": 12.99,
+      "trend": 16.27,
       "updated": "2026-08-04"
     },
     "EB02-046": {
@@ -10673,12 +10673,12 @@
     },
     "EB02-048": {
       "low": 0.02,
-      "trend": 0.02,
+      "trend": 0.17,
       "updated": "2026-08-04"
     },
     "EB02-048_p1": {
-      "low": 3.49,
-      "trend": 4.45,
+      "low": 6.5,
+      "trend": 10,
       "updated": "2026-08-04"
     },
     "EB02-049": {
@@ -10697,13 +10697,13 @@
       "updated": "2026-08-04"
     },
     "EB02-052": {
-      "low": 0.19,
-      "trend": 0.71,
+      "low": 3.9,
+      "trend": 4.91,
       "updated": "2026-08-04"
     },
     "EB02-052_p1": {
-      "low": 7.99,
-      "trend": 10.92,
+      "low": 18.99,
+      "trend": 21.99,
       "updated": "2026-08-04"
     },
     "EB02-053": {
@@ -10713,12 +10713,12 @@
     },
     "EB02-054": {
       "low": 0.02,
-      "trend": 0.07,
+      "trend": 0.28,
       "updated": "2026-08-04"
     },
     "EB02-054_p1": {
-      "low": 3.8,
-      "trend": 5.71,
+      "low": 6,
+      "trend": 9.73,
       "updated": "2026-08-04"
     },
     "EB02-055": {
@@ -10727,13 +10727,13 @@
       "updated": "2026-08-04"
     },
     "EB02-056": {
-      "low": 0.05,
-      "trend": 0.21,
+      "low": 1,
+      "trend": 2.37,
       "updated": "2026-08-04"
     },
     "EB02-056_p1": {
-      "low": 2.45,
-      "trend": 3.89,
+      "low": 7.5,
+      "trend": 9.49,
       "updated": "2026-08-04"
     },
     "EB02-057": {
@@ -10948,12 +10948,12 @@
     },
     "OP11-001": {
       "low": 0.02,
-      "trend": 0.09,
+      "trend": 0.07,
       "updated": "2026-08-04"
     },
     "OP11-001_p1": {
-      "low": 5,
-      "trend": 12.73,
+      "low": 18,
+      "trend": 22.31,
       "updated": "2026-08-04"
     },
     "OP11-002": {
@@ -10967,13 +10967,13 @@
       "updated": "2026-08-04"
     },
     "OP11-004": {
-      "low": 0.05,
-      "trend": 0.15,
+      "low": 0.1,
+      "trend": 0.93,
       "updated": "2026-08-04"
     },
     "OP11-004_p1": {
-      "low": 2.99,
-      "trend": 4.57,
+      "low": 3.99,
+      "trend": 6.77,
       "updated": "2026-08-04"
     },
     "OP11-005": {
@@ -10993,12 +10993,12 @@
     },
     "OP11-008": {
       "low": 0.02,
-      "trend": 0.05,
+      "trend": 0.17,
       "updated": "2026-08-04"
     },
     "OP11-008_p1": {
-      "low": 3,
-      "trend": 3.58,
+      "low": 7.99,
+      "trend": 10.89,
       "updated": "2026-08-04"
     },
     "OP11-009": {
@@ -11008,12 +11008,12 @@
     },
     "OP11-010": {
       "low": 0.02,
-      "trend": 0.21,
+      "trend": 0.33,
       "updated": "2026-08-04"
     },
     "OP11-010_p1": {
-      "low": 1.75,
-      "trend": 3.95,
+      "low": 3.48,
+      "trend": 4.58,
       "updated": "2026-08-04"
     },
     "OP11-011": {
@@ -11053,12 +11053,12 @@
     },
     "OP11-018": {
       "low": 0.02,
-      "trend": 0.07,
+      "trend": 0.16,
       "updated": "2026-08-04"
     },
     "OP11-018_p1": {
-      "low": 35,
-      "trend": 55.87,
+      "low": 45,
+      "trend": 67.27,
       "updated": "2026-08-04"
     },
     "OP11-019": {
@@ -11073,22 +11073,22 @@
     },
     "OP11-021": {
       "low": 0.02,
-      "trend": 0.11,
+      "trend": 0.05,
       "updated": "2026-08-04"
     },
     "OP11-021_p1": {
-      "low": 3,
-      "trend": 5,
+      "low": 9,
+      "trend": 10.46,
       "updated": "2026-08-04"
     },
     "OP11-022": {
       "low": 0.02,
-      "trend": 0.13,
+      "trend": 0.1,
       "updated": "2026-08-04"
     },
     "OP11-022_p1": {
-      "low": 8,
-      "trend": 10.53,
+      "low": 14,
+      "trend": 16.9,
       "updated": "2026-08-04"
     },
     "OP11-023": {
@@ -11138,12 +11138,12 @@
     },
     "OP11-031": {
       "low": 0.02,
-      "trend": 0.23,
+      "trend": 0.53,
       "updated": "2026-08-04"
     },
     "OP11-031_p1": {
-      "low": 1.5,
-      "trend": 2.17,
+      "low": 3,
+      "trend": 3.96,
       "updated": "2026-08-04"
     },
     "OP11-032": {
@@ -11188,22 +11188,22 @@
     },
     "OP11-040": {
       "low": 0.02,
-      "trend": 0.16,
+      "trend": 0.13,
       "updated": "2026-08-04"
     },
     "OP11-040_p1": {
-      "low": 15,
-      "trend": 18.75,
+      "low": 33,
+      "trend": 58.59,
       "updated": "2026-08-04"
     },
     "OP11-041": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.1,
       "updated": "2026-08-04"
     },
     "OP11-041_p1": {
-      "low": 29,
-      "trend": 26.11,
+      "low": 44,
+      "trend": 52.2,
       "updated": "2026-08-04"
     },
     "OP11-042": {
@@ -11233,12 +11233,12 @@
     },
     "OP11-047": {
       "low": 0.02,
-      "trend": 0.07,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP11-047_p1": {
-      "low": 2.25,
-      "trend": 3.4,
+      "low": 2.9,
+      "trend": 3.47,
       "updated": "2026-08-04"
     },
     "OP11-048": {
@@ -11258,12 +11258,12 @@
     },
     "OP11-051": {
       "low": 0.02,
-      "trend": 0.16,
+      "trend": 0.27,
       "updated": "2026-08-04"
     },
     "OP11-051_p1": {
-      "low": 3.5,
-      "trend": 4.42,
+      "low": 5.99,
+      "trend": 8.22,
       "updated": "2026-08-04"
     },
     "OP11-052": {
@@ -11277,13 +11277,13 @@
       "updated": "2026-08-04"
     },
     "OP11-054": {
-      "low": 0.02,
-      "trend": 0.56,
+      "low": 0.5,
+      "trend": 2.18,
       "updated": "2026-08-04"
     },
     "OP11-054_p1": {
-      "low": 7.77,
-      "trend": 15,
+      "low": 19.65,
+      "trend": 26.72,
       "updated": "2026-08-04"
     },
     "OP11-055": {
@@ -11323,12 +11323,12 @@
     },
     "OP11-062": {
       "low": 0.02,
-      "trend": 0.09,
+      "trend": 0.04,
       "updated": "2026-08-04"
     },
     "OP11-062_p1": {
-      "low": 7,
-      "trend": 8.55,
+      "low": 19,
+      "trend": 29.5,
       "updated": "2026-08-04"
     },
     "OP11-063": {
@@ -11352,13 +11352,13 @@
       "updated": "2026-08-04"
     },
     "OP11-067": {
-      "low": 0.1,
-      "trend": 0.43,
+      "low": 1.9,
+      "trend": 4.79,
       "updated": "2026-08-04"
     },
     "OP11-067_p1": {
-      "low": 4.5,
-      "trend": 7.98,
+      "low": 14,
+      "trend": 22.68,
       "updated": "2026-08-04"
     },
     "OP11-068": {
@@ -11393,12 +11393,12 @@
     },
     "OP11-073": {
       "low": 0.02,
-      "trend": 0.07,
+      "trend": 0.14,
       "updated": "2026-08-04"
     },
     "OP11-073_p1": {
-      "low": 2.8,
-      "trend": 2.32,
+      "low": 5,
+      "trend": 9.46,
       "updated": "2026-08-04"
     },
     "OP11-074": {
@@ -11458,12 +11458,12 @@
     },
     "OP11-084": {
       "low": 0.02,
-      "trend": 0.09,
+      "trend": 0.04,
       "updated": "2026-08-04"
     },
     "OP11-084_p1": {
-      "low": 2.7,
-      "trend": 4.3,
+      "low": 3.7,
+      "trend": 4.85,
       "updated": "2026-08-04"
     },
     "OP11-085": {
@@ -11502,13 +11502,13 @@
       "updated": "2026-08-04"
     },
     "OP11-092": {
-      "low": 0.02,
-      "trend": 0.13,
+      "low": 0.09,
+      "trend": 0.36,
       "updated": "2026-08-04"
     },
     "OP11-092_p1": {
-      "low": 0.5,
-      "trend": 1.9,
+      "low": 3,
+      "trend": 4.61,
       "updated": "2026-08-04"
     },
     "OP11-093": {
@@ -11558,12 +11558,12 @@
     },
     "OP11-101": {
       "low": 0.02,
-      "trend": 0.15,
+      "trend": 0.61,
       "updated": "2026-08-04"
     },
     "OP11-101_p1": {
-      "low": 1.79,
-      "trend": 2.02,
+      "low": 3.9,
+      "trend": 7.84,
       "updated": "2026-08-04"
     },
     "OP11-102": {
@@ -11633,12 +11633,12 @@
     },
     "OP11-114": {
       "low": 0.02,
-      "trend": 0.09,
+      "trend": 0.07,
       "updated": "2026-08-04"
     },
     "OP11-114_p1": {
-      "low": 35,
-      "trend": 62.1,
+      "low": 50,
+      "trend": 77.66,
       "updated": "2026-08-04"
     },
     "OP11-115": {
@@ -11672,13 +11672,13 @@
       "updated": "2026-08-04"
     },
     "OP11-119": {
-      "low": 0.7,
-      "trend": 0.7,
+      "low": 1,
+      "trend": 2.49,
       "updated": "2026-08-04"
     },
     "OP11-119_p1": {
-      "low": 6.3,
-      "trend": 6.6,
+      "low": 10,
+      "trend": 12.26,
       "updated": "2026-08-04"
     },
     "ST22-001": {
@@ -11837,13 +11837,13 @@
       "updated": "2026-08-04"
     },
     "P-082": {
-      "low": 0.02,
-      "trend": 0.22,
+      "low": 48,
+      "trend": 73.55,
       "updated": "2026-08-04"
     },
     "P-081": {
-      "low": 0.02,
-      "trend": 0.19,
+      "low": 26.95,
+      "trend": 40.44,
       "updated": "2026-08-04"
     },
     "ST23-001": {
@@ -11857,23 +11857,23 @@
       "updated": "2026-08-04"
     },
     "ST23-003": {
-      "low": 0.02,
-      "trend": 0.16,
+      "low": 0.25,
+      "trend": 0.25,
       "updated": "2026-08-04"
     },
     "ST23-004": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.1,
+      "trend": 0.02,
       "updated": "2026-08-04"
     },
     "ST23-005": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.05,
+      "trend": 0.05,
       "updated": "2026-08-04"
     },
     "ST24-001": {
-      "low": 0.02,
-      "trend": 0.15,
+      "low": 0.05,
+      "trend": 0.05,
       "updated": "2026-08-04"
     },
     "ST24-002": {
@@ -11882,8 +11882,8 @@
       "updated": "2026-08-04"
     },
     "ST24-003": {
-      "low": 0.04,
-      "trend": 0.28,
+      "low": 0.05,
+      "trend": 0.05,
       "updated": "2026-08-04"
     },
     "ST24-004": {
@@ -11892,8 +11892,8 @@
       "updated": "2026-08-04"
     },
     "ST24-005": {
-      "low": 0.02,
-      "trend": 0.4,
+      "low": 0.05,
+      "trend": 0.32,
       "updated": "2026-08-04"
     },
     "ST25-001": {
@@ -11902,58 +11902,58 @@
       "updated": "2026-08-04"
     },
     "ST25-002": {
-      "low": 0.02,
-      "trend": 0.14,
+      "low": 0.05,
+      "trend": 0.08,
       "updated": "2026-08-04"
     },
     "ST25-003": {
-      "low": 0.9,
-      "trend": 1.15,
+      "low": 1.09,
+      "trend": 0.73,
       "updated": "2026-08-04"
     },
     "ST25-004": {
-      "low": 0.25,
-      "trend": 0.74,
+      "low": 0.5,
+      "trend": 0.96,
       "updated": "2026-08-04"
     },
     "ST25-005": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.05,
+      "trend": 0.02,
       "updated": "2026-08-04"
     },
     "ST26-001": {
-      "low": 0.02,
-      "trend": 0.11,
+      "low": 0.03,
+      "trend": 0.02,
       "updated": "2026-08-04"
     },
     "ST26-002": {
-      "low": 0.02,
-      "trend": 0.29,
+      "low": 2.99,
+      "trend": 1.21,
       "updated": "2026-08-04"
     },
     "ST26-003": {
-      "low": 0.3,
-      "trend": 0.94,
+      "low": 1.5,
+      "trend": 2.51,
       "updated": "2026-08-04"
     },
     "ST26-004": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.03,
+      "trend": 0.02,
       "updated": "2026-08-04"
     },
     "ST26-005": {
-      "low": 1.27,
-      "trend": 1.98,
+      "low": 1.94,
+      "trend": 2.92,
       "updated": "2026-08-04"
     },
     "ST27-001": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.05,
+      "trend": 0.3,
       "updated": "2026-08-04"
     },
     "ST27-002": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.05,
+      "trend": 0.09,
       "updated": "2026-08-04"
     },
     "ST27-003": {
@@ -11962,33 +11962,33 @@
       "updated": "2026-08-04"
     },
     "ST27-004": {
-      "low": 0.02,
-      "trend": 0.16,
+      "low": 0.4,
+      "trend": 1.92,
       "updated": "2026-08-04"
     },
     "ST27-005": {
-      "low": 0.3,
-      "trend": 0.67,
+      "low": 0.89,
+      "trend": 1.17,
       "updated": "2026-08-04"
     },
     "ST28-001": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 0.05,
+      "trend": 0.1,
       "updated": "2026-08-04"
     },
     "ST28-002": {
-      "low": 0.02,
-      "trend": 0.18,
+      "low": 0.05,
+      "trend": 0.91,
       "updated": "2026-08-04"
     },
     "ST28-003": {
-      "low": 0.02,
-      "trend": 0.63,
+      "low": 0.06,
+      "trend": 0.75,
       "updated": "2026-08-04"
     },
     "ST28-004": {
-      "low": 0.25,
-      "trend": 0.66,
+      "low": 0.89,
+      "trend": 1.02,
       "updated": "2026-08-04"
     },
     "ST28-005": {
@@ -11998,12 +11998,12 @@
     },
     "OP12-001": {
       "low": 0.02,
-      "trend": 0.14,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP12-001_p1": {
-      "low": 10,
-      "trend": 12.2,
+      "low": 17.99,
+      "trend": 25.95,
       "updated": "2026-08-04"
     },
     "OP12-002": {
@@ -12038,12 +12038,12 @@
     },
     "OP12-008": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.27,
       "updated": "2026-08-04"
     },
     "OP12-008_p1": {
-      "low": 4.5,
-      "trend": 5.18,
+      "low": 7,
+      "trend": 9.94,
       "updated": "2026-08-04"
     },
     "OP12-009": {
@@ -12073,22 +12073,22 @@
     },
     "OP12-014": {
       "low": 0.02,
-      "trend": 0.5,
+      "trend": 0.62,
       "updated": "2026-08-04"
     },
     "OP12-014_p1": {
-      "low": 10,
-      "trend": 12.24,
+      "low": 11,
+      "trend": 19.05,
       "updated": "2026-08-04"
     },
     "OP12-015": {
-      "low": 0.1,
-      "trend": 0.43,
+      "low": 0.25,
+      "trend": 2.29,
       "updated": "2026-08-04"
     },
     "OP12-015_p1": {
-      "low": 5.4,
-      "trend": 6.5,
+      "low": 15,
+      "trend": 18.59,
       "updated": "2026-08-04"
     },
     "OP12-016": {
@@ -12113,12 +12113,12 @@
     },
     "OP12-020": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.07,
       "updated": "2026-08-04"
     },
     "OP12-020_p1": {
-      "low": 22.5,
-      "trend": 33.51,
+      "low": 37,
+      "trend": 40.92,
       "updated": "2026-08-04"
     },
     "OP12-021": {
@@ -12167,23 +12167,23 @@
       "updated": "2026-08-04"
     },
     "OP12-030": {
-      "low": 0.05,
-      "trend": 0.25,
+      "low": 0.19,
+      "trend": 1.42,
       "updated": "2026-08-04"
     },
     "OP12-030_p1": {
-      "low": 3.99,
-      "trend": 4.86,
+      "low": 7,
+      "trend": 9.07,
       "updated": "2026-08-04"
     },
     "OP12-031": {
       "low": 0.02,
-      "trend": 0.11,
+      "trend": 0.09,
       "updated": "2026-08-04"
     },
     "OP12-031_p1": {
-      "low": 5.99,
-      "trend": 6.67,
+      "low": 10.99,
+      "trend": 14.97,
       "updated": "2026-08-04"
     },
     "OP12-032": {
@@ -12197,13 +12197,13 @@
       "updated": "2026-08-04"
     },
     "OP12-034": {
-      "low": 0.3,
-      "trend": 1.08,
+      "low": 6,
+      "trend": 13.72,
       "updated": "2026-08-04"
     },
     "OP12-034_p1": {
-      "low": 9.9,
-      "trend": 11.09,
+      "low": 19,
+      "trend": 32.89,
       "updated": "2026-08-04"
     },
     "OP12-035": {
@@ -12238,22 +12238,22 @@
     },
     "OP12-040": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP12-040_p1": {
-      "low": 8,
-      "trend": 9.88,
+      "low": 17.5,
+      "trend": 22.62,
       "updated": "2026-08-04"
     },
     "OP12-041": {
       "low": 0.02,
-      "trend": 0.07,
+      "trend": 0.09,
       "updated": "2026-08-04"
     },
     "OP12-041_p1": {
-      "low": 9,
-      "trend": 11.4,
+      "low": 15,
+      "trend": 19.75,
       "updated": "2026-08-04"
     },
     "OP12-042": {
@@ -12263,12 +12263,12 @@
     },
     "OP12-043": {
       "low": 0.02,
-      "trend": 0.05,
+      "trend": 0.19,
       "updated": "2026-08-04"
     },
     "OP12-043_p1": {
-      "low": 7,
-      "trend": 8.84,
+      "low": 9.5,
+      "trend": 14.67,
       "updated": "2026-08-04"
     },
     "OP12-044": {
@@ -12333,12 +12333,12 @@
     },
     "OP12-056": {
       "low": 0.02,
-      "trend": 0.33,
+      "trend": 0.93,
       "updated": "2026-08-04"
     },
     "OP12-056_p1": {
-      "low": 2.5,
-      "trend": 4.26,
+      "low": 7,
+      "trend": 9.65,
       "updated": "2026-08-04"
     },
     "OP12-057": {
@@ -12358,22 +12358,22 @@
     },
     "OP12-060": {
       "low": 0.02,
-      "trend": 0.14,
+      "trend": 0.12,
       "updated": "2026-08-04"
     },
     "OP12-060_p1": {
-      "low": 59,
-      "trend": 90.57,
+      "low": 65,
+      "trend": 79.35,
       "updated": "2026-08-04"
     },
     "OP12-061": {
       "low": 0.02,
-      "trend": 0.05,
+      "trend": 0.07,
       "updated": "2026-08-04"
     },
     "OP12-061_p1": {
-      "low": 10,
-      "trend": 12.83,
+      "low": 23,
+      "trend": 26.4,
       "updated": "2026-08-04"
     },
     "OP12-062": {
@@ -12382,13 +12382,13 @@
       "updated": "2026-08-04"
     },
     "OP12-063": {
-      "low": 0.08,
-      "trend": 0.61,
+      "low": 0.6,
+      "trend": 2.12,
       "updated": "2026-08-04"
     },
     "OP12-063_p1": {
-      "low": 6,
-      "trend": 5.9,
+      "low": 14.99,
+      "trend": 18.61,
       "updated": "2026-08-04"
     },
     "OP12-064": {
@@ -12423,12 +12423,12 @@
     },
     "OP12-070": {
       "low": 0.02,
-      "trend": 0.07,
+      "trend": 0.12,
       "updated": "2026-08-04"
     },
     "OP12-070_p1": {
-      "low": 2.3,
-      "trend": 3.69,
+      "low": 2.99,
+      "trend": 6.88,
       "updated": "2026-08-04"
     },
     "OP12-071": {
@@ -12488,12 +12488,12 @@
     },
     "OP12-081": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.09,
       "updated": "2026-08-04"
     },
     "OP12-081_p1": {
-      "low": 5,
-      "trend": 8.25,
+      "low": 13.75,
+      "trend": 15.2,
       "updated": "2026-08-04"
     },
     "OP12-082": {
@@ -12518,12 +12518,12 @@
     },
     "OP12-086": {
       "low": 0.02,
-      "trend": 0.05,
+      "trend": 0.1,
       "updated": "2026-08-04"
     },
     "OP12-086_p1": {
-      "low": 2,
-      "trend": 3.11,
+      "low": 3.29,
+      "trend": 4.87,
       "updated": "2026-08-04"
     },
     "OP12-087": {
@@ -12562,13 +12562,13 @@
       "updated": "2026-08-04"
     },
     "OP12-094": {
-      "low": 0.02,
-      "trend": 0.28,
+      "low": 0.05,
+      "trend": 0.66,
       "updated": "2026-08-04"
     },
     "OP12-094_p1": {
-      "low": 2,
-      "trend": 3.34,
+      "low": 5,
+      "trend": 6.8,
       "updated": "2026-08-04"
     },
     "OP12-095": {
@@ -12608,12 +12608,12 @@
     },
     "OP12-102": {
       "low": 0.02,
-      "trend": 0.23,
+      "trend": 0.28,
       "updated": "2026-08-04"
     },
     "OP12-102_p1": {
-      "low": 2.94,
-      "trend": 3.02,
+      "low": 4.5,
+      "trend": 5.04,
       "updated": "2026-08-04"
     },
     "OP12-103": {
@@ -12632,8 +12632,8 @@
       "updated": "2026-08-04"
     },
     "OP12-106": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 23,
+      "trend": 27.38,
       "updated": "2026-08-04"
     },
     "OP12-107": {
@@ -12712,18 +12712,18 @@
       "updated": "2026-08-04"
     },
     "OP12-119": {
-      "low": 3,
-      "trend": 3.74,
+      "low": 8.89,
+      "trend": 11.77,
       "updated": "2026-08-04"
     },
     "OP12-119_p1": {
-      "low": 7.9,
-      "trend": 9.21,
+      "low": 16,
+      "trend": 18.07,
       "updated": "2026-08-04"
     },
     "P-091": {
-      "low": 4.45,
-      "trend": 5.27,
+      "low": 7.98,
+      "trend": 9.62,
       "updated": "2026-08-04"
     },
     "OP12-090": {
@@ -12737,178 +12737,178 @@
       "updated": "2026-08-04"
     },
     "PRB02-001": {
-      "low": 0.02,
-      "trend": 0.13,
+      "low": 3,
+      "trend": 6.15,
       "updated": "2026-08-04"
     },
     "PRB02-001_p1": {
-      "low": 3,
-      "trend": 3.44,
+      "low": 8.79,
+      "trend": 15.64,
       "updated": "2026-08-04"
     },
     "PRB02-002": {
-      "low": 0.02,
-      "trend": 0.13,
+      "low": 0.04,
+      "trend": 1.62,
       "updated": "2026-08-04"
     },
     "PRB02-002_p1": {
-      "low": 5,
-      "trend": 6.06,
+      "low": 9.9,
+      "trend": 29.83,
       "updated": "2026-08-04"
     },
     "PRB02-003": {
-      "low": 0.02,
-      "trend": 0.18,
+      "low": 1.9,
+      "trend": 3.01,
       "updated": "2026-08-04"
     },
     "PRB02-003_p1": {
-      "low": 0.95,
-      "trend": 2.13,
+      "low": 4.9,
+      "trend": 6.6,
       "updated": "2026-08-04"
     },
     "PRB02-004": {
-      "low": 0.02,
-      "trend": 0.13,
+      "low": 0.05,
+      "trend": 1.27,
       "updated": "2026-08-04"
     },
     "PRB02-004_p1": {
-      "low": 3,
-      "trend": 4.58,
+      "low": 5,
+      "trend": 7.85,
       "updated": "2026-08-04"
     },
     "PRB02-005": {
-      "low": 0.02,
-      "trend": 0.3,
+      "low": 0.1,
+      "trend": 1.24,
       "updated": "2026-08-04"
     },
     "PRB02-005_p1": {
-      "low": 4,
-      "trend": 5.7,
+      "low": 6.5,
+      "trend": 15.75,
       "updated": "2026-08-04"
     },
     "PRB02-006": {
-      "low": 0.1,
-      "trend": 0.38,
+      "low": 2,
+      "trend": 5.37,
       "updated": "2026-08-04"
     },
     "PRB02-006_p1": {
-      "low": 8,
-      "trend": 8.89,
+      "low": 12,
+      "trend": 21.42,
       "updated": "2026-08-04"
     },
     "PRB02-007": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.21,
       "updated": "2026-08-04"
     },
     "PRB02-007_p1": {
-      "low": 1.4,
-      "trend": 1.9,
+      "low": 2.5,
+      "trend": 4.3,
       "updated": "2026-08-04"
     },
     "PRB02-008": {
-      "low": 0.05,
-      "trend": 0.15,
+      "low": 0.84,
+      "trend": 4.2,
       "updated": "2026-08-04"
     },
     "PRB02-008_p1": {
-      "low": 5,
-      "trend": 5.02,
+      "low": 34.45,
+      "trend": 47.78,
       "updated": "2026-08-04"
     },
     "PRB02-009": {
       "low": 0.02,
-      "trend": 0.1,
+      "trend": 0.52,
       "updated": "2026-08-04"
     },
     "PRB02-009_p1": {
-      "low": 1,
-      "trend": 1.64,
+      "low": 2,
+      "trend": 3.87,
       "updated": "2026-08-04"
     },
     "PRB02-010": {
-      "low": 0.02,
-      "trend": 0.16,
+      "low": 0.2,
+      "trend": 6.98,
       "updated": "2026-08-04"
     },
     "PRB02-010_p1": {
-      "low": 3.9,
-      "trend": 4.22,
+      "low": 10,
+      "trend": 17.72,
       "updated": "2026-08-04"
     },
     "PRB02-011": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.54,
       "updated": "2026-08-04"
     },
     "PRB02-011_p1": {
-      "low": 3,
-      "trend": 3.57,
+      "low": 3.4,
+      "trend": 6.31,
       "updated": "2026-08-04"
     },
     "PRB02-012": {
-      "low": 0.02,
-      "trend": 0.24,
+      "low": 0.04,
+      "trend": 1.63,
       "updated": "2026-08-04"
     },
     "PRB02-012_p1": {
-      "low": 7.25,
-      "trend": 12.79,
+      "low": 14.5,
+      "trend": 23.16,
       "updated": "2026-08-04"
     },
     "PRB02-013": {
-      "low": 0.02,
-      "trend": 0.17,
+      "low": 0.5,
+      "trend": 2.36,
       "updated": "2026-08-04"
     },
     "PRB02-013_p1": {
-      "low": 2.3,
-      "trend": 2.77,
+      "low": 6.95,
+      "trend": 10.6,
       "updated": "2026-08-04"
     },
     "PRB02-014": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 0.95,
+      "trend": 3.91,
       "updated": "2026-08-04"
     },
     "PRB02-014_p1": {
-      "low": 2,
-      "trend": 3.6,
+      "low": 5.49,
+      "trend": 10.15,
       "updated": "2026-08-04"
     },
     "PRB02-015": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.1,
+      "trend": 1.7,
       "updated": "2026-08-04"
     },
     "PRB02-015_p1": {
-      "low": 1,
-      "trend": 1.68,
+      "low": 5,
+      "trend": 6.47,
       "updated": "2026-08-04"
     },
     "PRB02-016": {
-      "low": 0.02,
-      "trend": 0.24,
+      "low": 0.14,
+      "trend": 1.77,
       "updated": "2026-08-04"
     },
     "PRB02-016_p1": {
-      "low": 2,
-      "trend": 3.71,
+      "low": 4.5,
+      "trend": 6.15,
       "updated": "2026-08-04"
     },
     "PRB02-017": {
-      "low": 0.02,
-      "trend": 0.28,
+      "low": 0.09,
+      "trend": 1.51,
       "updated": "2026-08-04"
     },
     "PRB02-017_p1": {
-      "low": 10.49,
-      "trend": 17.44,
+      "low": 39.9,
+      "trend": 51.76,
       "updated": "2026-08-04"
     },
     "PRB02-018": {
       "low": 0.02,
-      "trend": 0.14,
+      "trend": 0.46,
       "updated": "2026-08-04"
     },
     "P-092": {
@@ -12947,38 +12947,38 @@
       "updated": "2026-08-04"
     },
     "OP13-001_p1": {
-      "low": 19.99,
-      "trend": 10.87,
+      "low": 53,
+      "trend": 81.12,
       "updated": "2026-08-04"
     },
     "OP13-002": {
       "low": 0.02,
-      "trend": 0.11,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP13-002_p1": {
-      "low": 10,
-      "trend": 9.22,
+      "low": 18.9,
+      "trend": 25.89,
       "updated": "2026-08-04"
     },
     "OP13-003": {
       "low": 0.02,
-      "trend": 0.05,
+      "trend": 0.09,
       "updated": "2026-08-04"
     },
     "OP13-003_p1": {
-      "low": 9.5,
-      "trend": 10.53,
+      "low": 26,
+      "trend": 28.98,
       "updated": "2026-08-04"
     },
     "OP13-004": {
       "low": 0.02,
-      "trend": 0.03,
+      "trend": 0.09,
       "updated": "2026-08-04"
     },
     "OP13-004_p1": {
-      "low": 5,
-      "trend": 6.32,
+      "low": 15,
+      "trend": 17.94,
       "updated": "2026-08-04"
     },
     "OP13-005": {
@@ -12992,13 +12992,13 @@
       "updated": "2026-08-04"
     },
     "OP13-007": {
-      "low": 0.05,
-      "trend": 0.25,
+      "low": 1,
+      "trend": 2.71,
       "updated": "2026-08-04"
     },
     "OP13-007_p1": {
-      "low": 11.99,
-      "trend": 14.22,
+      "low": 17,
+      "trend": 24.5,
       "updated": "2026-08-04"
     },
     "OP13-008": {
@@ -13043,12 +13043,12 @@
     },
     "OP13-016": {
       "low": 0.02,
-      "trend": 0.11,
+      "trend": 0.31,
       "updated": "2026-08-04"
     },
     "OP13-016_p1": {
-      "low": 2,
-      "trend": 2.98,
+      "low": 7.75,
+      "trend": 13.38,
       "updated": "2026-08-04"
     },
     "OP13-017": {
@@ -13062,8 +13062,8 @@
       "updated": "2026-08-04"
     },
     "OP13-019": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.63,
+      "trend": 1.32,
       "updated": "2026-08-04"
     },
     "OP13-020": {
@@ -13083,12 +13083,12 @@
     },
     "OP13-023": {
       "low": 0.02,
-      "trend": 0.16,
+      "trend": 0.32,
       "updated": "2026-08-04"
     },
     "OP13-023_p1": {
-      "low": 2.9,
-      "trend": 3.43,
+      "low": 4,
+      "trend": 4.81,
       "updated": "2026-08-04"
     },
     "OP13-024": {
@@ -13108,22 +13108,22 @@
     },
     "OP13-027": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.15,
       "updated": "2026-08-04"
     },
     "OP13-027_p1": {
-      "low": 3,
-      "trend": 3.5,
+      "low": 6.2,
+      "trend": 10.67,
       "updated": "2026-08-04"
     },
     "OP13-028": {
-      "low": 0.02,
-      "trend": 0.14,
+      "low": 0.03,
+      "trend": 0.77,
       "updated": "2026-08-04"
     },
     "OP13-028_p1": {
-      "low": 2,
-      "trend": 3.57,
+      "low": 13,
+      "trend": 19.47,
       "updated": "2026-08-04"
     },
     "OP13-029": {
@@ -13187,8 +13187,8 @@
       "updated": "2026-08-04"
     },
     "PRB02-018_p1": {
-      "low": 3,
-      "trend": 3.41,
+      "low": 6,
+      "trend": 9.28,
       "updated": "2026-08-04"
     },
     "OP13-041": {
@@ -13197,13 +13197,13 @@
       "updated": "2026-08-04"
     },
     "OP13-042": {
-      "low": 0.02,
-      "trend": 0.08,
+      "low": 0.8,
+      "trend": 1.83,
       "updated": "2026-08-04"
     },
     "OP13-042_p1": {
-      "low": 3.5,
-      "trend": 4.83,
+      "low": 16.47,
+      "trend": 24.09,
       "updated": "2026-08-04"
     },
     "OP13-043": {
@@ -13248,12 +13248,12 @@
     },
     "OP13-051": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.1,
       "updated": "2026-08-04"
     },
     "OP13-051_p1": {
-      "low": 8,
-      "trend": 9.37,
+      "low": 10,
+      "trend": 13.92,
       "updated": "2026-08-04"
     },
     "OP13-052": {
@@ -13267,13 +13267,13 @@
       "updated": "2026-08-04"
     },
     "OP13-054": {
-      "low": 0.02,
-      "trend": 0.22,
+      "low": 0.08,
+      "trend": 0.46,
       "updated": "2026-08-04"
     },
     "OP13-054_p1": {
-      "low": 8,
-      "trend": 9.23,
+      "low": 8.99,
+      "trend": 14.41,
       "updated": "2026-08-04"
     },
     "OP13-055": {
@@ -13287,8 +13287,8 @@
       "updated": "2026-08-04"
     },
     "OP13-057": {
-      "low": 0.02,
-      "trend": 0.12,
+      "low": 0.99,
+      "trend": 1.96,
       "updated": "2026-08-04"
     },
     "OP13-058": {
@@ -13323,32 +13323,32 @@
     },
     "OP13-064": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.25,
       "updated": "2026-08-04"
     },
     "OP13-064_p1": {
-      "low": 8.99,
-      "trend": 9.74,
+      "low": 15,
+      "trend": 22.29,
       "updated": "2026-08-04"
     },
     "OP13-065": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.1,
       "updated": "2026-08-04"
     },
     "OP13-065_p1": {
-      "low": 5,
-      "trend": 5.34,
+      "low": 6,
+      "trend": 8.18,
       "updated": "2026-08-04"
     },
     "OP13-066": {
       "low": 0.02,
-      "trend": 0.09,
+      "trend": 0.42,
       "updated": "2026-08-04"
     },
     "OP13-066_p1": {
-      "low": 1.9,
-      "trend": 2.23,
+      "low": 3.25,
+      "trend": 4.83,
       "updated": "2026-08-04"
     },
     "OP13-067": {
@@ -13397,13 +13397,13 @@
       "updated": "2026-08-04"
     },
     "OP13-076": {
-      "low": 0.02,
-      "trend": 0.09,
+      "low": 0.1,
+      "trend": 1.42,
       "updated": "2026-08-04"
     },
     "OP13-076_p1": {
-      "low": 27,
-      "trend": 34.19,
+      "low": 68,
+      "trend": 93.31,
       "updated": "2026-08-04"
     },
     "OP13-077": {
@@ -13418,12 +13418,12 @@
     },
     "OP13-079": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.13,
       "updated": "2026-08-04"
     },
     "OP13-079_p1": {
-      "low": 7,
-      "trend": 13.52,
+      "low": 10,
+      "trend": 25.25,
       "updated": "2026-08-04"
     },
     "OP13-080": {
@@ -13447,13 +13447,13 @@
       "updated": "2026-08-04"
     },
     "OP13-082": {
-      "low": 0.02,
-      "trend": 0.15,
+      "low": 0.18,
+      "trend": 0.88,
       "updated": "2026-08-04"
     },
     "OP13-082_p1": {
-      "low": 7,
-      "trend": 7.54,
+      "low": 18.5,
+      "trend": 23.41,
       "updated": "2026-08-04"
     },
     "OP13-083": {
@@ -13583,12 +13583,12 @@
     },
     "OP13-100": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP13-100_p1": {
-      "low": 3.6,
-      "trend": 5.36,
+      "low": 10,
+      "trend": 14.48,
       "updated": "2026-08-04"
     },
     "OP13-101": {
@@ -13627,13 +13627,13 @@
       "updated": "2026-08-04"
     },
     "OP13-108": {
-      "low": 0.02,
-      "trend": 0.24,
+      "low": 0.2,
+      "trend": 1.19,
       "updated": "2026-08-04"
     },
     "OP13-108_p1": {
-      "low": 3.5,
-      "trend": 4.79,
+      "low": 10.99,
+      "trend": 15.61,
       "updated": "2026-08-04"
     },
     "OP13-109": {
@@ -13643,12 +13643,12 @@
     },
     "OP13-110": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.27,
       "updated": "2026-08-04"
     },
     "OP13-110_p1": {
-      "low": 6,
-      "trend": 7.16,
+      "low": 8.8,
+      "trend": 11.58,
       "updated": "2026-08-04"
     },
     "OP13-111": {
@@ -13663,12 +13663,12 @@
     },
     "OP13-113": {
       "low": 0.02,
-      "trend": 0.03,
+      "trend": 0.27,
       "updated": "2026-08-04"
     },
     "OP13-113_p1": {
-      "low": 1.89,
-      "trend": 2.8,
+      "low": 5.8,
+      "trend": 7.41,
       "updated": "2026-08-04"
     },
     "OP13-114": {
@@ -13677,8 +13677,8 @@
       "updated": "2026-08-04"
     },
     "OP13-114_p1": {
-      "low": 2.5,
-      "trend": 3.6,
+      "low": 3.49,
+      "trend": 4.39,
       "updated": "2026-08-04"
     },
     "OP13-115": {
@@ -13777,23 +13777,23 @@
       "updated": "2026-08-04"
     },
     "P-099": {
-      "low": 9.99,
-      "trend": 22.81,
+      "low": 33,
+      "trend": 56.48,
       "updated": "2026-08-04"
     },
     "P-097": {
-      "low": 3.5,
-      "trend": 7.27,
+      "low": 6.99,
+      "trend": 7.94,
       "updated": "2026-08-04"
     },
     "P-098": {
-      "low": 2.2,
-      "trend": 4.38,
+      "low": 3,
+      "trend": 4.22,
       "updated": "2026-08-04"
     },
     "P-100": {
-      "low": 3.49,
-      "trend": 6.89,
+      "low": 4.5,
+      "trend": 5.92,
       "updated": "2026-08-04"
     },
     "P-030_p2": {
@@ -13862,8 +13862,8 @@
       "updated": "2026-08-04"
     },
     "P-117": {
-      "low": 0.9,
-      "trend": 1.52,
+      "low": 2.99,
+      "trend": 5.5,
       "updated": "2026-08-04"
     },
     "OP14-001": {
@@ -13913,12 +13913,12 @@
     },
     "OP14-009": {
       "low": 0.02,
-      "trend": 0.26,
+      "trend": 0.34,
       "updated": "2026-08-04"
     },
     "OP14-009_p1": {
-      "low": 6.99,
-      "trend": 7.53,
+      "low": 8,
+      "trend": 10.19,
       "updated": "2026-08-04"
     },
     "OP14-010": {
@@ -13983,12 +13983,12 @@
     },
     "OP14-020": {
       "low": 0.02,
-      "trend": 0.1,
+      "trend": 0.17,
       "updated": "2026-08-04"
     },
     "OP14-020_p1": {
-      "low": 15,
-      "trend": 17.49,
+      "low": 38.99,
+      "trend": 49.55,
       "updated": "2026-08-04"
     },
     "OP14-021": {
@@ -14023,12 +14023,12 @@
     },
     "OP14-027": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.75,
       "updated": "2026-08-04"
     },
     "OP14-027_p1": {
-      "low": 9.49,
-      "trend": 11.13,
+      "low": 16,
+      "trend": 19.67,
       "updated": "2026-08-04"
     },
     "OP14-028": {
@@ -14047,13 +14047,13 @@
       "updated": "2026-08-04"
     },
     "OP14-031": {
-      "low": 0.1,
-      "trend": 0.66,
+      "low": 1.68,
+      "trend": 4.77,
       "updated": "2026-08-04"
     },
     "OP14-031_p1": {
-      "low": 25,
-      "trend": 28.6,
+      "low": 27,
+      "trend": 43.93,
       "updated": "2026-08-04"
     },
     "OP14-032": {
@@ -14062,13 +14062,13 @@
       "updated": "2026-08-04"
     },
     "OP14-033": {
-      "low": 0.15,
-      "trend": 0.61,
+      "low": 5.5,
+      "trend": 7.84,
       "updated": "2026-08-04"
     },
     "OP14-033_p1": {
-      "low": 8.99,
-      "trend": 9.33,
+      "low": 18.5,
+      "trend": 26.32,
       "updated": "2026-08-04"
     },
     "OP14-034": {
@@ -14103,12 +14103,12 @@
     },
     "OP14-040": {
       "low": 0.02,
-      "trend": 0.14,
+      "trend": 0.07,
       "updated": "2026-08-04"
     },
     "OP14-040_p1": {
-      "low": 7.49,
-      "trend": 9.16,
+      "low": 10.49,
+      "trend": 12.27,
       "updated": "2026-08-04"
     },
     "OP14-041": {
@@ -14123,12 +14123,12 @@
     },
     "OP14-042": {
       "low": 0.02,
-      "trend": 0.05,
+      "trend": 0.07,
       "updated": "2026-08-04"
     },
     "OP14-042_p1": {
-      "low": 2.99,
-      "trend": 4.22,
+      "low": 3.49,
+      "trend": 4.42,
       "updated": "2026-08-04"
     },
     "OP14-043": {
@@ -14162,13 +14162,13 @@
       "updated": "2026-08-04"
     },
     "OP14-049": {
-      "low": 0.03,
-      "trend": 0.23,
+      "low": 0.13,
+      "trend": 0.79,
       "updated": "2026-08-04"
     },
     "OP14-049_p1": {
-      "low": 3,
-      "trend": 4.16,
+      "low": 4.9,
+      "trend": 6.28,
       "updated": "2026-08-04"
     },
     "OP14-050": {
@@ -14223,22 +14223,22 @@
     },
     "OP14-060": {
       "low": 0.02,
-      "trend": 0.18,
+      "trend": 0.09,
       "updated": "2026-08-04"
     },
     "OP14-060_p1": {
-      "low": 12.99,
-      "trend": 14.47,
+      "low": 17.5,
+      "trend": 24.91,
       "updated": "2026-08-04"
     },
     "OP14-061": {
       "low": 0.02,
-      "trend": 0.06,
+      "trend": 0.33,
       "updated": "2026-08-04"
     },
     "OP14-061_p1": {
-      "low": 1.25,
-      "trend": 2.29,
+      "low": 3.6,
+      "trend": 4.61,
       "updated": "2026-08-04"
     },
     "OP14-062": {
@@ -14277,13 +14277,13 @@
       "updated": "2026-08-04"
     },
     "OP14-069": {
-      "low": 0.05,
-      "trend": 0.29,
+      "low": 0.25,
+      "trend": 0.9,
       "updated": "2026-08-04"
     },
     "OP14-069_p1": {
-      "low": 3.9,
-      "trend": 5.01,
+      "low": 6,
+      "trend": 10.49,
       "updated": "2026-08-04"
     },
     "OP14-070": {
@@ -14333,22 +14333,22 @@
     },
     "OP14-079": {
       "low": 0.02,
-      "trend": 0.07,
+      "trend": 0.1,
       "updated": "2026-08-04"
     },
     "OP14-079_p1": {
-      "low": 12.99,
-      "trend": 13.8,
+      "low": 18,
+      "trend": 23.94,
       "updated": "2026-08-04"
     },
     "OP14-080": {
       "low": 0.02,
-      "trend": 0.15,
+      "trend": 0.04,
       "updated": "2026-08-04"
     },
     "OP14-080_p1": {
-      "low": 6.49,
-      "trend": 8.55,
+      "low": 9.8,
+      "trend": 12.01,
       "updated": "2026-08-04"
     },
     "OP14-081": {
@@ -14367,13 +14367,13 @@
       "updated": "2026-08-04"
     },
     "OP14-084": {
-      "low": 0.02,
-      "trend": 0.38,
+      "low": 0.45,
+      "trend": 1.16,
       "updated": "2026-08-04"
     },
     "OP14-084_p1": {
-      "low": 15,
-      "trend": 17.75,
+      "low": 23,
+      "trend": 27.28,
       "updated": "2026-08-04"
     },
     "OP14-085": {
@@ -14403,12 +14403,12 @@
     },
     "OP14-090": {
       "low": 0.02,
-      "trend": 0.09,
+      "trend": 0.14,
       "updated": "2026-08-04"
     },
     "OP14-090_p1": {
-      "low": 2.2,
-      "trend": 2.34,
+      "low": 2.99,
+      "trend": 5.17,
       "updated": "2026-08-04"
     },
     "OP14-091": {
@@ -14487,13 +14487,13 @@
       "updated": "2026-08-04"
     },
     "OP14-104": {
-      "low": 0.04,
-      "trend": 0.43,
+      "low": 1.75,
+      "trend": 3.48,
       "updated": "2026-08-04"
     },
     "OP14-104_p1": {
-      "low": 4,
-      "trend": 5.47,
+      "low": 18,
+      "trend": 21.15,
       "updated": "2026-08-04"
     },
     "OP14-105": {
@@ -14522,18 +14522,18 @@
       "updated": "2026-08-04"
     },
     "OP14-110": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 0.2,
+      "trend": 1,
       "updated": "2026-08-04"
     },
     "OP14-111": {
       "low": 0.02,
-      "trend": 0.08,
+      "trend": 0.23,
       "updated": "2026-08-04"
     },
     "OP14-111_p1": {
-      "low": 8.89,
-      "trend": 10.42,
+      "low": 14,
+      "trend": 15.09,
       "updated": "2026-08-04"
     },
     "OP14-112": {
@@ -14602,18 +14602,18 @@
       "updated": "2026-08-04"
     },
     "OP14-120": {
-      "low": 1.5,
-      "trend": 2.04,
+      "low": 1.89,
+      "trend": 3.46,
       "updated": "2026-08-04"
     },
     "OP14-120_p1": {
-      "low": 16,
-      "trend": 15.67,
+      "low": 25,
+      "trend": 27.84,
       "updated": "2026-08-04"
     },
     "EB04-011": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.19,
+      "trend": 0.25,
       "updated": "2026-08-04"
     },
     "EB04-012": {
@@ -14637,8 +14637,8 @@
       "updated": "2026-08-04"
     },
     "EB04-014": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.1,
+      "trend": 0.11,
       "updated": "2026-08-04"
     },
     "EB04-015": {
@@ -14647,13 +14647,13 @@
       "updated": "2026-08-04"
     },
     "EB04-016": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.3,
+      "trend": 0.48,
       "updated": "2026-08-04"
     },
     "EB04-017": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.14,
+      "trend": 0.16,
       "updated": "2026-08-04"
     },
     "EB04-018": {
@@ -14672,13 +14672,13 @@
       "updated": "2026-08-04"
     },
     "EB04-020": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.05,
+      "trend": 0.24,
       "updated": "2026-08-04"
     },
     "EB04-021": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.05,
+      "trend": 0.18,
       "updated": "2026-08-04"
     },
     "EB04-022": {
@@ -14697,8 +14697,8 @@
       "updated": "2026-08-04"
     },
     "EB04-024": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.45,
+      "trend": 1.3,
       "updated": "2026-08-04"
     },
     "EB04-025": {
@@ -14712,8 +14712,8 @@
       "updated": "2026-08-04"
     },
     "EB04-026": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 1,
+      "trend": 2.83,
       "updated": "2026-08-04"
     },
     "EB04-027": {
@@ -14727,8 +14727,8 @@
       "updated": "2026-08-04"
     },
     "EB04-029": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 0.48,
+      "trend": 0.73,
       "updated": "2026-08-04"
     },
     "EB04-030": {
@@ -14752,18 +14752,18 @@
       "updated": "2026-08-04"
     },
     "EB04-033": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.1,
+      "trend": 0.27,
       "updated": "2026-08-04"
     },
     "EB04-034": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.3,
+      "trend": 0.68,
       "updated": "2026-08-04"
     },
     "EB04-035": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.08,
+      "trend": 0.25,
       "updated": "2026-08-04"
     },
     "EB04-036": {
@@ -14777,8 +14777,8 @@
       "updated": "2026-08-04"
     },
     "EB04-037": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.75,
+      "trend": 1.07,
       "updated": "2026-08-04"
     },
     "EB04-038": {
@@ -14807,163 +14807,163 @@
       "updated": "2026-08-04"
     },
     "EB04-041": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.35,
+      "trend": 1.01,
       "updated": "2026-08-04"
     },
     "ST29-001": {
-      "low": 0.5,
-      "trend": 1.67,
+      "low": 2.99,
+      "trend": 3.52,
       "updated": "2026-08-04"
     },
     "ST29-001_p1": {
-      "low": 22.99,
-      "trend": 33.43,
+      "low": 99,
+      "trend": 154.3,
       "updated": "2026-08-04"
     },
     "ST29-002": {
-      "low": 0.02,
-      "trend": 0.06,
+      "low": 0.2,
+      "trend": 3.5,
       "updated": "2026-08-04"
     },
     "ST29-002_p1": {
-      "low": 1,
-      "trend": 2.23,
+      "low": 3.5,
+      "trend": 3.77,
       "updated": "2026-08-04"
     },
     "ST29-003": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 0.2,
+      "trend": null,
       "updated": "2026-08-04"
     },
     "ST29-003_p1": {
-      "low": 0.25,
-      "trend": 0.87,
+      "low": 6.99,
+      "trend": 9.29,
       "updated": "2026-08-04"
     },
     "ST29-004": {
-      "low": 0.1,
-      "trend": 0.76,
+      "low": 0.95,
+      "trend": 1.12,
       "updated": "2026-08-04"
     },
     "ST29-004_p1": {
-      "low": 3.5,
-      "trend": 5.47,
+      "low": 20,
+      "trend": 27.81,
       "updated": "2026-08-04"
     },
     "ST29-005": {
-      "low": 0.02,
-      "trend": 0.27,
+      "low": 0.7,
+      "trend": 0.3,
       "updated": "2026-08-04"
     },
     "ST29-005_p1": {
-      "low": 1.4,
-      "trend": 2.85,
+      "low": 4.9,
+      "trend": 4.29,
       "updated": "2026-08-04"
     },
     "ST29-006": {
-      "low": 0.02,
-      "trend": 0.07,
+      "low": 0.2,
+      "trend": 0.56,
       "updated": "2026-08-04"
     },
     "ST29-006_p1": {
-      "low": 0.9,
-      "trend": 1.76,
+      "low": 8.5,
+      "trend": 11.64,
       "updated": "2026-08-04"
     },
     "ST29-007": {
-      "low": 0.02,
-      "trend": 0.12,
+      "low": 0.3,
+      "trend": 0.98,
       "updated": "2026-08-04"
     },
     "ST29-007_p1": {
-      "low": 3.49,
-      "trend": 8.42,
+      "low": 9.5,
+      "trend": 9.59,
       "updated": "2026-08-04"
     },
     "ST29-008": {
-      "low": 0.02,
-      "trend": 0.25,
+      "low": 2.5,
+      "trend": 3.16,
       "updated": "2026-08-04"
     },
     "ST29-008_p1": {
-      "low": 12.5,
-      "trend": 21.69,
+      "low": 14.99,
+      "trend": 38.3,
       "updated": "2026-08-04"
     },
     "ST29-009": {
-      "low": 0.05,
-      "trend": 1.06,
+      "low": 2.99,
+      "trend": 3.22,
       "updated": "2026-08-04"
     },
     "ST29-009_p1": {
-      "low": 8.95,
-      "trend": 17.41,
+      "low": 38.99,
+      "trend": 39.64,
       "updated": "2026-08-04"
     },
     "ST29-010": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.3,
+      "trend": null,
       "updated": "2026-08-04"
     },
     "ST29-010_p1": {
-      "low": 0.85,
-      "trend": 1.25,
+      "low": 5,
+      "trend": 8.99,
       "updated": "2026-08-04"
     },
     "ST29-011": {
-      "low": 0.02,
-      "trend": 0.05,
+      "low": 0.2,
+      "trend": null,
       "updated": "2026-08-04"
     },
     "ST29-011_p1": {
-      "low": 1,
-      "trend": 2.25,
+      "low": 5.79,
+      "trend": 6.11,
       "updated": "2026-08-04"
     },
     "ST29-012": {
-      "low": 0.02,
-      "trend": 0.04,
+      "low": 0.2,
+      "trend": null,
       "updated": "2026-08-04"
     },
     "ST29-012_p1": {
-      "low": 1.9,
-      "trend": 4.26,
+      "low": 7,
+      "trend": 7.79,
       "updated": "2026-08-04"
     },
     "ST29-013": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.2,
+      "trend": null,
       "updated": "2026-08-04"
     },
     "ST29-013_p1": {
-      "low": 0.79,
-      "trend": 1.45,
+      "low": 4.25,
+      "trend": 5.2,
       "updated": "2026-08-04"
     },
     "ST29-014": {
-      "low": 0.05,
-      "trend": 0.36,
+      "low": 0.95,
+      "trend": 1.09,
       "updated": "2026-08-04"
     },
     "ST29-014_p1": {
-      "low": 4.99,
-      "trend": 11.36,
+      "low": 20,
+      "trend": 18.86,
       "updated": "2026-08-04"
     },
     "ST29-015": {
-      "low": 0.02,
-      "trend": 0.11,
+      "low": 0.2,
+      "trend": 0.48,
       "updated": "2026-08-04"
     },
     "ST29-016": {
-      "low": 0.02,
-      "trend": 0.59,
+      "low": 0.5,
+      "trend": 0.5,
       "updated": "2026-08-04"
     },
     "ST29-017": {
-      "low": 0.02,
-      "trend": 0.1,
+      "low": 0.2,
+      "trend": 0.5,
       "updated": "2026-08-04"
     },
     "P-106_p1": {
@@ -14998,22 +14998,22 @@
     },
     "EB04-002": {
       "low": 0.02,
-      "trend": 0.16,
+      "trend": 0.24,
       "updated": "2026-08-04"
     },
     "EB04-002_p1": {
-      "low": 8,
-      "trend": 8.72,
+      "low": 11.98,
+      "trend": 14.77,
       "updated": "2026-08-04"
     },
     "EB04-003": {
       "low": 0.02,
-      "trend": 0.14,
+      "trend": 0.19,
       "updated": "2026-08-04"
     },
     "EB04-003_p1": {
-      "low": 60,
-      "trend": 78.74,
+      "low": 70,
+      "trend": 93.23,
       "updated": "2026-08-04"
     },
     "EB04-004": {
@@ -15032,13 +15032,13 @@
       "updated": "2026-08-04"
     },
     "EB04-007": {
-      "low": 3.5,
-      "trend": 5.81,
+      "low": 10,
+      "trend": 13.48,
       "updated": "2026-08-04"
     },
     "EB04-007_p1": {
-      "low": 26,
-      "trend": 29.08,
+      "low": 38.98,
+      "trend": 54.81,
       "updated": "2026-08-04"
     },
     "EB04-008": {
@@ -15162,13 +15162,13 @@
       "updated": "2026-08-04"
     },
     "EB04-058": {
-      "low": 6,
-      "trend": 8.35,
+      "low": 15,
+      "trend": 18.33,
       "updated": "2026-08-04"
     },
     "EB04-058_p1": {
-      "low": 22.88,
-      "trend": 23.01,
+      "low": 29,
+      "trend": 50.11,
       "updated": "2026-08-04"
     },
     "EB04-059": {
@@ -15198,12 +15198,12 @@
     },
     "OP15-001": {
       "low": 0.02,
-      "trend": 0.12,
+      "trend": 0.08,
       "updated": "2026-08-04"
     },
     "OP15-001_p1": {
-      "low": 8,
-      "trend": 8.43,
+      "low": 11.2,
+      "trend": 12.8,
       "updated": "2026-08-04"
     },
     "OP15-002": {
@@ -15252,13 +15252,13 @@
       "updated": "2026-08-04"
     },
     "OP15-008": {
-      "low": 0.02,
-      "trend": 0.17,
+      "low": 0.08,
+      "trend": 0.97,
       "updated": "2026-08-04"
     },
     "OP15-008_p1": {
-      "low": 2.9,
-      "trend": 4.24,
+      "low": 3.98,
+      "trend": 5.49,
       "updated": "2026-08-04"
     },
     "OP15-009": {
@@ -15328,12 +15328,12 @@
     },
     "OP15-022": {
       "low": 0.02,
-      "trend": 0.19,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP15-022_p1": {
-      "low": 29.95,
-      "trend": 30.84,
+      "low": 49,
+      "trend": 65.95,
       "updated": "2026-08-04"
     },
     "OP15-023": {
@@ -15348,12 +15348,12 @@
     },
     "OP15-025": {
       "low": 0.02,
-      "trend": 0.11,
+      "trend": 0.13,
       "updated": "2026-08-04"
     },
     "OP15-025_p1": {
-      "low": 3,
-      "trend": 4.04,
+      "low": 3.4,
+      "trend": 4.49,
       "updated": "2026-08-04"
     },
     "OP15-026": {
@@ -15387,13 +15387,13 @@
       "updated": "2026-08-04"
     },
     "OP15-032": {
-      "low": 0.04,
-      "trend": 0.33,
+      "low": 2,
+      "trend": 3.84,
       "updated": "2026-08-04"
     },
     "OP15-032_p1": {
-      "low": 21.99,
-      "trend": 15.99,
+      "low": 23,
+      "trend": 25.96,
       "updated": "2026-08-04"
     },
     "OP15-033": {
@@ -15478,12 +15478,12 @@
     },
     "OP15-047": {
       "low": 0.02,
-      "trend": 0.15,
+      "trend": 0.52,
       "updated": "2026-08-04"
     },
     "OP15-047_p1": {
-      "low": 4,
-      "trend": 6,
+      "low": 5.99,
+      "trend": 8.73,
       "updated": "2026-08-04"
     },
     "OP15-048": {
@@ -15512,13 +15512,13 @@
       "updated": "2026-08-04"
     },
     "OP15-053": {
-      "low": 0.4,
-      "trend": 0.78,
+      "low": 0.9,
+      "trend": 2.27,
       "updated": "2026-08-04"
     },
     "OP15-053_p1": {
-      "low": 10.69,
-      "trend": 12.43,
+      "low": 15,
+      "trend": 18.07,
       "updated": "2026-08-04"
     },
     "OP15-054": {
@@ -15568,12 +15568,12 @@
     },
     "OP15-061": {
       "low": 0.02,
-      "trend": 0.11,
+      "trend": 0.15,
       "updated": "2026-08-04"
     },
     "OP15-061_p1": {
-      "low": 4.1,
-      "trend": 4.6,
+      "low": 4.9,
+      "trend": 6.72,
       "updated": "2026-08-04"
     },
     "OP15-062": {
@@ -15662,13 +15662,13 @@
       "updated": "2026-08-04"
     },
     "OP15-078": {
-      "low": 1,
-      "trend": 1.75,
+      "low": 9,
+      "trend": 12.64,
       "updated": "2026-08-04"
     },
     "OP15-078_p1": {
-      "low": 6,
-      "trend": 7.64,
+      "low": 20,
+      "trend": 34.83,
       "updated": "2026-08-04"
     },
     "OP15-079": {
@@ -15707,13 +15707,13 @@
       "updated": "2026-08-04"
     },
     "OP15-086": {
-      "low": 0.45,
-      "trend": 1.39,
+      "low": 0.7,
+      "trend": 2.45,
       "updated": "2026-08-04"
     },
     "OP15-086_p1": {
-      "low": 50,
-      "trend": 238.34,
+      "low": 89.99,
+      "trend": 118.07,
       "updated": "2026-08-04"
     },
     "OP15-087": {
@@ -15742,13 +15742,13 @@
       "updated": "2026-08-04"
     },
     "OP15-092": {
-      "low": 0.02,
-      "trend": 0.22,
+      "low": 0.05,
+      "trend": 2.45,
       "updated": "2026-08-04"
     },
     "OP15-092_p1": {
-      "low": 14.98,
-      "trend": 15.51,
+      "low": 27.99,
+      "trend": 33.69,
       "updated": "2026-08-04"
     },
     "OP15-093": {
@@ -15778,12 +15778,12 @@
     },
     "OP15-098": {
       "low": 0.02,
-      "trend": 0.33,
+      "trend": 0.06,
       "updated": "2026-08-04"
     },
     "OP15-098_p1": {
-      "low": 49.99,
-      "trend": 83.45,
+      "low": 50,
+      "trend": 64.49,
       "updated": "2026-08-04"
     },
     "OP15-099": {
@@ -15838,12 +15838,12 @@
     },
     "OP15-109": {
       "low": 0.02,
-      "trend": 0.21,
+      "trend": 0.13,
       "updated": "2026-08-04"
     },
     "OP15-109_p1": {
-      "low": 9,
-      "trend": 13.38,
+      "low": 10,
+      "trend": 12.18,
       "updated": "2026-08-04"
     },
     "OP15-111": {
@@ -15862,23 +15862,23 @@
       "updated": "2026-08-04"
     },
     "OP15-113": {
-      "low": 0.3,
-      "trend": 0.67,
+      "low": 1.49,
+      "trend": 3.13,
       "updated": "2026-08-04"
     },
     "OP15-113_p1": {
-      "low": 12,
-      "trend": 12.76,
+      "low": 17,
+      "trend": 19.48,
       "updated": "2026-08-04"
     },
     "OP15-114": {
-      "low": 0.05,
-      "trend": 0.46,
+      "low": 0.99,
+      "trend": 2.75,
       "updated": "2026-08-04"
     },
     "OP15-114_p1": {
-      "low": 5,
-      "trend": 6.92,
+      "low": 8.99,
+      "trend": 11.15,
       "updated": "2026-08-04"
     },
     "OP15-115": {
@@ -15917,13 +15917,13 @@
       "updated": "2026-08-04"
     },
     "OP15-119": {
-      "low": 4.6,
-      "trend": 4.94,
+      "low": 10,
+      "trend": 13.8,
       "updated": "2026-08-04"
     },
     "OP15-119_p1": {
-      "low": 22,
-      "trend": 32.63,
+      "low": 44.5,
+      "trend": 51.9,
       "updated": "2026-08-04"
     },
     "P-047_p1": {
@@ -15957,8 +15957,8 @@
       "updated": "2026-08-04"
     },
     "P-053_p2": {
-      "low": 13.69,
-      "trend": 14.07,
+      "low": 14.9,
+      "trend": 20.93,
       "updated": "2026-08-04"
     },
     "P-069_p1": {
@@ -16132,8 +16132,8 @@
       "updated": "2026-08-04"
     },
     "P-135": {
-      "low": 0.3,
-      "trend": 1.13,
+      "low": 70,
+      "trend": 168.49,
       "updated": "2026-08-04"
     },
     "OP16-001": {
@@ -16467,13 +16467,13 @@
       "updated": "2026-08-04"
     },
     "OP16-056": {
-      "low": 0.9,
-      "trend": 1.47,
+      "low": 3.7,
+      "trend": 5.01,
       "updated": "2026-08-04"
     },
     "OP16-056_p1": {
-      "low": 14,
-      "trend": 28.56,
+      "low": 19.9,
+      "trend": 21.73,
       "updated": "2026-08-04"
     },
     "OP16-057": {
@@ -16872,8 +16872,8 @@
       "updated": "2026-08-04"
     },
     "OP16-008": {
-      "low": 0.02,
-      "trend": 0.03,
+      "low": 0.03,
+      "trend": 0.19,
       "updated": "2026-08-04"
     },
     "ST01-005_p2": {

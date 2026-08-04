@@ -3,7 +3,36 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-08-04 (2) (**Cardmarket price scraper — resuelto de raíz, sin scraping**.
+**Last updated:** 2026-08-04 (3) (**Cardmarket price scraper — bug de idioma encontrado y corregido**.
+El usuario detectó a ojo que el precio de Cavendish EB01-012 no cuadraba y
+sospechó un problema de idiomas; se confirmó con una captura suya del sitio
+(10 versiones del mismo código: EB01 inglés vs EB01-JP no-inglés, The Best
+Vol.2 EN vs JP, un Special Tournament Promo inglés de 4500-6000€, etc.). El
+heurístico "coger la edición más antigua" (entrada de abajo) elegía
+sistemáticamente la ficha japonesa porque Cardmarket la cataloga antes que la
+inglesa — nada que ver con precios de torneo, ese susto era ruido. Primer
+intento de arreglo ("si dos ediciones tienen el mismo tamaño de grupo, usar
+la más cara") se auditó contra las 2665 cartas antes de asumir que funcionaba
+y **casi se cuela un bug peor**: 201 códigos disparaban a precios de
+3-5 cifras por colar una promo/reimpresión rara en vez de la pareja de
+idioma real (ST03-013, una común de starter, pasaba a "valer" 1500€; P-031
+llegaba a 50000€). Corregido con dos condiciones adicionales en
+`match_products_to_variants()` de `scripts/build_prices_bulk.py`: (1) los dos
+productos de la edición candidata deben valer **igual o más**, ambos, que
+sus correspondientes de la edición actual — si uno sube y el otro baja no es
+pareja de idioma, es basura; (2) tope duro de 100€, si el swap propuesto
+supera eso se descarta y se queda con la edición antigua (un precio JP
+demasiado bajo es un fallo más seguro que uno inglés inventado demasiado
+alto, porque alimenta vault value / P&L del usuario). Auditado contra el
+catálogo completo antes de aplicarlo: de 750 swaps candidatos, 46 se
+descartan por inconsistentes y 37 por superar el tope — quedan 667 swaps
+razonables. Verificado en vivo: Cavendish ya da 0,90€/1,87€ (inglés, antes
+0,02€/0,12€ japonés) y Boa Hancock ST03-013 se queda en 0,02€/20€ (no salta a
+1500€). `data/prices.json` y `app/src/data/prices.json` regenerados otra
+vez. Typecheck verde. Commiteado en `price-tracking` junto con la entrada de
+abajo.)
+
+**Last updated (previous):** 2026-08-04 (2) (**Cardmarket price scraper — resuelto de raíz, sin scraping**.
 El diagnóstico anterior (bloqueo de Cloudflare al runner de CI, ver más abajo)
 seguía en pie, pero el usuario encontró la solución real: Cardmarket publica a
 diario un catálogo + guía de precios por juego en un bucket S3 público —
