@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { View } from 'react-native';
-import { colorOf } from '../theme';
+import { colorOf, colors } from '../theme';
 
 type Props = {
   colors?: string[];
@@ -18,7 +18,7 @@ export function ColorDot({ colors: cs, size = 9 }: Props) {
           width: size,
           height: size,
           borderRadius: 99,
-          backgroundColor: '#5e6775',
+          backgroundColor: colors.colorless,
         }}
       />
     );

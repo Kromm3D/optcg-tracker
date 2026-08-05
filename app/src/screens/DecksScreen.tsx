@@ -98,6 +98,20 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
             <Icon name="external" size={18} color={colors.accent} />
             <Text style={s.importBtnText}>{t('decks.importSim')}</Text>
           </Pressable>
+          {/* Mismo motivo que en el header del listado no-vacío: sin FAB
+              central el escáner necesita una vía desde Decks, y el estado
+              vacío (primera vez que se entra en la tab) es justo donde más
+              falta hacía — antes sólo vivía en el ListHeaderComponent, que
+              no se monta hasta que hay al menos un mazo. */}
+          <Pressable
+            style={({ pressed }) => [s.importBtn, pressed && pressedStyle]}
+            onPress={() => navigation.navigate('Scan')}
+            accessibilityRole="button"
+            accessibilityLabel={t('home.scan')}
+          >
+            <Icon name="camera" size={18} color={colors.accent} />
+            <Text style={s.importBtnText}>{t('home.scan')}</Text>
+          </Pressable>
         </View>
       ) : (
         <FlatList

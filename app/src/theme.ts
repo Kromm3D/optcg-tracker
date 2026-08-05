@@ -53,6 +53,15 @@ const DARK = {
   down: '#ef5d6b',
   // Aviso: ni error ni pérdida — "míralo antes de aceptar".
   warn: '#e8b04b',
+  // "Listo" — el detector del escáner tiene un candidato bueno para capturar.
+  // Distinto de `up` (que es específico de precio/valor) aunque comparta
+  // familia de verde. Mismo valor en ambos temas a propósito: el visor de
+  // cámara siempre corre sobre un scrim oscuro fijo, no sobre `bg` del tema.
+  ready: '#22c55e',
+  // Dot de color "sin facción" (carta sin colores en el índice). Gris neutro
+  // deliberadamente fuera de la paleta morada — es la ausencia de un color de
+  // carta, no un tono de marca. Mismo valor en ambos temas por la misma razón.
+  colorless: '#5e6775',
   // Wash translúcido de la barra flotante de tabs — un valor propio porque
   // necesita transparencia (no puede derivarse de `surface2`, que es sólido).
   tabBarWash: 'rgba(28,23,38,0.94)',
@@ -86,6 +95,10 @@ const LIGHT = {
   up: '#157048',
   down: '#c0334a',
   warn: '#a86a12',
+  // Mismo valor que en DARK — ver comentario en la paleta oscura: el visor de
+  // cámara del escáner no cambia con el tema.
+  ready: '#22c55e',
+  colorless: '#5e6775',
   tabBarWash: 'rgba(255,255,255,0.92)',
 };
 

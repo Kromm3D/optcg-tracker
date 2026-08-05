@@ -846,7 +846,7 @@ const s = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#22c55e',
+    backgroundColor: colors.ready,
   },
   statusText: {
     fontSize: 13,
@@ -854,7 +854,7 @@ const s = StyleSheet.create({
     color: 'rgba(255,255,255,0.85)',
     letterSpacing: 0.5,
   },
-  statusTextReady: { color: '#22c55e' },
+  statusTextReady: { color: colors.ready },
 
   // Consenso entre frames
   voteDots: { flexDirection: 'row', gap: 3, marginLeft: 2 },
@@ -864,7 +864,7 @@ const s = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: 'rgba(255,255,255,0.30)',
   },
-  voteDotOn: { backgroundColor: '#22c55e' },
+  voteDotOn: { backgroundColor: colors.ready },
 
   // Chip de la cola BULK
   queueChip: {
@@ -982,7 +982,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   shutterReady: {
-    borderColor: '#22c55e',
+    borderColor: colors.ready,
     backgroundColor: 'rgba(34,197,94,0.15)',
   },
   shutterInner: {
@@ -1022,12 +1022,12 @@ const s = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#22c55e',
+    backgroundColor: colors.ready,
   },
   lastAddedBadgeText: {
     fontSize: 10,
     fontFamily: fonts.uiBold,
-    color: '#22c55e',
+    color: colors.ready,
     letterSpacing: 0.5,
   },
   lastAddedName: {
