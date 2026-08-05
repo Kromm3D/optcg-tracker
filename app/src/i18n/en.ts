@@ -330,6 +330,7 @@ export const en = {
   'bulk.toTrade': 'Trade',
   'bulk.toDeck': 'Deck',
   'bulk.addTitle': 'Add {n} cards',
+  'bulk.addTitleOne': 'Add 1 card',
   'bulk.quantity': 'Quantity per card',
   'bulk.pickDeck': 'Choose a deck',
   'bulk.noDecks': 'No decks yet. Create one from the Decks tab.',

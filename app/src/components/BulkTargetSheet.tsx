@@ -134,7 +134,11 @@ export function BulkTargetSheet({ visible, target, selections, onClose, onDone }
       <Pressable style={s.backdrop} onPress={onClose}>
         <Pressable style={[s.sheet, { paddingBottom: insets.bottom + 20 }]} onPress={() => {}}>
           <View style={s.handle} />
-          <Text style={s.title}>{t('bulk.addTitle', { n: selections.length })}</Text>
+          <Text style={s.title}>
+            {selections.length === 1
+              ? t('bulk.addTitleOne')
+              : t('bulk.addTitle', { n: selections.length })}
+          </Text>
           <Text style={s.subtitle}>{targetLabel}</Text>
 
           {/* Quantity stepper */}

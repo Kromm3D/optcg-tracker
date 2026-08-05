@@ -331,6 +331,7 @@ export const es: Record<TKey, string> = {
   'bulk.toTrade': 'Trade',
   'bulk.toDeck': 'Mazo',
   'bulk.addTitle': 'Añadir {n} cartas',
+  'bulk.addTitleOne': 'Añadir 1 carta',
   'bulk.quantity': 'Cantidad por carta',
   'bulk.pickDeck': 'Elige un mazo',
   'bulk.noDecks': 'Aún no hay mazos. Crea uno desde la pestaña Mazos.',
