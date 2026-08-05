@@ -10,7 +10,7 @@
 // previa → getPriceChangePct devuelve null y la UI muestra "0.0%".
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PRICES_META, snapshotRealPrices, realTrend } from './prices';
+import { PRICES_META, snapshotRealPrices, realTrend, subscribeToPrices } from './prices';
 
 const KEY = 'optcg.priceHistory.v2';
 const LEGACY_KEY = 'optcg.priceHistory.v1';
@@ -46,13 +46,45 @@ type Store = {
 
 // Referencia previa en memoria (clave variante -> precio). Vacío hasta init().
 let prevPrices: Record<string, number> = {};
+// Snapshot "actual" en memoria — el que pasa a ser `prevPrices` en la
+// siguiente rotación. Antes sólo vivía en AsyncStorage (`stored.cur`); hace
+// falta tenerlo también en memoria para poder rotar sin releer el storage
+// cuando llega un refresco de precios EN CALIENTE (ver rotateIfNeeded).
+let curPrices: Record<string, number> = {};
 let series: Record<string, PricePoint[]> = {};
+/** Generación (`PRICES_META.generated`) del snapshot `curPrices` en memoria. */
+let curGen = '';
 let initialized = false;
 
-/** Carga/rota el snapshot de precios. Llamar una vez al arrancar (App.tsx). */
+/**
+ * Carga/rota el snapshot de precios y se suscribe a refrescos posteriores.
+ * Llamar una vez al arrancar (App.tsx).
+ *
+ * IMPORTANTE: `App.tsx` dispara `checkForPriceUpdate()` (remotePrices.ts) y
+ * `initPriceHistory()` con `void`, sin secuenciarlos — y como el refresco de
+ * precios hace I/O real (AsyncStorage + fetch), SIEMPRE termina después de
+ * cualquier lectura síncrona hecha aquí. Si esta función sólo leyera
+ * `PRICES_META.generated` una vez al arrancar, el snapshot se quedaría fijado
+ * al `prices.json` bundleado para siempre — la rotación semanal vía CDN
+ * nunca se detectaría dentro de la misma sesión. Por eso, además de la
+ * hidratación inicial, nos suscribimos a `subscribeToPrices` (prices.ts) y
+ * volvemos a comprobar la generación cada vez que `applyPricesPayload` corre.
+ */
 export async function initPriceHistory(): Promise<void> {
   if (initialized) return;
   initialized = true;
+  await hydrate();
+  subscribeToPrices(() => {
+    void rotateIfNeeded();
+  });
+  // Por si un refresco de precios se aplicó EN CALIENTE mientras `hydrate()`
+  // seguía esperando su propia I/O (AsyncStorage) — sin esto, esa
+  // publicación concreta se perdería hasta la siguiente.
+  void rotateIfNeeded();
+}
+
+/** Primera hidratación desde AsyncStorage (o el formato legacy v1). */
+async function hydrate(): Promise<void> {
   const gen = PRICES_META.generated || '';
   try {
     const raw = (await AsyncStorage.getItem(KEY)) ?? (await AsyncStorage.getItem(LEGACY_KEY));
@@ -61,22 +93,56 @@ export async function initPriceHistory(): Promise<void> {
 
     if (!stored) {
       // Primera vez: fijamos la línea base, sin referencia previa todavía.
+      curGen = gen;
+      curPrices = snapshotRealPrices();
       prevPrices = {};
-      await persist({ curGen: gen, cur: snapshotRealPrices(), prevGen: '', prev: {} });
+      await persist({ curGen, cur: curPrices, prevGen: '', prev: {} });
     } else if (stored.curGen !== gen) {
-      // Nueva publicación de precios → la "actual" anterior pasa a ser "previa".
+      // Nueva publicación de precios → la "actual" guardada pasa a ser "previa".
+      curGen = gen;
+      curPrices = snapshotRealPrices();
       prevPrices = stored.cur || {};
       appendSeriesPoint();
-      await persist({ curGen: gen, cur: snapshotRealPrices(), prevGen: stored.curGen, prev: prevPrices });
+      await persist({ curGen, cur: curPrices, prevGen: stored.curGen, prev: prevPrices });
     } else {
       // Misma publicación: conservamos la referencia previa ya guardada.
+      curGen = stored.curGen;
+      curPrices = stored.cur || {};
       prevPrices = stored.prev || {};
     }
   } catch {
     // AsyncStorage no disponible (p.ej. SSR/web sin storage): sin deltas.
+    curGen = gen;
+    curPrices = {};
     prevPrices = {};
     series = {};
   }
+}
+
+/**
+ * Reacciona a un refresco de precios llegado en caliente (ver
+ * `subscribeToPrices` más arriba). Idempotente respecto a la generación:
+ * si `PRICES_META.generated` no cambió desde el snapshot que ya tenemos en
+ * memoria, no hace nada — así un mismo refresco no duplica puntos de serie
+ * aunque el listener se dispare varias veces (p.ej. el cacheado y luego el
+ * de red confirmando la misma publicación).
+ *
+ * Todo el trabajo que importa para la idempotencia (comparar y actualizar
+ * `curGen`) ocurre de forma síncrona antes del primer `await`, así que dos
+ * disparos solapados del listener no pueden rotar dos veces para la misma
+ * generación nueva.
+ */
+async function rotateIfNeeded(): Promise<void> {
+  const gen = PRICES_META.generated || '';
+  if (!initialized || gen === curGen) return;
+
+  const prevGen = curGen;
+  prevPrices = curPrices;
+  const nextPrices = snapshotRealPrices();
+  appendSeriesPoint();
+  curGen = gen;
+  curPrices = nextPrices;
+  await persist({ curGen, cur: curPrices, prevGen, prev: prevPrices });
 }
 
 async function persist(base: Omit<Store, 'series'>): Promise<void> {

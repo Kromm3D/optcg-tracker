@@ -46,6 +46,21 @@ export let PRICES_META = {
   fetched: (rawPrices as PricesPayload).fetched ?? 0,
 };
 
+// Listeners que quieren saber cuando PRICE_MAP/PRICES_META cambian in situ
+// (remotePrices.ts los actualiza en segundo plano, en un momento
+// indeterminado tras el arranque). Sin esto, un modulo que lea
+// PRICES_META.generated una sola vez al iniciar -- como priceHistory.ts --
+// se queda para siempre con el valor bundleado si el refresco del CDN llega
+// despues de esa lectura (que, al ser I/O real, SIEMPRE llega despues de una
+// lectura sincrona hecha en el mismo tick). Ver priceHistory.ts.
+const listeners = new Set<() => void>();
+
+/** Se suscribe a cambios de PRICE_MAP/PRICES_META. Devuelve la funcion para desuscribirse. */
+export function subscribeToPrices(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 /**
  * Aplica un payload de precios (descargado del CDN) in situ, reemplazando
  * PRICE_MAP/PRICES_META. Ver lib/remotePrices.ts — a diferencia del indice de
@@ -59,6 +74,7 @@ export function applyPricesPayload(payload: PricesPayload): void {
     source: payload.source ?? '',
     fetched: payload.fetched ?? 0,
   };
+  listeners.forEach((l) => l());
 }
 
 // ---------------------------------------------------------------------------

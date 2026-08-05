@@ -53,6 +53,13 @@ async function readCached(): Promise<PricesPayload | null> {
  * lanza la comprobación de red en segundo plano. Pensado para llamarse una
  * vez al arrancar la app (ver App.tsx, junto a remoteIndex.checkForUpdate).
  * Nunca lanza.
+ *
+ * Nota para quien consuma `PRICES_META`/`getPrice()` tras esta llamada: como
+ * es fire-and-forget, cualquier cambio de precio se aplica de forma
+ * asíncrona en un momento indeterminado. Quien necesite reaccionar a ESE
+ * cambio (no sólo leer el precio ya actualizado) debe suscribirse con
+ * `subscribeToPrices()` (ver prices.ts) en vez de asumir un orden de
+ * ejecución con esta función — ver priceHistory.ts.
  */
 export async function checkForPriceUpdate(): Promise<void> {
   if (checked) return; // una comprobación por sesión de app basta
