@@ -205,7 +205,56 @@ fechada de abajo.)
 
 ## Current uncommitted state (read before committing)
 
-### 2026-08-05 — Barrido del backlog con 3 agentes (backend / frontend / QA): 1 bug real, 2 entradas del diario que mentían
+### 2026-08-05 (2) — Sesión en dispositivo real (Xiaomi duchamp_global): el action-sheet post-scan funciona, encontrado y arreglado un bug de gramática i18n
+
+El objetivo era retomar B-14/B-16 (escáner) en dispositivo — Metro + `adb reverse`
++ logcat filtrado a `[SCANDBG]` quedaron listos para eso — pero el usuario pidió
+probar todo lo demás primero, sin escanear cartas de verdad. Instrumentación
+`[SCANDBG]` en `ScanScreen.tsx` añadida y retirada de nuevo sin comitear (no
+llegó a usarse). **B-14/B-16 siguen exactamente como estaban** — sin novedad,
+pendientes de retomar con cartas reales.
+
+**Verificado en el dispositivo real del usuario (no un build de pruebas), con
+sus 144 cartas/50 únicas reales:**
+- **Precios del feed bulk en nativo** — cerraba el frente que ayer sólo se
+  había visto en web. `€0.06`/`€41.01` (Kouzuki Oden EB01-001/_p1) y `€0.10`
+  (Izo EB01-002) en Binder coinciden exactamente con `data/prices.json`.
+- **`priceHistory` ya había rotado una vez en este dispositivo antes de hoy**
+  (`curGen` 2026-06-12 → 2026-08-04, leído directo de `databases/RKStorage`
+  vía `run-as` + grep, sin sqlite3 en el móvil). Confirma que el mecanismo de
+  rotación en frío siempre funcionó; lo que arregló hoy antes (`9c825c14`) era
+  sólo el caso caliente-en-la-misma-sesión, que no había forma de provocar sin
+  una publicación más nueva que la ya bundleada.
+- **Migraciones de AsyncStorage sanas** — claves `optcg.collection.v1` a `v4`,
+  `wishlists.v2`/`v3`, `decks.v1`/`v2` todas presentes, consistente con B-06 y
+  el resto de convenciones de versionado de CLAUDE.md §3.
+- **El action-sheet post-scan (view/deck/collection/Cardmarket), device-verificado
+  por primera vez** desde que se construyó el 2026-07-30. Probado sin cámara,
+  vía el modo "Code" (entrada manual) del escáner — dispara el mismo
+  `handleCodeFound` que la identificación por cámara, así que es una vía
+  legítima de probar el sheet en sí sin depender de B-14/B-16. Con
+  Kouzuki Hiyori (EB01-013): las 4 filas aparecen con la miniatura correcta.
+
+**Bug real encontrado y arreglado — pluralización rota en el título de
+`BulkTargetSheet.tsx`.** Con cantidad=1 el sheet decía **"Add 1 cards"** (y
+"Añadir 1 cartas" en español) — gramática rota, visible también al lector de
+pantalla vía `content-desc`. Causa: `bulk.addTitle` usa `{n}` = número de
+*cartas distintas* seleccionadas (correcto para el flujo BULK original de
+varias cartas en cola), no la cantidad del stepper "Quantity per card" — al
+reutilizar el mismo componente para el alta de una sola carta desde el
+action-sheet, `n` es siempre 1 y el plural nunca cuadra. Arreglado con una
+clave `bulk.addTitleOne` (en+es) usada cuando `selections.length === 1`.
+**No** se ha tocado la separación conceptual entre "nº de cartas distintas" y
+"cantidad por carta" — es el diseño correcto para el caso multi-carta de BULK,
+aunque en el caso de una sola carta pueda leerse como redundante frente al
+stepper; queda anotado como posible mejora de copy, no como bug.
+Device-verificado: tras el fix, la misma pantalla con stepper en 3 muestra
+"Add 1 card" (singular correcto), sin tocar el valor del stepper.
+
+**Verificaciones de esta ronda:** `npm run typecheck` limpio. Nada del
+add-to-collection de prueba llegó a confirmarse (se salió del sheet sin
+pulsar "Add to Collection"), así que la colección real del usuario (144
+cartas / 50 únicas) queda intacta.
 
 Ronda de revisión del backlog abierto repartida en tres ámbitos de ficheros
 disjuntos. **El resultado más útil no fue código nuevo: fue descubrir que este
