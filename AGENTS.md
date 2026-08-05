@@ -205,6 +205,97 @@ fechada de abajo.)
 
 ## Current uncommitted state (read before committing)
 
+### 2026-08-05 — Barrido del backlog con 3 agentes (backend / frontend / QA): 1 bug real, 2 entradas del diario que mentían
+
+Ronda de revisión del backlog abierto repartida en tres ámbitos de ficheros
+disjuntos. **El resultado más útil no fue código nuevo: fue descubrir que este
+diario estaba desactualizado en dos puntos** — dos de las tareas asignadas ya
+estaban implementadas y nadie lo había anotado. Lección: antes de "completar"
+un item de backlog, verificar contra el código que sigue abierto.
+
+**Correcciones al propio diario (esto era deuda de documentación, no de código):**
+
+- **B-06 (`WishlistItem` sin migración) llevaba tiempo RESUELTO.** `lib/wishlists.ts`
+  tiene `migrateAncientSingle()` + la rama en `loadRaw()` que lee la clave
+  `optcg.wishlist.v1` y la convierte en wishlist por defecto. Cubre array,
+  objeto keyed-por-código con valor numérico, objeto con valor-objeto, JSON
+  inválido y entradas sin `code`; no borra la clave antigua. Verificado
+  reproduciendo la función contra los 6 casos. La sección "Known Bugs" seguía
+  listándolo abierto — corregido abajo.
+- **El historial de precios YA es por variante.** Desde que
+  `build_prices_bulk.py` empareja por variante, `prices.json` clavea por
+  `${code}${suffix}` (626 de 3289 entradas llevan sufijo `_p1`/`_p2`) y
+  `priceHistory.ts` lo consume así. La nota de QoL "Future: per-variant
+  history" estaba obsoleta — corregida abajo.
+- **QoL §5 (calendario de lanzamientos) y el acceso al escáner desde Home ya
+  existían** (`components/ReleaseCalendar.tsx` + tile "Scan" en HomeScreen).
+
+**Bug real encontrado y arreglado — `priceHistory` nunca veía los refrescos del CDN.**
+Ficheros: `lib/prices.ts`, `lib/priceHistory.ts`, `lib/remotePrices.ts` (comentario).
+- **Síntoma:** el % de cambio de precio en Home/Detail se quedaba fijado al
+  snapshot del `prices.json` **empaquetado**, para siempre, sin importar
+  cuántas publicaciones llegaran del CDN. Esas transiciones tampoco entraban
+  nunca en la serie histórica.
+- **Causa, y no es una condición de carrera — es determinista:** `App.tsx`
+  dispara `checkForPriceUpdate()` e `initPriceHistory()` con `void`, sin
+  secuenciar. Como el refresco hace I/O real (AsyncStorage + fetch), **siempre**
+  termina después de la lectura síncrona de `PRICES_META.generated` que hacía
+  `initPriceHistory()` una única vez al arrancar. Y `remotePrices.ts` aplicaba
+  el payload sin notificar a nadie. Es el efecto colateral directo del cambio
+  de ayer (`4d961cf9`), de precios empaquetados a precios servidos por CDN:
+  al volverse el dato dinámico, un lector que sólo mira una vez dejó de valer.
+- **Fix:** `subscribeToPrices()` en `prices.ts` — el mismo patrón set-de-listeners
+  que ya usan `collection.ts`/`wishlists.ts`/`settings.ts` (CLAUDE.md §3);
+  `applyPricesPayload()` notifica tras mutar. `initPriceHistory` partido en
+  `hydrate()` (carga inicial) + `rotateIfNeeded()` (reacciona en caliente).
+  **Idempotente por generación**: la comparación y actualización de `curGen`
+  ocurren síncronas antes del primer `await`, así que dos notificaciones para
+  la misma publicación no duplican punto de serie. Se hace una comprobación
+  extra justo tras suscribirse, por si el refresco se aplicó mientras
+  `hydrate()` seguía esperando su propia I/O.
+- Verificado con una simulación en Node del ciclo completo (hydrate → refresco
+  en caliente → notificación duplicada de la misma generación): el delta se
+  detecta dentro de la misma sesión (1.0→2.0 = 100%) y la serie no se duplica.
+
+**Hueco de alcance del escáner en el estado vacío de Decks** (`screens/DecksScreen.tsx`).
+La fila "Scan" de Decks vivía sólo en el `ListHeaderComponent`, que no se monta
+hasta que existe al menos un mazo — o sea, el usuario nuevo, que es justo quien
+más lo necesita, no la veía. Añadido un tercer botón junto a "New Deck"/"Import"
+en el estado vacío, reutilizando `home.scan` (sin claves i18n nuevas).
+**Web-verificado**: el DOM del estado vacío pasó de tener sólo `New Deck` /
+`Import from OPTCGSim` a incluir `button "Scan"`.
+
+**Colores hardcodeados eliminados** (`theme.ts`, `screens/ScanScreen.tsx`,
+`components/ColorDot.tsx`). Seis `'#22c55e'` literales en ScanScreen y un
+`'#5e6775'` en ColorDot violaban CLAUDE.md §3. Nuevos tokens `colors.ready`
+(escáner con candidato bueno — deliberadamente distinto de `up`, que es
+semántica de precio) y `colors.colorless` (carta sin facción). **Mismo valor
+en DARK y LIGHT a propósito**, con el porqué anotado en `theme.ts`: el visor
+de cámara corre sobre un scrim fijo, no sobre el `bg` del tema. Es refactor a
+render idéntico, no un retoque visual. Deuda menor pendiente: las variantes
+`rgba(34,197,94,…)` del mismo fichero siguen literales.
+
+**Investigación de QoL §11 (EffectText border-radius), NO implementada.**
+Medido en el DOM con `getComputedStyle` sobre el chip "DON!! x1": inyectar
+`borderRadius: 8px` en ese `<span>` **sí funciona** en web. La limitación
+documentada es específica de RN nativo; `react-native-web` renderiza un span
+inline y el navegador soporta `border-radius` en inline para una etiqueta
+corta sin fragmentación. Vía barata si se quiere:
+`Platform.select({ web: { borderRadius: 6 } })` en el estilo `chip`, dejando
+iOS/Android intactos. No tocado.
+
+**Verificaciones de esta ronda:** `npm run typecheck` limpio sobre el estado
+combinado de los tres agentes. Claves i18n `en.ts`/`es.ts` sincronizadas 1:1
+(430/430). Calendario web-verificado con datos reales: "OP17 The World's
+Strongest Warriors / Aug 28, 2026 / 23 days" (hoy 2026-08-05 → correcto).
+Auditoría de versionado de AsyncStorage sin hallazgos (collection, wishlists,
+decks, priceHistory mantienen clave legacy + migración).
+
+**Sigue sin verificar en runtime**, y conviene hacerlo antes de dar la rama por
+buena: que Home/Detail muestren correctamente los 3289 precios del feed bulk.
+El propio diario ya lo admitía en la entrada del 2026-08-04 (2), y con el bug
+de `priceHistory` de hoy son dos frentes sin comprobar sobre el mismo dato.
+
 ### 2026-08-04 (2) — Cardmarket: precios reales sin scraping, via el feed bulk de Cardmarket
 
 Ficheros: `scripts/build_prices_bulk.py` (nuevo), `.github/workflows/refresh-data.yml`
@@ -3123,14 +3214,20 @@ plan). Static data (card index, prices, images) is never sent to Supabase.
   ideal conditions. If matches are still missed in poor lighting/glare, bump it towards 100-120.
   Empirical calibration needs device testing.
 
-### B-06 — Deprecated `WishlistItem` has no migration path
+### ~~B-06 — Deprecated `WishlistItem` has no migration path~~ — RESOLVED (confirmado 2026-08-05)
 - **File:** `types.ts`, `lib/wishlists.ts`
 - **Symptom:** If a device previously had data under the old single-wishlist format (`WishlistItem`
   keyed by code), the new `wishlists.ts` reads a different AsyncStorage key and silently starts
   fresh. Old data is orphaned.
 - **Severity:** Low — app is pre-release so no real user data exists yet.
-- **Fix:** Before public release, add a one-time migration in `wishlists.ts` that reads the old
-  key and converts it to a default wishlist if present.
+- **Resolución:** `lib/wishlists.ts` tiene `migrateAncientSingle()` y la rama
+  correspondiente en `loadRaw()`: lee `ANCIENT_SINGLE_KEY` (`optcg.wishlist.v1`)
+  y lo convierte en la wishlist por defecto. Tolera array, objeto keyed-por-código
+  con valor numérico, objeto con valor-objeto, JSON inválido y entradas sin `code`;
+  no borra la clave antigua. Verificado el 2026-08-05 reproduciendo la función
+  contra esos 6 casos. **Esta entrada siguió marcada como abierta mucho después
+  de estar arreglada** — de ahí la Rule 1 de CLAUDE.md: mover los items de sección
+  al cerrarlos, no sólo añadir entradas nuevas.
 
 ---
 
@@ -3150,8 +3247,12 @@ unreliable) before trusting it, same as everything else in the scanner pipeline.
 Implemented as `lib/priceHistory.ts`: snapshots each `prices.json` release and
 diffs the current price against the previous release (≈ weekly delta), shown
 green/red on Browse tiles. Reads `0.0%` until the next price release provides a
-prior snapshot. Future: per-variant (not just base-code) history; a "since you
-started tracking" cost-basis mode for the Portfolio/Binder view.
+prior snapshot. **Actualización 2026-08-05: el historial YA es por variante** —
+desde que `build_prices_bulk.py` empareja por variante, `prices.json` clavea por
+`${code}${suffix}` (626 de 3289 entradas con sufijo `_p1`/`_p2`) y
+`priceHistory.ts` lo consume así; esta nota decía "future" cuando ya estaba
+hecho. Sigue pendiente: un modo cost-basis "desde que empecé a coleccionar"
+para la vista Portfolio/Binder.
 
 ### Friend trade matching (2026-07-16, logic-verified; UI needs device+backend)
 The friends **binder** (view a friend's collection/wishlist/decks) already existed
