@@ -1,5 +1,5 @@
 // wishlists.ts — multi-wishlist management.
-// Stored as optcg.wishlists.v2 in AsyncStorage.
+// Stored as optcg.wishlists.v4 in AsyncStorage.
 // Each wishlist has a name, creation date, and a flat map of
 // card+variant entries (code+suffix → WishlistCard).
 
@@ -7,12 +7,41 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Wishlist, WishlistCard } from '../types';
 import { notifyLocalChange } from './syncBus';
 
-const STORAGE_KEY = 'optcg.wishlists.v3';
+const STORAGE_KEY = 'optcg.wishlists.v4';
+/** v3 = igual shape que v4, pero sin lápidas (borrar era borrar de verdad). */
+const LEGACY_KEY_V3 = 'optcg.wishlists.v3';
 const LEGACY_KEY = 'optcg.wishlists.v2';
 /** Wishlist única pre-multi-wishlist (eliminada 2026-06-06). Ver B-06. */
 const ANCIENT_SINGLE_KEY = 'optcg.wishlist.v1';
 
+/** Cuánto se conserva la lápida de una wishlist borrada. Ver B-17 / mismo
+ *  razonamiento que lib/collection.ts y lib/decks.ts. */
+const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+
 type WishlistMap = Record<string, Wishlist>;
+
+/** ¿Es una lápida (wishlist borrada) en vez de una wishlist real? */
+function isTombstone(wl: Wishlist): boolean {
+  return wl.deleted === true;
+}
+
+function liveOnly(map: WishlistMap): WishlistMap {
+  const out: WishlistMap = {};
+  for (const k of Object.keys(map)) if (!isTombstone(map[k])) out[k] = map[k];
+  return out;
+}
+
+/** Descarta las lápidas ya caducadas (ver TOMBSTONE_TTL_MS). */
+function pruneTombstones(map: WishlistMap): WishlistMap {
+  const cutoff = Date.now() - TOMBSTONE_TTL_MS;
+  const out: WishlistMap = {};
+  for (const k of Object.keys(map)) {
+    const wl = map[k];
+    if (isTombstone(wl) && (wl.updatedAt ?? 0) < cutoff) continue;
+    out[k] = wl;
+  }
+  return out;
+}
 
 /** Forma del `WishlistItem` antiguo, keyed por código base sin variantes. */
 interface LegacyWishlistItem {
@@ -22,7 +51,10 @@ interface LegacyWishlistItem {
   addedAt?: number;
 }
 
+/** Caché completa **incluyendo lápidas**: persistida y consumida por la sync. */
 let cache: WishlistMap | null = null;
+/** Vista sin lápidas, recalculada en cada escritura. */
+let live: WishlistMap = {};
 const listeners = new Set<() => void>();
 
 /** B-06 — convierte la wishlist única antigua en una wishlist con nombre.
@@ -67,10 +99,13 @@ function migrateAncientSingle(raw: string): WishlistMap | null {
 }
 
 // Migración v2 → v3: añade `updatedAt` (sellado a 0 = legacy) para la sync.
+// Migración v3 → v4: añade lápidas — un registro v3 no tiene ninguna, se lee
+// tal cual. Se bumpea la clave para que una app v3 no interprete una lápida
+// como una wishlist de verdad.
 async function loadRaw(): Promise<WishlistMap> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
-  if (raw) return JSON.parse(raw) as WishlistMap;
-  const legacy = await AsyncStorage.getItem(LEGACY_KEY);
+  if (raw) return pruneTombstones(JSON.parse(raw) as WishlistMap);
+  const legacy = (await AsyncStorage.getItem(LEGACY_KEY_V3)) ?? (await AsyncStorage.getItem(LEGACY_KEY));
   if (legacy) {
     const map = JSON.parse(legacy) as WishlistMap;
     for (const k of Object.keys(map)) if (map[k].updatedAt == null) map[k].updatedAt = 0;
@@ -95,9 +130,11 @@ async function read(): Promise<WishlistMap> {
   if (cache) return cache;
   try {
     cache = await loadRaw();
+    live = liveOnly(cache);
   } catch (e) {
     console.warn('[wishlists] read error:', e);
     cache = {};
+    live = {};
   }
   return cache;
 }
@@ -109,6 +146,7 @@ function touch(wl: Wishlist): Wishlist {
 
 async function write(map: WishlistMap, emit = true): Promise<void> {
   cache = map;
+  live = liveOnly(map);
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
   } catch (e) {
@@ -118,11 +156,19 @@ async function write(map: WishlistMap, emit = true): Promise<void> {
   if (emit) notifyLocalChange('wishlists');
 }
 
-/** Reemplaza todas las wishlists (usado por la sync). No re-emite al bus. */
+/** Reemplaza todas las wishlists (usado por la sync, incluye lápidas). No re-emite al bus. */
 export async function replaceAllFromSync(wishlists: Wishlist[]): Promise<void> {
   const map: WishlistMap = {};
   for (const wl of wishlists) map[wl.id] = wl;
   await write(map, false);
+}
+
+/**
+ * Caché **incluyendo lápidas**. Sólo para lib/sync.ts: el reconcile necesita
+ * ver los borrados para no dejar que el servidor los resucite (B-17).
+ */
+export function getCacheWithTombstones(): WishlistMap {
+  return cache ?? {};
 }
 
 /** Key used for entries inside a wishlist's `cards` map. */
@@ -133,20 +179,21 @@ export function wishCardKey(code: string, suffix: string): string {
 // ─── Wishlist CRUD ─────────────────────────────────────────────────────────
 
 export async function listWishlists(): Promise<Wishlist[]> {
-  const map = await read();
-  return Object.values(map).sort((a, b) => a.createdAt - b.createdAt);
+  await read();
+  return Object.values(live).sort((a, b) => a.createdAt - b.createdAt);
 }
 
 export async function getWishlist(id: string): Promise<Wishlist | null> {
   const map = await read();
-  return map[id] ?? null;
+  const wl = map[id];
+  return wl && !isTombstone(wl) ? wl : null;
 }
 
 export async function createWishlist(name: string): Promise<Wishlist> {
   const map = { ...(await read()) };
   const now = Date.now();
   const wl: Wishlist = {
-    id: `wl_${now}`,
+    id: `wl_${now}_${Math.random().toString(36).slice(2, 8)}`,
     name: name.trim() || 'Wishlist',
     cards: {},
     createdAt: now,
@@ -159,21 +206,31 @@ export async function createWishlist(name: string): Promise<Wishlist> {
 
 export async function renameWishlist(id: string, name: string): Promise<void> {
   const map = { ...(await read()) };
-  if (!map[id]) return;
+  if (!map[id] || isTombstone(map[id])) return;
   map[id] = touch({ ...map[id], name: name.trim() });
   await write(map);
 }
 
+/** Borra una wishlist localmente. Deja una lápida (B-17) en vez de borrar de
+ *  verdad, para que la sync no la resucite al ver la fila del servidor. */
 export async function deleteWishlist(id: string): Promise<void> {
   const map = { ...(await read()) };
-  delete map[id];
+  if (!map[id]) return;
+  map[id] = {
+    id,
+    name: '',
+    cards: {},
+    createdAt: map[id].createdAt,
+    updatedAt: Date.now(),
+    deleted: true,
+  };
   await write(map);
 }
 
 /** Remove all cards from a wishlist (keep the wishlist itself). */
 export async function wipeWishlist(id: string): Promise<void> {
   const map = { ...(await read()) };
-  if (!map[id]) return;
+  if (!map[id] || isTombstone(map[id])) return;
   map[id] = touch({ ...map[id], cards: {} });
   await write(map);
 }
@@ -188,7 +245,7 @@ export async function addCard(
   needed: number,
 ): Promise<void> {
   const map = { ...(await read()) };
-  if (!map[wishlistId]) return;
+  if (!map[wishlistId] || isTombstone(map[wishlistId])) return;
   const key = wishCardKey(code, suffix);
   const existing = map[wishlistId].cards[key];
   map[wishlistId] = touch({
@@ -290,7 +347,7 @@ export function getEntriesForCard(code: string): Array<{ wishlistId: string; ent
 /** getCachedWishlists — synchronous read from cache for renders. */
 export function getCachedWishlists(): Wishlist[] {
   if (!cache) return [];
-  return Object.values(cache).sort((a, b) => a.createdAt - b.createdAt);
+  return Object.values(live).sort((a, b) => a.createdAt - b.createdAt);
 }
 
 // ─── Pub/sub ───────────────────────────────────────────────────────────────

@@ -351,7 +351,9 @@ function OfferCard({ offer, username }: { offer: TradeOffer; username: string })
       <Text style={s.offerLine}>{t('trade.youGet')}: {line(offer.outgoing ? 'receive' : 'give')}</Text>
 
       <View style={s.offerActions}>
-        {offer.status === 'accepted' ? (
+        {offer.status === 'accepted' && offer.appliedAt ? (
+          <Text style={s.offerLine}>{t('trade.applied')}</Text>
+        ) : offer.status === 'accepted' ? (
           <Pressable
             onPress={() => run(() => applyAcceptedOffer(offer))}
             disabled={busy}

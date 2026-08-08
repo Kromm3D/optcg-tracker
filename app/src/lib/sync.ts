@@ -23,10 +23,15 @@ import {
 } from './collection';
 import {
   getCachedDecks,
+  getCacheWithTombstones as getDecksCache,
   replaceAllFromSync as replaceDecks,
   type Deck,
 } from './decks';
-import { getCachedWishlists, replaceAllFromSync as replaceWishlists } from './wishlists';
+import {
+  getCachedWishlists,
+  getCacheWithTombstones as getWishlistsCache,
+  replaceAllFromSync as replaceWishlists,
+} from './wishlists';
 import {
   applyFromSync as applySettings,
   getCachedSettings,
@@ -39,6 +44,10 @@ let userId: string | null = null;
 let status: SyncStatus = 'idle';
 let lastSyncedAt: number | null = null;
 let reconciling = false;
+/** Dominios que cambiaron localmente mientras `reconciling` estaba activo.
+ *  Un reconcile son 4 round-trips seguidos; un cambio local en ese hueco no
+ *  debe perderse — se agenda su push en cuanto el reconcile termina. */
+const dirtyDuringReconcile = new Set<SyncDomain>();
 const pushTimers: Partial<Record<SyncDomain, ReturnType<typeof setTimeout>>> = {};
 const listeners = new Set<() => void>();
 
@@ -80,9 +89,16 @@ if (supabase) {
     else setStatus('idle');
   });
 
-  // Cambios locales → push con debounce (solo si hay sesión y no reconciliando).
+  // Cambios locales → push con debounce (solo si hay sesión). Si un reconcile
+  // está en curso, el push se difiere en vez de descartarse (ver
+  // dirtyDuringReconcile) — un reconcile son 4 awaits seguidos y un tap en ese
+  // hueco no debe desaparecer.
   onLocalChange((domain) => {
-    if (!userId || reconciling) return;
+    if (!userId) return;
+    if (reconciling) {
+      dirtyDuringReconcile.add(domain);
+      return;
+    }
     if (pushTimers[domain]) clearTimeout(pushTimers[domain]);
     pushTimers[domain] = setTimeout(() => {
       pushTimers[domain] = undefined;
@@ -113,6 +129,13 @@ async function reconcileAll(): Promise<void> {
     setStatus('error');
   } finally {
     reconciling = false;
+    // Flush de lo que cambió localmente mientras se reconciliaba — sin esto,
+    // ese cambio no se sube nunca hasta el siguiente cambio no relacionado.
+    if (dirtyDuringReconcile.size) {
+      const domains = [...dirtyDuringReconcile];
+      dirtyDuringReconcile.clear();
+      for (const d of domains) void pushDomain(d);
+    }
   }
 }
 
@@ -282,8 +305,11 @@ async function reconcileWishlists(): Promise<void> {
     serverCardsByWl.set(c.wishlist_id, m);
   }
 
+  // Incluye lápidas a propósito (B-17): sin ellas, la rama `!localWl` de abajo
+  // resucitaba cualquier wishlist borrada localmente en cuanto el servidor
+  // seguía teniendo la fila. Ver el mismo razonamiento en reconcileCollection.
   const merged: Record<string, Wishlist> = {};
-  for (const wl of getCachedWishlists()) merged[wl.id] = wl;
+  for (const wl of Object.values(getWishlistsCache())) merged[wl.id] = wl;
 
   for (const row of wlRes.data ?? []) {
     const serverMs = toMs(row.updated_at);
@@ -300,7 +326,11 @@ async function reconcileWishlists(): Promise<void> {
   }
 
   await replaceWishlists(Object.values(merged));
-  await pushWishlistRows(Object.values(merged), wlRes.data?.map((r) => r.id) ?? []);
+  // Las lápidas NO se pasan a pushWishlistRows como "local": así quedan fuera
+  // de localIds y la propia función las borra del servidor como "stale", que
+  // es justo cómo se propaga un borrado sin tocar el esquema.
+  const liveMerged = Object.values(merged).filter((wl) => !wl.deleted);
+  await pushWishlistRows(liveMerged, wlRes.data?.map((r) => r.id) ?? []);
 }
 
 async function pushWishlists(): Promise<void> {
@@ -359,8 +389,10 @@ async function reconcileDecks(): Promise<void> {
     serverCardsByDeck.set(c.deck_id, arr);
   }
 
+  // Incluye lápidas a propósito (B-17) — ver el mismo razonamiento en
+  // reconcileWishlists / reconcileCollection.
   const merged: Record<string, Deck> = {};
-  for (const d of getCachedDecks()) merged[d.id] = d;
+  for (const d of Object.values(getDecksCache())) merged[d.id] = d;
 
   for (const row of deckRes.data ?? []) {
     const serverMs = toMs(row.updated_at);
@@ -378,7 +410,10 @@ async function reconcileDecks(): Promise<void> {
   }
 
   await replaceDecks(Object.values(merged));
-  await pushDeckRows(Object.values(merged), deckRes.data?.map((r) => r.id) ?? []);
+  // Igual que en wishlists: las lápidas se dejan fuera de "local" para que
+  // pushDeckRows las trate como stale y las borre del servidor.
+  const liveMerged = Object.values(merged).filter((d) => !d.deleted);
+  await pushDeckRows(liveMerged, deckRes.data?.map((r) => r.id) ?? []);
 }
 
 async function pushDecks(): Promise<void> {

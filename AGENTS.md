@@ -3,7 +3,13 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-08-04 (6) (**Dos arreglos más de precios: fallback fantasma y tope temporal
+**Last updated:** 2026-08-08 (**Ronda de QA de colección/decks/wishlist/amigos (escáner
+deliberadamente fuera de alcance) — 3 subagentes en paralelo (frontend/backend/QA) +
+arreglo de los 3 hallazgos P0 de la ronda.** Ver "Current uncommitted state" abajo
+para el detalle completo (código sin commitear, pendiente de tu revisión y de aplicar
+la migración 0006 en Supabase). `npm run typecheck` limpio.)
+
+**Last updated (previous):** 2026-08-04 (6) (**Dos arreglos más de precios: fallback fantasma y tope temporal
 de idioma**. El usuario reportó "no acaba de pillar los precios bien" y, al
 explicarle cómo se lee `prices.json`, salió un bug de verdad en
 `lib/prices.ts`: `getPrice`/`getLowPrice`/`hasRealPrice`/`realTrend` caían al
@@ -204,6 +210,99 @@ fechada de abajo.)
 ---
 
 ## Current uncommitted state (read before committing)
+
+### 2026-08-08 — Ronda de QA (colección/decks/wishlist/amigos, escáner fuera) + 3 fixes P0
+
+Se pidió testear la app a fondo fuera del escáner (aislado a propósito, ver sesiones
+previas de B-14/B-16). Se lanzaron 3 subagentes en paralelo — frontend, backend, QA de
+flujos end-to-end — cada uno con lectura previa de este diario para no repetir hallazgos
+ya conocidos. Resultado: 13 hallazgos backend, 11 frontend, 7 QA (35 en total, sin
+solapes entre agentes). Se arreglaron los 3 P0; el resto queda en el backlog de abajo.
+
+**Arreglado — decks/wishlists resucitaban al borrarlos (B-17, repetido).** El
+tombstone-on-delete que ya existía en `collection.ts` (ver 2026-06 y siguientes, TTL de
+90 días) sólo cubría colección. `deleteDeck`/`deleteWishlist` borraban de verdad, así
+que `reconcileDecks`/`reconcileWishlists` en `sync.ts` (rama `!localD ||` / `!localWl ||`)
+no tenían forma de distinguir "nunca existió" de "lo borré yo", y una fila del servidor
+que no había hecho su ronda de borrado (mirror push) resucitaba el deck/wishlist en el
+siguiente reconcile. Mismo patrón que collection: `Deck`/`Wishlist` ganan
+`deleted?: boolean`; `deleteDeck`/`deleteWishlist` dejan una lápida (nombre vacío, sin
+cartas, `updatedAt` fresco) en vez de borrar la entrada del mapa. Nuevas claves de
+storage `optcg.decks.v3` / `optcg.wishlists.v4` (migración aditiva, igual que las
+anteriores — un registro v2/v3 no tiene lápidas, se lee tal cual). `sync.ts` lee ahora
+`getCacheWithTombstones()` de ambos módulos para la fusión LWW (así una lápida más
+nueva que la fila del servidor gana y no se resucita), pero pasa sólo la parte **viva**
+del merge a `pushDeckRows`/`pushWishlistRows` — así las lápidas quedan fuera de
+`localIds` y la propia función de push las trata como "stale" y las borra del servidor,
+sin tocar el esquema SQL de esas dos tablas. `getDeck`/`getWishlist`/`renameDeck`/
+`renameWishlist`/`setDeckCard`/`addCard`/`wipeWishlist` ganan guards para tratar una
+lápida como "no existe". IDs de deck/wishlist (`deck_${Date.now()}` /
+`wl_${Date.now()}`) llevan ahora un sufijo aleatorio corto — colisión de dos creaciones
+en el mismo milisegundo (dos dispositivos, o un restore) ya no fusiona dos decks
+distintos bajo el mismo id.
+
+**Arreglado — ediciones locales durante un reconcile se perdían sin más.**
+`sync.ts`: `onLocalChange` comprobaba `if (!userId || reconciling) return;` — un cambio
+local que llegaba mientras un reconcile estaba en curso (4 round-trips seguidos, ver
+`reconcileAll`) se descartaba entero, y nada volvía a agendar su push hasta el próximo
+cambio no relacionado en ese dominio. Nuevo `dirtyDuringReconcile: Set<SyncDomain>`: si
+`reconciling` es true, el dominio se marca en vez de descartarse; el `finally` de
+`reconcileAll` hace flush de lo marcado llamando a `pushDomain` para cada uno.
+
+**Arreglado — doble-tap en "Aplicar a mi colección" duplicaba el ajuste de un trade
+aceptado.** `applyAcceptedOffer` (`tradeOffers.ts`) no tenía guard de idempotencia ni
+transición de estado propia — el botón se ofrecía indefinidamente en toda oferta
+aceptada, en todos los dispositivos. Nueva columna `applied_at` en `trade_offers`
+(migración `supabase/migrations/0006_trade_offer_applied.sql`, **no aplicada aún al
+proyecto Supabase real** — pendiente de `apply_migration` cuando se revise esta ronda).
+`applyAcceptedOffer` reclama `applied_at` con un `update ... where applied_at is null`
+condicional antes de tocar la colección; si el update no afecta filas (ya aplicado por
+otro tap/dispositivo) no hace nada más. El trigger `trade_offer_guard` se relajó para
+permitir ese update (antes rechazaba cualquier UPDATE sobre una oferta ya no-pendiente,
+sin distinguir "cambiar el status" de "poner applied_at sin tocar el status"). UI:
+`FriendProfileScreen.tsx` esconde el botón y muestra "Aplicado a tu colección"
+(`trade.applied`, en+es) una vez `appliedAt` está puesto.
+
+**NO arreglado — sigue abierto a propósito, es una decisión de producto, no un bug de
+código.** El envío de una oferta manda siempre `suffix: ''` (comentario explícito en
+`FriendProfileScreen.tsx`: "el matching es por código base... concretar la variante es
+cosa del chat"). `applyAcceptedOffer` sí aplica ese `suffix: ''` concreto a la
+colección: si das una carta que sólo tienes como parallel, no se resta nada tuyo, y el
+receptor gana una entrada de variante base que puede no ser la física que recibió.
+Arreglarlo bien exige UI para elegir variante exacta al crear/aplicar la oferta —
+fuera de alcance de esta ronda. Anotado en Known Bugs abajo.
+
+**Backlog de la ronda, no arreglado (por severidad, ver hallazgos completos en el
+historial de la sesión si hace falta el detalle):**
+- P1: ofertas de trade entrantes casi invisibles (sólo se ven entrando a Profile, sin
+  badge en ninguna tab/Home) — `tradeOffers.ts: getIncomingPending()`.
+- P1: el toggle "por condición" del perfil Sencillo esconde el control pero
+  `portfolio.ts` sigue aplicando el descuento — viola la regla propia de `settings.ts`
+  ("el perfil oculta interfaz, nunca datos").
+- P1: `friends.ts: setPrivacy` usa `.update()` en vez de upsert — no falla, pero no
+  escribe nada si el usuario nunca tuvo fila de privacidad.
+- Frontend P1 (accesibilidad/tema, ver detalle del hallazgo): iconos blancos sobre el
+  accent rosa claro del tema oscuro en 8 sitios; `accessibilityLabel` sin interpolar en
+  el botón de proponer trade; las listas de trade-matching no se refrescan tras mutar
+  colección/wishlist en la misma sesión.
+- P2: Home no reacciona a refrescos de precio del CDN (mismo patrón ya arreglado en
+  `priceHistory.ts` el 2026-08-05, aquí se quedó fuera); `wishlist_cards`/`deck_cards`
+  se leen sin filtro (dependen 100% de RLS); fallos de red mal clasificados como error
+  permanente en vez de `offline` (pega con el auto-pause conocido de Supabase free
+  tier); copias poseídas se cuentan por duplicado entre distintos decks/wishlists
+  (a confirmar si es decisión consciente); `leaderId` de decks de amigos nunca se
+  puebla.
+- Menor/cosmético: 9 scrims de modal hardcodeados sin token de tema; 13 controles
+  "atrás/cerrar" anunciados como "Done" para lectores de pantalla; wishlist compara
+  por código base en vez de por variante exacta; precio no parseable en
+  `CopyDetailsSheet` borra silenciosamente el coste de adquisición; parser OPTCGSim
+  rechaza códigos de 4 dígitos; búsqueda de amigos vulnerable a wildcards `%`/`_`
+  (cosmético, no inyección).
+
+**Verificaciones de esta ronda:** `npm run typecheck` limpio. **Nada verificado en
+dispositivo ni contra el Supabase real** — la migración 0006 no se ha aplicado, así que
+`applied_at` no existe todavía en la base real; hasta aplicarla, `refreshOffers()`
+fallaría pidiendo esa columna. Pendiente antes de dar esta ronda por buena.
 
 ### 2026-08-05 (2) — Sesión en dispositivo real (Xiaomi duchamp_global): el action-sheet post-scan funciona, encontrado y arreglado un bug de gramática i18n
 
@@ -2967,6 +3066,42 @@ plan). Static data (card index, prices, images) is never sent to Supabase.
   offline can be resurrected if B logs in and pushes first. Acceptable for v1.
 
 ## Known Bugs
+
+### B-19 — Trade: la variante exacta se pierde al aplicar la oferta a la colección — ABIERTO, es decisión de producto (2026-08-08, encontrado en ronda de QA)
+- **Fichero:** `app/src/screens/FriendProfileScreen.tsx` (`send()`), `app/src/lib/tradeOffers.ts` (`applyAcceptedOffer`).
+- **Síntoma:** el matching de trade es deliberadamente por código base (`suffix: ''`
+  fijo al crear la oferta — comentario explícito: "concretar la variante es cosa del
+  chat"). El problema es que `applyAcceptedOffer` sí aplica ese `suffix: ''` concreto:
+  dar una carta que sólo tienes como parallel no resta nada tuyo (tu base variant está
+  a 0), y el receptor gana una entrada de variante base que puede no ser la física que
+  recibió.
+- **No es un bug de código, es que falta producto**: para arreglarlo de verdad hace
+  falta UI para elegir la variante exacta al crear la oferta (o al aplicarla). Ninguna
+  de las dos partes está construida.
+- **Mitigaciones ya aplicadas esta ronda** (no cierran B-19, evitan el daño colateral
+  peor): `applyAcceptedOffer` ahora es idempotente (guard `applied_at`, ver más abajo),
+  así que al menos el error de variante no se puede duplicar con un doble tap.
+
+### B-18 — Decks/wishlists sin tombstones: mismo bug que B-17, sin arreglar hasta hoy — FIXED (2026-08-08, encontrado en ronda de QA)
+- **Ficheros:** `app/src/lib/decks.ts`, `app/src/lib/wishlists.ts`, `app/src/lib/sync.ts`.
+- **Síntoma:** B-17 (abajo) se arregló sólo para `collection.ts`. `deleteDeck`/
+  `deleteWishlist` seguían borrando de verdad, así que `reconcileDecks`/
+  `reconcileWishlists` podían resucitar un deck/wishlist borrado si la fila del
+  servidor no había hecho su ronda de mirror-delete todavía — exactamente la misma
+  causa raíz que B-17, en dos ficheros que nadie había tocado desde entonces.
+- **Arreglo:** mismo patrón que B-17 — `Deck`/`Wishlist` ganan `deleted?: boolean`,
+  `getCacheWithTombstones()` en ambos módulos para que `sync.ts` fusione sin resucitar,
+  claves de storage bumpeadas (`optcg.decks.v3`, `optcg.wishlists.v4`). Diferencia con
+  collection: el esquema SQL de `decks`/`wishlists` no tiene columna de tombstone, así
+  que el borrado se propaga dejando la lápida **fuera** del set que se pasa a
+  `pushDeckRows`/`pushWishlistRows` — la propia función ya borra del servidor lo que no
+  está en `local`, así que una lápida se comporta como "stale" sin tocar el esquema.
+- De paso, IDs de deck/wishlist (antes `deck_${Date.now()}`) ganan un sufijo aleatorio
+  — colisión de dos creaciones en el mismo milisegundo (dos dispositivos) ya no
+  fusiona dos decks distintos bajo el mismo id.
+- ⚠ **Verificado por razonamiento y typecheck, NO en dispositivo ni contra Supabase
+  real.** Falta probar el ciclo borrar deck/wishlist → sincronizar → volver a entrar
+  con dos dispositivos, igual que quedó pendiente para B-17.
 
 ### B-17 — Sync resucitaba las cartas borradas: no había tombstones — FIXED (2026-08-02, encontrado en code review de PR #2)
 - **Ficheros:** `app/src/lib/collection.ts`, `app/src/lib/sync.ts`,

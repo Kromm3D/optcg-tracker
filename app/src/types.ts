@@ -151,6 +151,8 @@ export interface Wishlist {
   createdAt: number;
   /** Timestamp (ms) of the last change. Used by cloud sync. */
   updatedAt?: number;
+  /** true = tombstone (deleted locally, pending propagation). See B-17. */
+  deleted?: boolean;
 }
 
 // ─── Cloud sync / friends (Supabase) ────────────────────────────────────────

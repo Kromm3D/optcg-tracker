@@ -37,6 +37,9 @@ export interface TradeOffer {
   /** Perfil de la otra parte, sea quien sea de los dos. */
   counterparty: FriendProfile | null;
   items: TradeOfferItem[];
+  /** ms en que se aplicó a la colección local, o null si aún no. Idempotencia
+   *  de applyAcceptedOffer — ver el guard ahí. */
+  appliedAt: number | null;
 }
 
 export interface TradeOfferResult {
@@ -89,7 +92,7 @@ export async function refreshOffers(): Promise<TradeOffer[]> {
 
   const { data: offers, error } = await supabase
     .from('trade_offers')
-    .select('id, from_user, to_user, status, note, created_at')
+    .select('id, from_user, to_user, status, note, created_at, applied_at')
     .or(`from_user.eq.${me},to_user.eq.${me}`)
     .order('created_at', { ascending: false });
 
@@ -134,6 +137,7 @@ export async function refreshOffers(): Promise<TradeOffer[]> {
       outgoing,
       counterparty: profiles.get(outgoing ? o.to_user : o.from_user) ?? null,
       items: byOffer.get(o.id) ?? [],
+      appliedAt: toMs(o.applied_at) || null,
     };
   });
   listeners.forEach((l) => l());
@@ -210,11 +214,39 @@ export const cancelOffer = (id: string) => transition(id, 'cancelled');
  *
  * Los lados se interpretan desde el punto de vista del proponente, así que el
  * signo se invierte para el destinatario.
+ *
+ * Idempotente: reclama `applied_at` con un update condicional (`is null`)
+ * antes de tocar la colección. Si otra pestaña/tap ya lo aplicó, el update no
+ * afecta ninguna fila y esta llamada no hace nada — sin esto, doble tap o
+ * reabrir la oferta en dos dispositivos duplicaba el ajuste (sumaba/restaba
+ * dos veces las mismas cartas).
  */
-export async function applyAcceptedOffer(offer: TradeOffer): Promise<void> {
+export async function applyAcceptedOffer(offer: TradeOffer): Promise<{ ok: boolean; alreadyApplied?: boolean }> {
+  if (offer.appliedAt) return { ok: true, alreadyApplied: true };
+  if (!supabase) return { ok: false };
+
+  const claimedAt = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('trade_offers')
+    .update({ applied_at: claimedAt })
+    .eq('id', offer.id)
+    .is('applied_at', null)
+    .select('id');
+  if (error) {
+    console.warn('[tradeOffers] applyAcceptedOffer claim error:', error.message);
+    return { ok: false };
+  }
+  if (!data || data.length === 0) {
+    // Otra llamada (doble tap, otro dispositivo) ya se quedó el guard antes.
+    await refreshOffers();
+    return { ok: true, alreadyApplied: true };
+  }
+
   const { adjust } = await import('./collection');
   for (const item of offer.items) {
     const iAmGivingIt = offer.outgoing ? item.side === 'give' : item.side === 'receive';
     await adjust(item.code, item.suffix, iAmGivingIt ? -item.qty : item.qty);
   }
+  await refreshOffers();
+  return { ok: true };
 }

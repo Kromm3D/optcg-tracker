@@ -288,6 +288,7 @@ export const es: Record<TKey, string> = {
   'trade.pendingOffers': '{n} intercambios esperando tu respuesta',
   'trade.applyToCollection': 'Aplicar a mi colección',
   'trade.applyHint': 'Hazlo cuando las cartas hayan cambiado de manos de verdad.',
+  'trade.applied': 'Aplicado a tu colección',
 
   // ─── Detalles de la copia (estado / idioma / gradeo / coste) ─────────────
   'copy.title': 'Detalles de la copia',
