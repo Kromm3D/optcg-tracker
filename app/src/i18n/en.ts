@@ -135,6 +135,13 @@ export const en = {
   'decks.importedNone': 'No valid cards found in that code.',
   'decks.importedOk': 'Imported {n} cards.',
 
+  // Premium / entitlements. Namespace compartido por todos los gates.
+  'premium.deckLimitTitle': 'Deck limit reached',
+  'premium.deckLimitBody': 'The free tier includes {n} decks. Premium lifts the limit.',
+  'premium.dataSafe': 'Your existing decks are never deleted or hidden.',
+  'premium.soon': 'Premium is not available for purchase yet.',
+  'premium.gotIt': 'Got it',
+
   // Deck detail
   'deck.empty': 'Empty deck',
   'deck.emptyBody': 'Tap + to add cards to the deck.',

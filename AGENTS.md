@@ -211,6 +211,96 @@ fechada de abajo.)
 
 ## Current uncommitted state (read before committing)
 
+### 2026-08-16 (2) — Gate de slots de deck (premium) + bug pre-existente encontrado en verificación
+
+Cableado el primer gate real sobre `entitlements.ts`: `DecksScreen` limita a `FREE_LIMITS.decks`
+(5) mazos activos para quien no tiene `unlocks`. Gate en **los dos** caminos de creación (nuevo
+mazo e importar de OPTCGSim, porque importar también crea un mazo), con re-chequeo en el commit
+(`atLimit`) por si la sync trae mazos de otro dispositivo mientras el modal está abierto — dejar
+nombrar un mazo para negárselo al confirmar es peor que enseñar el tope al abrir. La fila no se
+deshabilita al llegar al tope: sigue pulsable, cambia a icono `sparkle` (no un candado — es una
+mejora ofrecida, no un castigo) y muestra el contador `n/N`. Nuevo modal `premium.deckLimitTitle`
+honesto en tres frases: el número, la promesa de que los mazos existentes no se tocan, y que
+premium **todavía no se puede comprar** (un botón "Desbloquear" muerto sería peor que no
+ofrecerlo). i18n bajo namespace `premium.*` compartido por los siguientes gates.
+
+**Verificado en el preview web** (Expo web, `localhost:8399`, ver `.claude/launch.json`): sembrado
+de mazos vía `localStorage`, creación real por UI con tecleo simulado, confirmado que el contador
+aparece en 5/5, que **ambos** botones de creación quedan gateados, que forzar `optcg.entitlements.v1`
+con `unlocks` quita el tope sin tocar los mazos existentes, y que revertir el entitlement no borra
+ni oculta nada. `npm run typecheck` limpio.
+
+**Regresión propia detectada y corregida en el camino.** El fix de seguridad de la sesión anterior
+(`lib/supabase.ts` → `expo-secure-store` para el token de sesión) habría roto el login en web:
+`ExpoSecureStore.web.js` exporta `{}` (sin implementación web). Se resolvió con split por
+plataforma — SecureStore en nativo, AsyncStorage en web (que es lo que ya había; el navegador no
+tiene equivalente al Keychain de todos modos). Sin este fix el preview web ni siquiera habría
+cargado, y no se habría podido verificar el gate de decks en absoluto.
+
+**Investigado y descartado como bug de la app — hallazgo era del entorno de pruebas, no de
+`AppModal`.** Durante la verificación del gate pareció que el modal "New Deck" se quedaba
+visualmente por encima de `DeckDetail` tras crear un mazo y navegar (`setShowModal(false)` +
+`navigation.navigate()` en el mismo tick), incluso reproducido limpio (sin gate, sin datos
+sembrados, un solo mazo, confirmado con `elementFromPoint`, no un artefacto del árbol de
+accesibilidad). Instrumentando `animationstart`/`animationend` a nivel de documento se vio que
+**ningún evento de animación se dispara jamás en esta pestaña del Browser pane** — ni siquiera al
+abrir el modal. Causa: `document.visibilityState` de esa pestaña es `"hidden"` de forma permanente
+(coincide con el error de `screenshot`: *"the Browser pane is not displayed, so the page is not
+compositing frames"*). Con la pestaña oculta, el navegador suspende las animaciones CSS —
+`ModalAnimation` de `react-native-web` depende en exclusiva del evento `animationend` para
+desmontar el modal (`isRendering` nunca baja a `false` sin él), así que en este entorno concreto
+se queda atascado siempre, sin relación con el gate ni con el código de la app. **No hay bug que
+arreglar** con la evidencia actual. Para una verificación real de este patrón (`AppModal` +
+cierre-y-navega inmediato) haría falta un navegador de verdad con la pestaña visible/enfocada, o
+el build nativo de Android (donde el `Modal` de RN es presentación de SO, sin DOM/CSS de por
+medio, así que este mecanismo concreto de fallo no aplica).
+
+### 2026-08-16 — Auditoría de seguridad pre-lanzamiento (3 fixes) + cimiento del sistema premium
+
+Se auditó el repo contra un checklist de 20 puntos de seguridad pre-publicación (ahora
+staple en el `CLAUDE.md` global del usuario). **17 de 20 salieron limpios** — el mérito es
+de tener RLS de verdad en Supabase (`0001_init.sql` cubre las 9 tablas), queries con
+columnas explícitas y `.eq('user_id', …)` en todas partes, auth gestionada por Supabase y
+cero WebView. Tres hallazgos, los tres arreglados:
+
+- **Sin escaneo de dependencias** (el único que bloqueaba de verdad). Nuevo
+  `.github/dependabot.yml`: npm en `/app`, pip en `/`, github-actions en `/`, semanal.
+- **Token de sesión en AsyncStorage en texto plano.** `lib/supabase.ts` pasa a un adapter
+  de `expo-secure-store` (Keychain en iOS, EncryptedSharedPreferences respaldado por
+  Keystore en Android) — patrón oficial de Supabase para RN. Añade módulo nativo: el
+  plugin ya está en `app.json`, pero **exige prebuild** (no funciona en Expo Go).
+- **Credenciales de Supabase hardcodeadas** (la anon key es pública y era seguro tenerla
+  ahí, pero sin indirección cualquiera añadiría un secreto real con el mismo patrón).
+  `config.ts` lee ahora `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` con
+  fallback a los valores actuales; nuevo `app/.env.example` como plantilla.
+
+**Verificado:** `npm run typecheck` limpio, `expo prebuild --clean` sin errores y
+`gradlew assembleDebug` **BUILD SUCCESSFUL** (7m4s) — el APK compila con el módulo nativo
+de SecureStore linkado. ⚠ **NO verificado en dispositivo**: no había móvil conectado ni
+AVD creado. Falta confirmar que login/signup escribe el token en el Keystore y que la
+sesión sobrevive a un reinicio de la app.
+
+**Nuevo `ToDo.md` (raíz)** — backlog de monetización por tiers con checkboxes, recogiendo
+el brainstorming de esta sesión y los guardrails ya pactados (nunca capar colección,
+escaneo unitario ni amigos). Marca `[BUILT]` vs `[NEW]` porque la mayoría de "features
+premium" ya existen en el código: lo que falta es el *gating*, no la funcionalidad.
+
+**Nuevo `lib/entitlements.ts`** — cimiento del sistema premium, sin SDK de pago todavía.
+Decisión de diseño central: es un **eje separado** de `FeatureKey`/`isFeatureEnabled` de
+`settings.ts`. Ese sistema responde a "¿quiere el usuario ver esto?" y el usuario alterna
+sus interruptores desde Ajustes; un entitlement responde a "¿ha pagado?". Fusionarlos
+habría convertido el paywall en un interruptor de Ajustes. Tres productos
+(`removeAds`/`unlocks` de compra única, `cloud` de suscripción), `FREE_LIMITS` como único
+sitio con los topes, `canAddMore()` para preguntar *antes* de abrir el formulario de
+creación, y `setDevEntitlements()` para probar el paywall sin store (no-op fuera de
+`__DEV__`, para no dejar puerta trasera en release). **A diferencia de settings.ts, NO
+llama a `notifyLocalChange()`**: si los entitlements viajaran por el bus de sync
+local-first, un cliente modificado podría empujar entitlements falsos al servidor y
+propagarlos a sus otros dispositivos. Van en sentido único store → Supabase → dispositivo.
+Documentado en el propio archivo que esto **no es un control de seguridad** (el cliente es
+manipulable): lo que cueste dinero al backend debe validarse además en servidor.
+Typecheck verde; **nada cableado a la UI todavía** — ninguna pantalla lo consume aún.
+
 ### 2026-08-08 — Ronda de QA (colección/decks/wishlist/amigos, escáner fuera) + 3 fixes P0
 
 Se pidió testear la app a fondo fuera del escáner (aislado a propósito, ver sesiones

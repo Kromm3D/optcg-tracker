@@ -136,6 +136,13 @@ export const es: Record<TKey, string> = {
   'decks.importedNone': 'No se encontraron cartas válidas en ese código.',
   'decks.importedOk': 'Importadas {n} cartas.',
 
+  // Premium / entitlements. Namespace compartido por todos los gates.
+  'premium.deckLimitTitle': 'Límite de mazos alcanzado',
+  'premium.deckLimitBody': 'El plan gratuito incluye {n} mazos. Premium quita el límite.',
+  'premium.dataSafe': 'Tus mazos actuales nunca se borran ni se ocultan.',
+  'premium.soon': 'Premium todavía no está a la venta.',
+  'premium.gotIt': 'Entendido',
+
   // Deck detail
   'deck.empty': 'Mazo vacío',
   'deck.emptyBody': 'Pulsa + para añadir cartas al mazo.',

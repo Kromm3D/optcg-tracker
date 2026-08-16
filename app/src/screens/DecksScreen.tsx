@@ -26,6 +26,11 @@ import {
   type Deck,
 } from '../lib/decks';
 import { parseOptcgSim, defaultDeckName } from '../lib/optcgsim';
+import {
+  getLimit,
+  loadEntitlements,
+  subscribe as subEntitlements,
+} from '../lib/entitlements';
 import { useT } from '../lib/i18n';
 
 export function DecksScreen({ navigation }: DecksScreenProps) {
@@ -36,6 +41,11 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
   const [deckToDelete, setDeckToDelete] = useState<Deck | null>(null);
+  const [showLimit, setShowLimit] = useState(false);
+  /** `null` = ilimitado (premium). Se guarda en estado y no se lee inline porque
+   *  la caché de entitlements hidrata en asíncrono: sin esto, el primer render
+   *  usaría el default vacío y le enseñaría el tope a alguien que ya ha pagado. */
+  const [deckLimit, setDeckLimit] = useState<number | null>(() => getLimit('decks'));
 
   const refresh = useCallback(() => {
     listDecks().then(setDecks);
@@ -46,13 +56,46 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
     return subscribe(refresh);
   }, [refresh]);
 
+  useEffect(() => {
+    const syncLimit = () => setDeckLimit(getLimit('decks'));
+    loadEntitlements().then(syncLimit);
+    return subEntitlements(syncLimit);
+  }, []);
+
+  // `listDecks()` ya excluye lápidas, así que el recuento son mazos vivos.
+  // Se compara con `>=`: quien venía de premium con más mazos que el tope los
+  // conserva todos (nunca se borran ni se ocultan), simplemente no puede crear
+  // otro hasta bajar del límite.
+  const atLimit = deckLimit !== null && decks.length >= deckLimit;
+
+  /** Punto único de entrada a la creación: decide entre el formulario y el
+   *  aviso de tope. Se pregunta ANTES de abrir el formulario — dejar que el
+   *  usuario nombre un mazo para luego negárselo es peor que enseñarle el tope. */
+  const guardedOpen = useCallback(
+    (open: () => void) => {
+      if (atLimit) {
+        setShowLimit(true);
+        return;
+      }
+      open();
+    },
+    [atLimit],
+  );
+
   const handleCreate = useCallback(async () => {
     if (!newName.trim()) return;
+    // Re-chequeo en el commit: el formulario puede llevar abierto mientras la
+    // sync trae mazos de otro dispositivo y cruza el tope por debajo.
+    if (atLimit) {
+      setShowModal(false);
+      setShowLimit(true);
+      return;
+    }
     const deck = await createDeck(newName);
     setShowModal(false);
     setNewName('');
     navigation.navigate('DeckDetail', { deckId: deck.id });
-  }, [newName, navigation]);
+  }, [newName, navigation, atLimit]);
 
   const confirmDelete = useCallback(() => {
     if (deckToDelete) deleteDeck(deckToDelete.id);
@@ -65,13 +108,19 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
       Alert.alert(t('decks.importTitle'), t('decks.importedNone'));
       return;
     }
+    // Importar crea un mazo igual que el formulario: mismo tope, mismo re-chequeo.
+    if (atLimit) {
+      setShowImport(false);
+      setShowLimit(true);
+      return;
+    }
     const deck = await createDeck(newName.trim() || defaultDeckName(entries));
     for (const e of entries) await setDeckCard(deck.id, e.code, e.qty);
     setShowImport(false);
     setImportText('');
     setNewName('');
     navigation.navigate('DeckDetail', { deckId: deck.id });
-  }, [importText, newName, navigation, t]);
+  }, [importText, newName, navigation, t, atLimit]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -82,7 +131,7 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
           <Text style={s.emptySub}>{t('decks.emptyBody')}</Text>
           <Pressable
             style={({ pressed }) => [s.createBtn, pressed && pressedStyle]}
-            onPress={() => setShowModal(true)}
+            onPress={() => guardedOpen(() => setShowModal(true))}
             accessibilityRole="button"
             accessibilityLabel={t('decks.newDeck')}
           >
@@ -91,7 +140,7 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
           </Pressable>
           <Pressable
             style={({ pressed }) => [s.importBtn, pressed && pressedStyle]}
-            onPress={() => setShowImport(true)}
+            onPress={() => guardedOpen(() => setShowImport(true))}
             accessibilityRole="button"
             accessibilityLabel={t('decks.importSim')}
           >
@@ -120,23 +169,37 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
           contentContainerStyle={s.list}
           ListHeaderComponent={
             <View style={{ gap: spacing.sm }}>
+              {/* Al llegar al tope la fila no desaparece ni se deshabilita:
+                  sigue pulsable y explica por qué. Un botón muerto deja al
+                  usuario adivinando; el icono cambia a `sparkle` en vez de un
+                  candado porque esto es una mejora ofrecida, no un castigo. */}
               <Pressable
-                style={({ pressed }) => [s.newRow, pressed && pressedStyle]}
-                onPress={() => setShowModal(true)}
+                style={({ pressed }) => [s.newRow, atLimit && s.newRowLocked, pressed && pressedStyle]}
+                onPress={() => guardedOpen(() => setShowModal(true))}
                 accessibilityRole="button"
                 accessibilityLabel={t('decks.newDeck')}
               >
-                <Icon name="plus" size={18} color={colors.accent} />
-                <Text style={s.newRowText}>{t('decks.newDeck')}</Text>
+                <Icon
+                  name={atLimit ? 'sparkle' : 'plus'}
+                  size={18}
+                  color={atLimit ? colors.textMut : colors.accent}
+                />
+                <Text style={[s.newRowText, atLimit && s.newRowTextLocked]}>
+                  {atLimit ? `${t('decks.newDeck')} · ${decks.length}/${deckLimit}` : t('decks.newDeck')}
+                </Text>
               </Pressable>
               <Pressable
-                style={({ pressed }) => [s.newRow, pressed && pressedStyle]}
-                onPress={() => setShowImport(true)}
+                style={({ pressed }) => [s.newRow, atLimit && s.newRowLocked, pressed && pressedStyle]}
+                onPress={() => guardedOpen(() => setShowImport(true))}
                 accessibilityRole="button"
                 accessibilityLabel={t('decks.importSim')}
               >
-                <Icon name="external" size={18} color={colors.accent} />
-                <Text style={s.newRowText}>{t('decks.importSim')}</Text>
+                <Icon
+                  name={atLimit ? 'sparkle' : 'external'}
+                  size={18}
+                  color={atLimit ? colors.textMut : colors.accent}
+                />
+                <Text style={[s.newRowText, atLimit && s.newRowTextLocked]}>{t('decks.importSim')}</Text>
               </Pressable>
               {/* Escanear desde Decks: al quitar el FAB central, el escáner
                   sólo era alcanzable desde Browse/Binder/Home, y construir un
@@ -202,6 +265,25 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
         </View>
       </AppModal>
 
+      {/* Tope del plan gratuito. Dice el número, promete que los mazos que ya
+          existen no se tocan, y admite que todavía no se puede comprar — un
+          botón "Desbloquear" que no lleva a ninguna parte sería peor que no
+          ofrecerlo. Cuando entre RevenueCat, aquí va la entrada al paywall. */}
+      <AppModal
+        visible={showLimit}
+        onClose={() => setShowLimit(false)}
+        title={t('premium.deckLimitTitle')}
+      >
+        <Text style={s.confirmBody}>
+          {t('premium.deckLimitBody', { n: String(deckLimit ?? '') })}
+        </Text>
+        <Text style={s.limitNote}>{t('premium.dataSafe')}</Text>
+        <Text style={s.limitNote}>{t('premium.soon')}</Text>
+        <View style={s.modalRow}>
+          <Button title={t('premium.gotIt')} onPress={() => setShowLimit(false)} style={s.modalBtn} />
+        </View>
+      </AppModal>
+
       {/* Delete confirmation (themed — replaces native Alert) */}
       <AppModal visible={deckToDelete !== null} onClose={() => setDeckToDelete(null)} title={t('decks.deleteTitle')}>
         <Text style={s.confirmBody}>{t('decks.deleteConfirm', { name: deckToDelete?.name ?? '' })}</Text>
@@ -231,6 +313,8 @@ const s = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   newRowText: { fontSize: 15, fontFamily: fonts.uiSemi, color: colors.accent },
+  newRowLocked: { borderStyle: 'solid', opacity: 0.7 },
+  newRowTextLocked: { color: colors.textMut },
 
   sep: { height: spacing.sm },
 
@@ -306,6 +390,7 @@ const s = StyleSheet.create({
   modalRow: { flexDirection: 'row', gap: 12 },
   modalBtn: { flex: 1 },
   confirmBody: { fontSize: 14, fontFamily: fonts.ui, color: colors.textMut, lineHeight: 21 },
+  limitNote: { fontSize: 13, fontFamily: fonts.ui, color: colors.textDim, lineHeight: 19 },
   modalCancel: {
     flex: 1,
     height: 48,
