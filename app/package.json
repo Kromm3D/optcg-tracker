@@ -28,6 +28,7 @@
     "expo-haptics": "~56.0.3",
     "expo-image": "~56.0.9",
     "expo-image-manipulator": "~56.0.16",
+    "expo-secure-store": "~56.0.4",
     "expo-sharing": "~56.0.3",
     "expo-status-bar": "~56.0.4",
     "fflate": "^0.8.3",

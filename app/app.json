@@ -39,7 +39,8 @@
         {
           "cameraPermissionText": "HoroHoro.tcg needs the camera to scan your cards."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "assetBundlePatterns": [
       "assets/**"

@@ -67,10 +67,18 @@ export const CARDMARKET_BASE = 'https://www.cardmarket.com/en/OnePiece/Products/
 // `service_role` key ni el Personal Access Token (`sbp_…`) — esos dan acceso
 // total y solo se usan en local/CI para aprovisionar el proyecto.
 //
+// Se leen de variables de entorno EXPO_PUBLIC_* (ver `.env.example`) — Expo las
+// inlinea en el bundle en build time, igual que si estuvieran hardcodeadas, pero
+// así cada entorno (dev/CI/EAS) puede apuntar a su propio proyecto sin tocar
+// código. El fallback son las credenciales del proyecto actual, para que la app
+// siga funcionando sin configurar nada extra.
+//
 // Rellena estos valores desde el dashboard de Supabase:
 //   Project Settings → API → Project URL  y  Project API keys → anon public.
-export const SUPABASE_URL = 'https://hphdhozwuvbhduqrwdxn.supabase.co';
-export const SUPABASE_ANON_KEY = 'sb_publishable_09JAOzY-z5arPdqSspfdgg_UOpKb8BI';
+export const SUPABASE_URL =
+  process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://hphdhozwuvbhduqrwdxn.supabase.co';
+export const SUPABASE_ANON_KEY =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_09JAOzY-z5arPdqSspfdgg_UOpKb8BI';
 
 /** true cuando hay credenciales configuradas; gatea toda la UI de cuenta/sync. */
 export const SUPABASE_ENABLED = SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0;
