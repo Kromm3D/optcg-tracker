@@ -176,6 +176,9 @@ export interface FriendProfile {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  /** Insignia cosmética de premium, visible a amigos. Coste cero — ver
+   *  ToDo.md §3 y lib/entitlements.ts (`isPremium()`). */
+  is_premium: boolean;
 }
 
 /** A friendship edge plus the other party's profile, as shown in the UI. */

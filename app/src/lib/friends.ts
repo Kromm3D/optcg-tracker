@@ -53,7 +53,7 @@ export async function searchUsers(query: string): Promise<FriendProfile[]> {
   const me = getUser()?.id;
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url')
+    .select('id, username, display_name, avatar_url, is_premium')
     .ilike('username', `${q}%`)
     .limit(20);
   if (error) {
@@ -86,7 +86,7 @@ export async function refreshEdges(): Promise<FriendEdge[]> {
   if (otherIds.length) {
     const { data: profs } = await supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url')
+      .select('id, username, display_name, avatar_url, is_premium')
       .in('id', otherIds);
     for (const p of (profs as FriendProfile[]) ?? []) profileMap.set(p.id, p);
   }
@@ -102,6 +102,21 @@ export async function refreshEdges(): Promise<FriendEdge[]> {
     .filter((e): e is FriendEdge => e !== null);
   notify();
   return edgesCache;
+}
+
+/**
+ * Refleja `isPremium()` (lib/entitlements.ts) en `profiles.is_premium`, para
+ * que los amigos vean la insignia sin tener que consultar mis entitlements
+ * (que son locales a mi dispositivo). Es puramente cosmético — no cuesta
+ * ancho de banda recurrente, así que no depende de 'cloud' como el resto del
+ * sync; sólo de estar registrado. RLS ya permite `UPDATE ... WHERE id =
+ * auth.uid()`, ninguna migración de política adicional hace falta.
+ */
+export async function pushPremiumBadge(premium: boolean): Promise<void> {
+  const me = getUser()?.id;
+  if (!supabase || !me) return;
+  const { error } = await supabase.from('profiles').update({ is_premium: premium }).eq('id', me);
+  if (error) console.warn('[friends] pushPremiumBadge error:', error.message);
 }
 
 /** Amigos confirmados. */

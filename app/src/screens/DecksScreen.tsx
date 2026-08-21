@@ -16,21 +16,19 @@ import { Icon } from '../components/Icon';
 import { AppModal } from '../components/AppModal';
 import { Button } from '../components/Button';
 import { DeckRow } from '../components/DeckRow';
+import { PremiumLimitModal } from '../components/PremiumLimitModal';
 import {
   listDecks,
   createDeck,
   deleteDeck,
+  archiveDeck,
   setDeckCard,
   deckTotal,
   subscribe,
   type Deck,
 } from '../lib/decks';
 import { parseOptcgSim, defaultDeckName } from '../lib/optcgsim';
-import {
-  getLimit,
-  loadEntitlements,
-  subscribe as subEntitlements,
-} from '../lib/entitlements';
+import { useLimit } from '../lib/entitlements';
 import { useT } from '../lib/i18n';
 
 export function DecksScreen({ navigation }: DecksScreenProps) {
@@ -41,11 +39,9 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
   const [deckToDelete, setDeckToDelete] = useState<Deck | null>(null);
+  const [menuTarget, setMenuTarget] = useState<Deck | null>(null);
   const [showLimit, setShowLimit] = useState(false);
-  /** `null` = ilimitado (premium). Se guarda en estado y no se lee inline porque
-   *  la caché de entitlements hidrata en asíncrono: sin esto, el primer render
-   *  usaría el default vacío y le enseñaría el tope a alguien que ya ha pagado. */
-  const [deckLimit, setDeckLimit] = useState<number | null>(() => getLimit('decks'));
+  const deckLimit = useLimit('decks');
 
   const refresh = useCallback(() => {
     listDecks().then(setDecks);
@@ -56,17 +52,16 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
     return subscribe(refresh);
   }, [refresh]);
 
-  useEffect(() => {
-    const syncLimit = () => setDeckLimit(getLimit('decks'));
-    loadEntitlements().then(syncLimit);
-    return subEntitlements(syncLimit);
-  }, []);
+  // Los mazos archivados no cuentan contra el tope — es justo la alternativa
+  // suave que se ofrece antes de negarse a crear uno nuevo. `listDecks()` ya
+  // excluye lápidas, así que ambas listas son de mazos vivos.
+  const activeDecks = decks.filter((d) => !d.archived);
+  const archivedDecks = decks.filter((d) => d.archived);
 
-  // `listDecks()` ya excluye lápidas, así que el recuento son mazos vivos.
   // Se compara con `>=`: quien venía de premium con más mazos que el tope los
   // conserva todos (nunca se borran ni se ocultan), simplemente no puede crear
-  // otro hasta bajar del límite.
-  const atLimit = deckLimit !== null && decks.length >= deckLimit;
+  // otro hasta archivar o bajar del límite.
+  const atLimit = deckLimit !== null && activeDecks.length >= deckLimit;
 
   /** Punto único de entrada a la creación: decide entre el formulario y el
    *  aviso de tope. Se pregunta ANTES de abrir el formulario — dejar que el
@@ -101,6 +96,11 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
     if (deckToDelete) deleteDeck(deckToDelete.id);
     setDeckToDelete(null);
   }, [deckToDelete]);
+
+  const toggleArchive = useCallback((deck: Deck) => {
+    archiveDeck(deck.id, !deck.archived);
+    setMenuTarget(null);
+  }, []);
 
   const handleImport = useCallback(async () => {
     const entries = parseOptcgSim(importText);
@@ -164,7 +164,7 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
         </View>
       ) : (
         <FlatList
-          data={decks}
+          data={activeDecks}
           keyExtractor={(d) => d.id}
           contentContainerStyle={s.list}
           ListHeaderComponent={
@@ -185,7 +185,7 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
                   color={atLimit ? colors.textMut : colors.accent}
                 />
                 <Text style={[s.newRowText, atLimit && s.newRowTextLocked]}>
-                  {atLimit ? `${t('decks.newDeck')} · ${decks.length}/${deckLimit}` : t('decks.newDeck')}
+                  {atLimit ? `${t('decks.newDeck')} · ${activeDecks.length}/${deckLimit}` : t('decks.newDeck')}
                 </Text>
               </Pressable>
               <Pressable
@@ -220,11 +220,31 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
               deck={item}
               subtitle={`${item.cards.length} ${t('decks.slots')} · ${deckTotal(item)} ${t('decks.cards')}`}
               onPress={() => navigation.navigate('DeckDetail', { deckId: item.id })}
-              onLongPress={() => setDeckToDelete(item)}
-              onMenuPress={() => setDeckToDelete(item)}
+              onLongPress={() => setMenuTarget(item)}
+              onMenuPress={() => setMenuTarget(item)}
             />
           )}
           ItemSeparatorComponent={() => <View style={s.sep} />}
+          ListFooterComponent={
+            archivedDecks.length > 0 ? (
+              <View style={{ gap: spacing.sm, marginTop: spacing.lg }}>
+                <Text style={s.archivedLabel}>
+                  {t('decks.archivedSection', { n: String(archivedDecks.length) })}
+                </Text>
+                {archivedDecks.map((d) => (
+                  <View key={d.id} style={{ opacity: 0.6 }}>
+                    <DeckRow
+                      deck={d}
+                      subtitle={`${d.cards.length} ${t('decks.slots')} · ${deckTotal(d)} ${t('decks.cards')}`}
+                      onPress={() => navigation.navigate('DeckDetail', { deckId: d.id })}
+                      onLongPress={() => setMenuTarget(d)}
+                      onMenuPress={() => setMenuTarget(d)}
+                    />
+                  </View>
+                ))}
+              </View>
+            ) : null
+          }
         />
       )}
 
@@ -265,24 +285,38 @@ export function DecksScreen({ navigation }: DecksScreenProps) {
         </View>
       </AppModal>
 
-      {/* Tope del plan gratuito. Dice el número, promete que los mazos que ya
-          existen no se tocan, y admite que todavía no se puede comprar — un
-          botón "Desbloquear" que no lleva a ninguna parte sería peor que no
-          ofrecerlo. Cuando entre RevenueCat, aquí va la entrada al paywall. */}
-      <AppModal
+      {/* Menú de opciones por mazo: archivar/restaurar (reversible, gratis)
+          o borrar (destructivo, pide confirmación aparte). */}
+      <AppModal visible={menuTarget !== null} onClose={() => setMenuTarget(null)} title={t('decks.optionsTitle')}>
+        {menuTarget ? (
+          <>
+            <Text style={s.confirmBody}>
+              {menuTarget.archived ? t('decks.restoreDesc') : t('decks.archiveDesc')}
+            </Text>
+            <View style={s.modalRow}>
+              <Button
+                title={menuTarget.archived ? t('decks.restore') : t('decks.archive')}
+                variant="secondary"
+                onPress={() => toggleArchive(menuTarget)}
+                style={s.modalBtn}
+              />
+              <Button
+                title={t('common.delete')}
+                variant="danger"
+                onPress={() => { setDeckToDelete(menuTarget); setMenuTarget(null); }}
+                style={s.modalBtn}
+              />
+            </View>
+          </>
+        ) : null}
+      </AppModal>
+
+      <PremiumLimitModal
         visible={showLimit}
         onClose={() => setShowLimit(false)}
         title={t('premium.deckLimitTitle')}
-      >
-        <Text style={s.confirmBody}>
-          {t('premium.deckLimitBody', { n: String(deckLimit ?? '') })}
-        </Text>
-        <Text style={s.limitNote}>{t('premium.dataSafe')}</Text>
-        <Text style={s.limitNote}>{t('premium.soon')}</Text>
-        <View style={s.modalRow}>
-          <Button title={t('premium.gotIt')} onPress={() => setShowLimit(false)} style={s.modalBtn} />
-        </View>
-      </AppModal>
+        body={t('premium.deckLimitBody', { n: String(deckLimit ?? '') })}
+      />
 
       {/* Delete confirmation (themed — replaces native Alert) */}
       <AppModal visible={deckToDelete !== null} onClose={() => setDeckToDelete(null)} title={t('decks.deleteTitle')}>
@@ -317,6 +351,13 @@ const s = StyleSheet.create({
   newRowTextLocked: { color: colors.textMut },
 
   sep: { height: spacing.sm },
+  archivedLabel: {
+    fontSize: 12,
+    fontFamily: fonts.uiSemi,
+    color: colors.textMut,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
 
   empty: {
     flex: 1,
@@ -390,7 +431,6 @@ const s = StyleSheet.create({
   modalRow: { flexDirection: 'row', gap: 12 },
   modalBtn: { flex: 1 },
   confirmBody: { fontSize: 14, fontFamily: fonts.ui, color: colors.textMut, lineHeight: 21 },
-  limitNote: { fontSize: 13, fontFamily: fonts.ui, color: colors.textDim, lineHeight: 19 },
   modalCancel: {
     flex: 1,
     height: 48,

@@ -275,8 +275,8 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
               </Pressable>
             );
           })}
-          <ColumnsToggle />
         </ScrollView>
+        <ColumnsToggle compact />
       </View>
 
       <FlatList

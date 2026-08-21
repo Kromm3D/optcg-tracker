@@ -138,9 +138,53 @@ export const en = {
   // Premium / entitlements. Namespace compartido por todos los gates.
   'premium.deckLimitTitle': 'Deck limit reached',
   'premium.deckLimitBody': 'The free tier includes {n} decks. Premium lifts the limit.',
-  'premium.dataSafe': 'Your existing decks are never deleted or hidden.',
+  'premium.wishlistLimitTitle': 'Wishlist limit reached',
+  'premium.wishlistLimitBody': 'The free tier includes {n} wishlist. Premium lifts the limit.',
+  'premium.bulkScanLimitReached': 'Bulk scan limit reached ({n} cards). Confirm the queue to keep scanning.',
+  'premium.dataSafe': 'Your existing data is never deleted or hidden.',
   'premium.soon': 'Premium is not available for purchase yet.',
   'premium.gotIt': 'Got it',
+  'premium.openScreen': 'Premium',
+  'premium.screenTitle': 'Premium',
+  'premium.screenIntro': "Three products, no subscriptions bundled together. Nothing here is buyable yet — this is a preview of what's coming.",
+  'premium.removeAdsTitle': 'Remove ads',
+  'premium.removeAdsDesc': 'One-time purchase. Removes the banner ad everywhere in the app.',
+  'premium.unlocksTitle': 'Unlocks',
+  'premium.unlocksDesc': 'One-time purchase. Unlimited decks, wishlists and bulk scan, extra themes, offline image pack, exports, multiple binders, premium profile badge.',
+  'premium.cloudTitle': 'Cloud',
+  'premium.cloudDesc': 'Subscription. Cloud sync & backup across devices, price history, collection value chart, price alerts, advanced stats dashboard, new-set push notifications.',
+  'premium.comingSoon': 'Coming soon',
+  'premium.badge': 'Premium',
+  'premium.devToolsTitle': 'Dev tools',
+  'premium.devToolsDesc': 'Force entitlements locally to test gates without a store connection. Debug builds only.',
+  'premium.priceChartLocked': 'Price history is part of Cloud. Tap to see what it unlocks.',
+  'premium.valueChartLocked': 'Value-over-time is part of Cloud. Tap to see what it unlocks.',
+  'premium.priceAlertsLocked': 'Price alerts are part of Cloud. Tap to see what it unlocks.',
+  'premium.cloudSyncLocked': 'Cloud backup is part of Cloud. Your data stays safe on this device either way — tap to see what syncing unlocks.',
+  'premium.deckImageLocked': 'Sharing a deck as an image is part of Unlocks. Tap to see what it unlocks.',
+  'premium.exportLocked': 'Exporting your collection is part of Unlocks. Tap to see what it unlocks.',
+
+  // Advanced stats dashboard — gated behind 'cloud'.
+  'stats.openScreen': 'Stats',
+  'stats.title': 'Stats',
+  'stats.lockedTitle': 'Advanced stats is part of Cloud',
+  'stats.lockedDesc': 'Value by set, completion %, your most valuable cards and rarity distribution — all in one dashboard.',
+  'stats.empty': 'Nothing to show yet.',
+  'stats.valueBySet': 'Value by set',
+  'stats.completionBySet': 'Completion by set',
+  'stats.topValuable': 'Most valuable cards',
+  'stats.rarityDistribution': 'Rarity distribution',
+
+  // Wishlist↔friend match suggestions — gated behind 'cloud'. The per-friend
+  // Trade tab (matching itself) stays free; this is the cross-friend digest.
+  'matches.title': 'Match suggestions',
+  'matches.lockedTitle': 'Match suggestions are part of Cloud',
+  'matches.lockedDesc': 'See at a glance which friends have cards from your wishlist, and who wants cards you own — across all of them at once.',
+  'matches.intro': 'Friends with a possible trade, sorted by how many cards overlap.',
+  'matches.empty': 'No matches yet',
+  'matches.emptyDesc': "None of your friends' wishlists overlap with your collection right now (or vice versa).",
+  'matches.youGive': 'You have {n} card(s) they want',
+  'matches.youReceive': 'They have {n} card(s) you want',
 
   // Deck detail
   'deck.empty': 'Empty deck',
@@ -155,6 +199,7 @@ export const en = {
   'deck.exportTitle': 'OPTCGSim deck code',
   'deck.exportBody': 'Copy this code and paste it into OPTCGSim, or share it with a friend.',
   'deck.exportEmpty': 'Add cards to the deck first.',
+  'deck.exportImage': 'Share as image',
   'deck.copy': 'Copy',
   'deck.copied': 'Deck code copied.',
   'deck.share': 'Share',
@@ -281,6 +326,13 @@ export const en = {
   'public.share': 'Share my binder',
   'public.shareCopied': 'Link copied',
   'public.shareNeedsPublic': 'Set your collection to Public first so anyone can open the link.',
+  'public.wishCount': '{n} cards wanted',
+
+  // ─── Public wishlist (shared link, part of Unlocks — see premium.*) ──────
+  'public.shareWishlist': 'Share my wishlist',
+  'public.shareWishlistNeedsPublic': 'Set your wishlist to Public first (Account → Privacy) so anyone can open the link.',
+  'premium.wishlistShareLocked': 'Sharing a public wishlist link is part of Unlocks. Tap to see what it unlocks.',
+  'premium.offlineImagesLocked': 'Downloading card art for offline use is part of Unlocks. Tap to see what it unlocks.',
 
   // ─── Trade offers ────────────────────────────────────────────────────────
   'trade.propose': 'Propose trade · {n}',
@@ -295,6 +347,10 @@ export const en = {
   'trade.applyToCollection': 'Apply to my collection',
   'trade.applyHint': 'Do this once the cards have actually changed hands.',
   'trade.applied': 'Applied to your collection',
+  'trade.history': 'Trade history',
+  'trade.statusDeclined': 'Declined',
+  'trade.statusCancelled': 'Cancelled',
+  'trade.statusCompleted': 'Completed',
 
   // ─── Copy details (condition / language / grading / cost basis) ──────────
   'copy.title': 'Copy details',
@@ -386,6 +442,10 @@ export const en = {
   'set.cardsCount': '{n} cards',
   'set.ownedOfTotal': '{owned} / {total} cards',
   'set.parallels': 'Parallels',
+  'set.emptyTitleUpcoming': 'Not out yet',
+  'set.emptyBodyUpcoming': 'The card list for {name} isn’t published until {date}. Check back after release.',
+  'set.emptyTitle': 'No cards listed',
+  'set.emptyBody': 'This set has no cards in the index yet.',
 
   // Filters
   'filter.title': 'Filters',
@@ -423,6 +483,13 @@ export const en = {
   'offline.done': 'Downloaded',
   'offline.doneDesc': 'All card art is available offline.',
 
+  // Export
+  'settings.exportCollection': 'Export collection',
+  'settings.exportCollectionDesc': 'CSV of every card you own — code, name, count, condition, price paid.',
+  'settings.exportCsv': 'Export as CSV',
+  'settings.exporting': 'Exporting…',
+  'settings.exportEmpty': 'Your collection is empty — nothing to export yet.',
+
   // Generic
   'common.cancel': 'Cancel',
   'common.done': 'Done',
@@ -436,6 +503,13 @@ export const en = {
   // Decks (delete)
   'decks.deleteTitle': 'Delete deck',
   'decks.deleteConfirm': 'Delete "{name}"? This cannot be undone.',
+  'decks.optionsTitle': 'Deck options',
+  'decks.archive': 'Archive',
+  'decks.archiveDesc': "Frees up a deck slot. Doesn't delete anything — restore it anytime.",
+  'decks.restoreDesc': 'Moves it back to your active decks and counts against your deck slots again.',
+  'decks.restore': 'Restore',
+  'decks.archived': 'Archived',
+  'decks.archivedSection': 'Archived · {n}',
 
   // Profile (tab hub)
   'profile.title': 'Profile',
@@ -468,6 +542,7 @@ export const en = {
   'account.syncing': 'Syncing…',
   'account.synced': 'Synced',
   'account.syncError': 'Sync error — will retry',
+  'account.syncOffline': 'Local only',
   'account.lastSynced': 'Last synced {time}',
   'account.never': 'never',
   'account.privacy': 'Privacy',

@@ -123,7 +123,7 @@ export async function refreshOffers(): Promise<TradeOffer[]> {
   const profiles = new Map<string, FriendProfile>();
   const { data: profs } = await supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url')
+    .select('id, username, display_name, avatar_url, is_premium')
     .in('id', otherIds);
   for (const p of (profs as FriendProfile[]) ?? []) profiles.set(p.id, p);
 

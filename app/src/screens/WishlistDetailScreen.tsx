@@ -11,7 +11,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,7 +32,8 @@ import { getPrice } from '../lib/prices';
 import { formatEur } from '../lib/currency';
 import { getAlertSync, subscribe as subAlerts } from '../lib/priceAlerts';
 import { PriceAlertSheet } from '../components/PriceAlertSheet';
-import { getDefaultWishlistSuffix, isFeatureEnabled } from '../lib/settings';
+import { getDefaultWishlistSuffix, getSettings, isFeatureEnabled, subscribe as subSettings } from '../lib/settings';
+import { useHasEntitlement } from '../lib/entitlements';
 import {
   getWishlist,
   renameWishlist,
@@ -42,10 +42,8 @@ import {
   subscribe as subWishlists,
 } from '../lib/wishlists';
 import { useT } from '../lib/i18n';
+import { useCardGrid } from '../lib/useCardGrid';
 import type { Card, Wishlist, WishlistCard } from '../types';
-
-const COLUMNS = 3;
-const CARD_GAP = 10;
 
 type ResolvedEntry = {
   wc: WishlistCard;
@@ -55,9 +53,10 @@ type ResolvedEntry = {
 export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreenProps) {
   const t = useT();
   const { wishlistId } = route.params;
-  const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const cardW = Math.floor((width - spacing.lg * 2 - CARD_GAP * (COLUMNS - 1)) / COLUMNS);
+  const [columns, setColumnsState] = useState(getSettings().columns);
+  const { cardWidth: cardW, gap: CARD_GAP } = useCardGrid(columns, { gap: 10, hPadding: spacing.lg });
+  const hasCloud = useHasEntitlement('cloud');
 
   const [wishlist, setWishlist] = useState<Wishlist | null>(null);
   const [, forceOwned] = useState(0);
@@ -82,7 +81,8 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
     refresh();
     const u1 = subWishlists(refresh);
     const u2 = subOwned(() => forceOwned((n) => n + 1));
-    return () => { u1(); u2(); };
+    const u3 = subSettings(() => setColumnsState(getSettings().columns));
+    return () => { u1(); u2(); u3(); };
   }, [refresh]);
 
   // Resolved entries sorted by code
@@ -184,11 +184,12 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
         </View>
       ) : (
         <FlatList
+          key={`grid-${columns}`}
           data={entries}
           keyExtractor={(e) => `${e.wc.code}${e.wc.suffix}`}
-          numColumns={COLUMNS}
+          numColumns={columns}
           columnWrapperStyle={{ gap: CARD_GAP }}
-          contentContainerStyle={s.grid}
+          contentContainerStyle={[s.grid, { gap: CARD_GAP }]}
           initialNumToRender={18}
           maxToRenderPerBatch={18}
           windowSize={5}
@@ -197,7 +198,7 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
             const owned = getOwnedFor(card.code);
             const variant = card.variants.find((v) => v.suffix === wc.suffix) ?? card.variants[0];
             return (
-              <View style={[s.pileWrap, { width: cardW }]}>
+              <View style={[s.pileWrap, { width: cardW, marginBottom: CARD_GAP }]}>
                 <Pressable
                   onPress={() => { setPickerCard(card); setShowPicker(true); }}
                   accessibilityRole="button"
@@ -233,6 +234,20 @@ export function WishlistDetailScreen({ route, navigation }: WishlistDetailScreen
                     añade A CUÁNTO te interesa. Ver lib/priceAlerts.ts. */}
                 {(() => {
                   if (!isFeatureEnabled('priceAlerts')) return null;
+                  if (!hasCloud) {
+                    return (
+                      <Pressable
+                        onPress={() => navigation.navigate('Premium')}
+                        hitSlop={HIT_SLOP}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('premium.priceAlertsLocked')}
+                        style={({ pressed }) => [s.alertBtn, pressed && pressedStyle]}
+                      >
+                        <Icon name="sparkle" size={11} color={colors.textDim} />
+                        <Text style={s.alertText} numberOfLines={1}>{t('alert.add')}</Text>
+                      </Pressable>
+                    );
+                  }
                   const alert = getAlertSync(card.code, wc.suffix);
                   return (
                     <Pressable
@@ -390,11 +405,10 @@ const s = StyleSheet.create({
 
   grid: {
     padding: spacing.lg,
-    gap: CARD_GAP,
     paddingBottom: 110,
   },
 
-  pileWrap: { alignItems: 'center', gap: 4, marginBottom: CARD_GAP },
+  pileWrap: { alignItems: 'center', gap: 4 },
   fraction: { fontSize: 11, fontFamily: fonts.uiSemi, color: colors.textMut },
   fractionDone: { color: colors.up },
   pileControls: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },

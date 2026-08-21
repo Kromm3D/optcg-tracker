@@ -11,7 +11,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,8 +28,12 @@ import { useToast } from '../components/Toast';
 import { CARDS } from '../data/loadIndex';
 import { getOwnedFor, subscribe as subOwned } from '../lib/ownedAggregate';
 import { addCard } from '../lib/wishlists';
-import { getDefaultWishlistSuffix } from '../lib/settings';
+import { getDefaultWishlistSuffix, getSettings, subscribe as subSettings } from '../lib/settings';
+import { useCardGrid } from '../lib/useCardGrid';
 import { WishlistPickerModal } from '../components/WishlistPickerModal';
+import { ShareSheet } from '../components/ShareSheet';
+import { CloudLockedTeaser } from '../components/CloudLockedTeaser';
+import { useHasEntitlement } from '../lib/entitlements';
 import type { Wishlist } from '../types';
 import { useT } from '../lib/i18n';
 import {
@@ -44,16 +47,13 @@ import {
 import { toOptcgSimString } from '../lib/optcgsim';
 import type { Card } from '../types';
 
-const COLUMNS = 3;
-const CARD_GAP = 10;
-
 export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
   const t = useT();
   const toast = useToast();
   const { deckId } = route.params;
-  const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const cardW = Math.floor((width - spacing.lg * 2 - CARD_GAP * (COLUMNS - 1)) / COLUMNS);
+  const [columns, setColumnsState] = useState(getSettings().columns);
+  const { cardWidth: cardW, gap: CARD_GAP } = useCardGrid(columns, { gap: 10, hPadding: spacing.lg });
 
   const [deck, setDeck] = useState<Deck | null>(null);
   const [, forceOwned] = useState(0);
@@ -62,6 +62,8 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [showImageShare, setShowImageShare] = useState(false);
+  const hasUnlocks = useHasEntitlement('unlocks');
   // Wishlist picker for "Add missing"
   const [showWLPicker, setShowWLPicker] = useState(false);
   const [pendingMissingCards, setPendingMissingCards] = useState<Array<{ code: string; needed: number }>>([]);
@@ -74,7 +76,8 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
     refresh();
     const u1 = subDecks(refresh);
     const u2 = subOwned(() => forceOwned((n) => n + 1));
-    return () => { u1(); u2(); };
+    const u3 = subSettings(() => setColumnsState(getSettings().columns));
+    return () => { u1(); u2(); u3(); };
   }, [refresh]);
 
   // Grid items from deck cards
@@ -241,11 +244,12 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
         </View>
       ) : (
         <FlatList
+          key={`grid-${columns}`}
           data={deckItems}
           keyExtractor={(item) => item.dc.code}
-          numColumns={COLUMNS}
+          numColumns={columns}
           columnWrapperStyle={{ gap: CARD_GAP }}
-          contentContainerStyle={s.grid}
+          contentContainerStyle={[s.grid, { gap: CARD_GAP }]}
           ListHeaderComponent={
             <DeckStats
               items={deckItems.map(({ dc, card }) => ({
@@ -263,7 +267,7 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
             const owned = getOwnedFor(card.code);
             const missing = owned < dc.qty;
             return (
-              <View style={[s.pileWrap, { width: cardW }]}>
+              <View style={[s.pileWrap, { width: cardW, marginBottom: CARD_GAP }]}>
                 <DeckCardPile card={card} qty={dc.qty} owned={owned} width={cardW} />
                 <View style={s.pileControls}>
                   <Counter
@@ -317,7 +321,33 @@ export function DeckDetailScreen({ route, navigation }: DeckDetailScreenProps) {
             style={s.modalBtn}
           />
         </View>
+        {/* Imagen compartible — compra única 'unlocks' (coste marginal cero,
+            reusa lib/shareImage.ts/ShareSheet ya construido para trade). */}
+        {hasUnlocks ? (
+          <Pressable
+            style={({ pressed }) => [s.shareImageRow, pressed && pressedStyle]}
+            onPress={() => { setExporting(false); setShowImageShare(true); }}
+            accessibilityRole="button"
+            accessibilityLabel={t('deck.exportImage')}
+          >
+            <Icon name="external" size={16} color={colors.accent} />
+            <Text style={s.shareImageRowText}>{t('deck.exportImage')}</Text>
+          </Pressable>
+        ) : (
+          <CloudLockedTeaser
+            label="premium.deckImageLocked"
+            onPress={() => { setExporting(false); navigation.navigate('Premium'); }}
+          />
+        )}
       </AppModal>
+
+      <ShareSheet
+        visible={showImageShare}
+        onClose={() => setShowImageShare(false)}
+        title={deck.name}
+        cards={deckItems.map((x) => x.card)}
+        qtyFor={(code) => deck.cards.find((c) => c.code === code)?.qty ?? 0}
+      />
 
       {/* Rename modal */}
       <AppModal visible={renaming} onClose={() => setRenaming(false)} title={t('deck.rename')}>
@@ -420,11 +450,10 @@ const s = StyleSheet.create({
 
   grid: {
     padding: spacing.lg,
-    gap: CARD_GAP,
     paddingBottom: 110,
   },
 
-  pileWrap: { alignItems: 'center', gap: 6, marginBottom: CARD_GAP },
+  pileWrap: { alignItems: 'center', gap: 6 },
 
   pileControls: {
     flexDirection: 'row',
@@ -549,6 +578,14 @@ const s = StyleSheet.create({
   },
   modalRow: { flexDirection: 'row', gap: 12 },
   modalBtn: { flex: 1 },
+  shareImageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    justifyContent: 'center',
+  },
+  shareImageRowText: { fontSize: 14, fontFamily: fonts.uiSemi, color: colors.accent },
   modalCancel: {
     flex: 1,
     height: 48,

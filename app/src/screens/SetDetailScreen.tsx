@@ -34,6 +34,34 @@ import { smartGoBack } from '../lib/nav';
 import { useT } from '../lib/i18n';
 import type { Card, Variant } from '../types';
 
+// Un mismo empty state cubre dos casos: el set aún no tiene fecha de salida
+// pasada (upcoming) o simplemente no hay cartas indexadas (raro, pero posible
+// si el scraper aún no procesó el set).
+function SetEmptyState({ setName, setDate }: { setName: string; setDate: string }) {
+  const t = useT();
+  const releaseDate = useMemo(() => {
+    if (!setDate) return null;
+    const [d, m, y] = setDate.split('/').map((n) => parseInt(n, 10));
+    if (!d || !m || !y) return null;
+    return new Date(y, m - 1, d);
+  }, [setDate]);
+  const isUpcoming = !!releaseDate && releaseDate.getTime() > Date.now();
+
+  return (
+    <View style={s.empty}>
+      <Icon name={isUpcoming ? 'bell' : 'grid'} size={44} color={colors.textDim} />
+      <Text style={s.emptyTitle}>
+        {isUpcoming ? t('set.emptyTitleUpcoming') : t('set.emptyTitle')}
+      </Text>
+      <Text style={s.emptySub}>
+        {isUpcoming
+          ? t('set.emptyBodyUpcoming', { name: setName, date: setDate })
+          : t('set.emptyBody')}
+      </Text>
+    </View>
+  );
+}
+
 // Cantidad poseída en vivo dentro de un set, suscrita a ownedAggregate con
 // bail-out (prev === next): editar una carta re-renderiza solo su celda.
 // - Parallels ON  → cuenta la variante mostrada.
@@ -239,20 +267,24 @@ export function SetDetailScreen({ route, navigation }: SetDetailScreenProps) {
       </View>
 
       {/* Grid con quickActions (o selección) */}
-      <FlatList
-        key={`grid-${columns}`}
-        data={entries}
-        keyExtractor={(e) => e.key}
-        numColumns={columns}
-        extraData={extraData}
-        columnWrapperStyle={{ gap, paddingHorizontal: hPadding }}
-        contentContainerStyle={{ paddingTop: 4, paddingBottom: selectMode ? 180 : 110, gap }}
-        initialNumToRender={15}
-        maxToRenderPerBatch={12}
-        windowSize={5}
-        removeClippedSubviews
-        renderItem={renderItem}
-      />
+      {entries.length === 0 ? (
+        <SetEmptyState setName={setNameFor(setCode)} setDate={date} />
+      ) : (
+        <FlatList
+          key={`grid-${columns}`}
+          data={entries}
+          keyExtractor={(e) => e.key}
+          numColumns={columns}
+          extraData={extraData}
+          columnWrapperStyle={{ gap, paddingHorizontal: hPadding }}
+          contentContainerStyle={{ paddingTop: 4, paddingBottom: selectMode ? 180 : 110, gap }}
+          initialNumToRender={15}
+          maxToRenderPerBatch={12}
+          windowSize={5}
+          removeClippedSubviews
+          renderItem={renderItem}
+        />
+      )}
 
       {selectMode && (
         <BulkActionBar count={selectedList.length} onClear={clearSel} onPick={setBulkTarget} />
@@ -295,4 +327,15 @@ const s = StyleSheet.create({
   ctrlChipTextOn: { color: colors.accent },
   grid: { paddingHorizontal: 14, paddingTop: 4, paddingBottom: 30 },
   col: { justifyContent: 'space-between', marginBottom: 18 },
+
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    padding: 32,
+    paddingBottom: 110,
+  },
+  emptyTitle: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
+  emptySub: { fontSize: 14, fontFamily: fonts.ui, color: colors.textMut, textAlign: 'center' },
 });

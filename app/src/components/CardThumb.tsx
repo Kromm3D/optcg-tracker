@@ -3,7 +3,7 @@
 // "quickActions" para mostrar +/- directamente sobre la card (afecta
 // a la primera variante).
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CachedImage } from './CachedImage';
 import { Icon } from './Icon';
@@ -185,6 +185,24 @@ function CardThumbBase({
     return card.variants[0];
   })();
   const { uri: primaryUrl, fallback: fallbackUrl } = v ? resolveImageUris(v) : { uri: '', fallback: undefined };
+
+  // Tamaño del stepper "− N +" derivado del ancho real de la celda: a 34px fijos
+  // por botón, la pareja +/- ya no cabe a partir de 4 columnas y se sale de la
+  // pastilla hacia la carta vecina. Se reserva STEP_MARGIN a cada lado y el resto
+  // se reparte entre los dos botones y el contador, con un piso de STEP_MIN para
+  // que el botón siga siendo pulsable.
+  const stepMetrics = useMemo(() => {
+    const STEP_MAX = compact ? 30 : 34;
+    const STEP_MIN = 18;
+    const STEP_MARGIN = 4; // aire garantizado entre el stepper y el borde de la pastilla
+    if (!width) return { size: STEP_MAX, iconSize: compact ? 16 : 18, countWidth: compact ? 18 : 22 };
+    const framePad = (compact ? 6 : 9) * 2;
+    const rowWidth = Math.max(0, width - framePad - STEP_MARGIN * 2);
+    const countWidth = Math.max(14, Math.min(compact ? 18 : 22, Math.floor(rowWidth * 0.3)));
+    const size = Math.max(STEP_MIN, Math.min(STEP_MAX, Math.floor((rowWidth - countWidth) / 2)));
+    const iconSize = Math.max(12, Math.round(size * 0.53));
+    return { size, iconSize, countWidth };
+  }, [width, compact]);
 
   // Capas fantasma: min(owned, MAX_STACK) - 1, nunca en quickActions ni compacto
   const ghostCount = quickActions ? 0 : Math.max(0, Math.min(effectiveOwned, MAX_STACK) - 1);
@@ -444,7 +462,7 @@ function CardThumbBase({
           </View>
 
           {(onAdd || onRemove) && (
-            <View style={styles.counterRow}>
+            <View style={[styles.counterRow, { paddingHorizontal: 4 }]}>
               <Pressable
                 onPressIn={startRemoveHold}
                 onPressOut={stopRemoveHold}
@@ -455,14 +473,18 @@ function CardThumbBase({
                 style={({ pressed }) => [
                   styles.stepBtn,
                   styles.stepMinus,
+                  { width: stepMetrics.size, height: stepMetrics.size, borderRadius: stepMetrics.size / 2 },
                   effectiveOwned <= 0 && styles.stepOff,
                   pressed && pressedStyle,
                 ]}
               >
-                <Icon name="minus" size={18} color={colors.down} stroke={2.6} />
+                <Icon name="minus" size={stepMetrics.iconSize} color={colors.down} stroke={2.6} />
               </Pressable>
 
-              <Text style={[styles.count, compact && styles.countSm]} numberOfLines={1}>
+              <Text
+                style={[styles.count, compact && styles.countSm, { minWidth: stepMetrics.countWidth }]}
+                numberOfLines={1}
+              >
                 {effectiveOwned}
               </Text>
 
@@ -472,9 +494,14 @@ function CardThumbBase({
                 hitSlop={HIT_SLOP}
                 accessibilityRole="button"
                 accessibilityLabel={`Add one ${card.code}`}
-                style={({ pressed }) => [styles.stepBtn, styles.stepPlus, pressed && pressedStyle]}
+                style={({ pressed }) => [
+                  styles.stepBtn,
+                  styles.stepPlus,
+                  { width: stepMetrics.size, height: stepMetrics.size, borderRadius: stepMetrics.size / 2 },
+                  pressed && pressedStyle,
+                ]}
               >
-                <Icon name="plus" size={18} color={colors.onAccent} stroke={2.6} />
+                <Icon name="plus" size={stepMetrics.iconSize} color={colors.onAccent} stroke={2.6} />
               </Pressable>
             </View>
           )}

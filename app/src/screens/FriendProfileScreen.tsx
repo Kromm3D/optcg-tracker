@@ -20,10 +20,11 @@ import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme'
 import { Icon } from '../components/Icon';
 import { CachedImage } from '../components/CachedImage';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { PremiumBadge } from '../components/PremiumBadge';
 import { useT } from '../lib/i18n';
 import { CARDS } from '../data/loadIndex';
 import { resolveImageUris } from '../lib/images';
-import { getFriendCollection, getFriendDecks, getFriendWishlists } from '../lib/friends';
+import { getFriendCollection, getFriendDecks, getFriendWishlists, getFriends } from '../lib/friends';
 import { getCachedWishlists } from '../lib/wishlists';
 import { getOwnedFor } from '../lib/ownedAggregate';
 import { matchGiveToFriend, matchReceiveFromFriend, type TradeMatch } from '../lib/tradeMatch';
@@ -50,6 +51,9 @@ export function FriendProfileScreen({ route, navigation }: FriendProfileScreenPr
   const t = useT();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('collection');
+  // La lista de amigos ya trae `is_premium` (refreshEdges en FriendsScreen);
+  // reusarla evita un fetch aparte sólo para la insignia del header.
+  const isPremiumFriend = getFriends().some((e) => e.profile.id === userId && e.profile.is_premium);
 
   const [collection, setCollection] = useState<CollectionItem[] | null>(null);
   const [wishlists, setWishlists] = useState<Wishlist[] | null>(null);
@@ -87,6 +91,7 @@ export function FriendProfileScreen({ route, navigation }: FriendProfileScreenPr
           <Icon name="chevL" size={22} color={colors.text} />
         </Pressable>
         <Text style={s.headerTitle}>{username}</Text>
+        {isPremiumFriend && <PremiumBadge size={18} />}
       </View>
 
       <View style={s.tabs}>
@@ -270,11 +275,16 @@ function TradeView({
 
   if (give === null || receive === null) return <Loading />;
 
-  // Pendientes + aceptadas: una aceptada sigue necesitando una acción (aplicar
-  // el intercambio a la colección cuando las cartas cambien de manos).
-  const openOffers = offers.filter((o) => o.status === 'pending' || o.status === 'accepted');
+  // Abiertas: pendientes, o aceptadas que todavía necesitan una acción
+  // (aplicar el intercambio cuando las cartas cambien de manos de verdad).
+  // Historial: cerradas de cualquier forma — rechazadas, canceladas, o
+  // aceptadas y ya aplicadas (el trato se completó, no hay nada más que hacer).
+  const openOffers = offers.filter((o) => o.status === 'pending' || (o.status === 'accepted' && !o.appliedAt));
+  const historyOffers = offers.filter(
+    (o) => o.status === 'declined' || o.status === 'cancelled' || (o.status === 'accepted' && !!o.appliedAt),
+  );
 
-  if (give.length === 0 && receive.length === 0 && openOffers.length === 0) {
+  if (give.length === 0 && receive.length === 0 && openOffers.length === 0 && historyOffers.length === 0) {
     return (
       <View style={s.empty}>
         <Icon name="swap" size={28} color={colors.textDim} />
@@ -319,6 +329,43 @@ function TradeView({
           <Text style={s.proposeText}>{t('trade.propose', { n: selectedCount })}</Text>
         </Pressable>
       ) : null}
+
+      {historyOffers.length > 0 ? (
+        <View style={{ gap: 10 }}>
+          <Text style={s.tradeHead}>{t('trade.history')}</Text>
+          {/* Más recientes primero — ya vienen ordenadas así desde refreshOffers(). */}
+          {historyOffers.map((o) => (
+            <HistoryCard key={o.id} offer={o} />
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** Fila de sólo lectura para una oferta cerrada (rechazada/cancelada/aplicada).
+ *  Sin botones de acción a propósito: nada que hacer con un trato cerrado. */
+function HistoryCard({ offer }: { offer: TradeOffer }) {
+  const t = useT();
+  const line = (side: TradeSide) =>
+    offer.items
+      .filter((i) => i.side === side)
+      .map((i) => `${i.qty}× ${i.code}`)
+      .join(', ') || '—';
+
+  const statusLabel =
+    offer.status === 'declined' ? t('trade.statusDeclined')
+    : offer.status === 'cancelled' ? t('trade.statusCancelled')
+    : t('trade.statusCompleted');
+
+  return (
+    <View style={s.historyCard}>
+      <View style={s.historyHeadRow}>
+        <Text style={s.historyStatus}>{statusLabel}</Text>
+        <Text style={s.desc}>{new Date(offer.createdAt).toLocaleDateString()}</Text>
+      </View>
+      <Text style={s.offerLine}>{t('trade.youGive')}: {line(offer.outgoing ? 'give' : 'receive')}</Text>
+      <Text style={s.offerLine}>{t('trade.youGet')}: {line(offer.outgoing ? 'receive' : 'give')}</Text>
     </View>
   );
 }
@@ -518,6 +565,17 @@ const s = StyleSheet.create({
   },
   offerTitle: { fontSize: 14, fontFamily: fonts.uiBold, color: colors.text },
   offerLine: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut },
+  historyCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: 4,
+    opacity: 0.8,
+  },
+  historyHeadRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  historyStatus: { fontSize: 13, fontFamily: fonts.uiSemi, color: colors.textMut },
   offerActions: { flexDirection: 'row', gap: 8, marginTop: 6 },
   offerBtn: {
     flex: 1,

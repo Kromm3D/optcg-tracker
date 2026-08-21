@@ -49,7 +49,9 @@ import { matchTopK } from '../lib/cardMatch';
 import { createScanVoter, MIN_CONFIDENT_SCORE } from '../lib/scanVote';
 import { isCardDetectAvailable } from '../lib/cardDetect';
 import { BulkScanSheet } from '../components/BulkScanSheet';
+import { useToast } from '../components/Toast';
 import { useT } from '../lib/i18n';
+import { useLimit } from '../lib/entitlements';
 import { colors, fonts, radii, spacing, pressedStyle, HIT_SLOP } from '../theme';
 
 // ── Lazy native camera component ─────────────────────────────────────────────
@@ -130,6 +132,8 @@ export const ART_FOCUS_H = 308;
 
 export function ScanScreen({ navigation }: ScanScreenProps) {
   const t = useT();
+  const toast = useToast();
+  const bulkScanLimit = useLimit('bulkScanPerSession');
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -162,23 +166,44 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
   const [queue, setQueue] = useState<QueuedCard[]>([]);
   const [showQueue, setShowQueue] = useState(false);
 
-  /** Encola una carta identificada; si ya estaba, sube su cantidad. */
+  /**
+   * Encola una carta identificada; si ya estaba, sube su cantidad.
+   *
+   * El tope del plan gratuito (`FREE_LIMITS.bulkScanPerSession`) cuenta
+   * cartas **distintas** en la cola, no copias — repetir una carta ya
+   * encolada (varias copias del mismo pull) nunca choca con el tope, solo
+   * añadir una carta nueva a la cola lo hace. La cola se vacía al confirmar
+   * (`handleBulkQueueConfirm`), así que ese es el límite natural de
+   * "sesión": confirmar y seguir escaneando resetea el contador.
+   */
   const enqueue = useCallback(async (code: string, suffix: string) => {
     const card = CARDS[code];
     if (!card) return;
     const variant = card.variants.find((v) => v.suffix === suffix) ?? card.variants[0];
     if (!variant) return;
+    let capped = false;
     setQueue((q) => {
       const i = q.findIndex((x) => x.code === code && x.suffix === variant.suffix);
+      if (i === -1 && bulkScanLimit !== null && q.length >= bulkScanLimit) {
+        capped = true;
+        return q;
+      }
       if (i === -1) return [...q, { code, suffix: variant.suffix, card, variant, qty: 1 }];
       const next = [...q];
       next[i] = { ...next[i], qty: next[i].qty + 1 };
       return next;
     });
+    if (capped) {
+      // Háptico distinto del acuse normal: algo NO se añadió, el usuario
+      // tiene que enterarse aunque esté mirando las cartas, no la pantalla.
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      toast({ message: t('premium.bulkScanLimitReached', { n: String(bulkScanLimit) }) });
+      return;
+    }
     // El háptico es el único acuse de recibo en BULK: el usuario está mirando
     // las cartas, no la pantalla.
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  }, [bulkScanLimit, toast, t]);
 
   // URI de la última carta rectificada (usada en TAP mode para el shutter).
   const pendingUriRef = useRef<string | null>(null);
@@ -588,18 +613,30 @@ export function ScanScreen({ navigation }: ScanScreenProps) {
         </View>
       </View>
 
-      {/* ── Chip de la cola BULK (arriba-derecha) ── */}
-      {scanMode === 'bulk' && (
-        <Pressable
-          style={({ pressed }) => [s.queueChip, { top: insets.top + 12 }, pressed && pressedStyle]}
-          onPress={() => setShowQueue(true)}
-          accessibilityRole="button"
-          accessibilityLabel={t('scan.bulkQueue')}
-        >
-          <Icon name="archive" size={16} color={colors.onAccent} />
-          <Text style={s.queueChipText}>{queue.reduce((n, e) => n + e.qty, 0)}</Text>
-        </Pressable>
-      )}
+      {/* ── Chip de la cola BULK (arriba-derecha) ──
+          El contador n/N solo aparece al llegar al tope — como en Decks/Binder,
+          nada de recordarle el techo al usuario mientras escanea normal. */}
+      {scanMode === 'bulk' && (() => {
+        const atBulkLimit = bulkScanLimit !== null && queue.length >= bulkScanLimit;
+        return (
+          <Pressable
+            style={({ pressed }) => [
+              s.queueChip,
+              { top: insets.top + 12 },
+              atBulkLimit && s.queueChipLocked,
+              pressed && pressedStyle,
+            ]}
+            onPress={() => setShowQueue(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t('scan.bulkQueue')}
+          >
+            <Icon name={atBulkLimit ? 'sparkle' : 'archive'} size={16} color={atBulkLimit ? colors.textMut : colors.onAccent} />
+            <Text style={[s.queueChipText, atBulkLimit && s.queueChipTextLocked]}>
+              {atBulkLimit ? `${queue.length}/${bulkScanLimit}` : queue.reduce((n, e) => n + e.qty, 0)}
+            </Text>
+          </Pressable>
+        );
+      })()}
 
       {/* ── Close button (top-left) ── */}
       <Pressable
@@ -880,6 +917,8 @@ const s = StyleSheet.create({
     zIndex: 11,
   },
   queueChipText: { fontSize: 14, fontFamily: fonts.uiBold, color: colors.onAccent },
+  queueChipLocked: { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border },
+  queueChipTextLocked: { color: colors.textMut },
 
   // Close button
   closeBtn: {

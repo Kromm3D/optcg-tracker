@@ -20,6 +20,7 @@ import { getPortfolio } from '../lib/portfolio';
 import { ReleaseCalendar } from '../components/ReleaseCalendar';
 import { formatEur } from '../lib/currency';
 import { isFeatureEnabled } from '../lib/settings';
+import { useHasEntitlement } from '../lib/entitlements';
 import {
   checkAlerts,
   getTriggeredAlerts,
@@ -155,6 +156,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const insets = useSafeAreaInsets();
   const [tick, setTick] = useState(0);
   const [deckCount, setDeckCount] = useState(0);
+  const hasCloud = useHasEntitlement('cloud');
 
   useEffect(() => {
     listDecks().then((d) => setDeckCount(d.length));
@@ -250,11 +252,14 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
       />
 
       {/* Vault value over time */}
-      <VaultValueCard currentValue={stats.vaultValue} />
+      <VaultValueCard
+        currentValue={stats.vaultValue}
+        onOpenPremium={() => navigation.navigate('Premium')}
+      />
 
       {/* Alertas de precio disparadas. Aparece sólo si hay alguna: sin push
           (expo-notifications no está instalado) este banner ES el aviso. */}
-      {isFeatureEnabled('priceAlerts') && triggeredAlerts.length > 0 && (
+      {isFeatureEnabled('priceAlerts') && hasCloud && triggeredAlerts.length > 0 && (
         <View style={s.alertCard}>
           <View style={s.alertHead}>
             <Icon name="bolt" size={16} color={colors.accent} />

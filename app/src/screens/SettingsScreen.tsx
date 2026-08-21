@@ -2,7 +2,7 @@
 // All controls read/write lib/settings.ts; the i18n layer re-renders on change.
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SettingsScreenProps } from '../navigation';
 import { smartGoBack } from '../lib/nav';
@@ -50,6 +50,10 @@ import {
   type PrefetchCancel,
   type PrefetchProgress,
 } from '../lib/imagePrefetch';
+import { buildCollectionCsv } from '../lib/exportCsv';
+import { listCollection } from '../lib/collection';
+import { useHasEntitlement } from '../lib/entitlements';
+import { CloudLockedTeaser } from '../components/CloudLockedTeaser';
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const t = useT();
@@ -75,6 +79,32 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [dlProgress, setDlProgress] = useState<PrefetchProgress | null>(null);
   const cancelRef = useRef<PrefetchCancel>({ cancelled: false });
   const downloading = dlProgress !== null;
+
+  const hasUnlocks = useHasEntitlement('unlocks');
+  const [exportingCsv, setExportingCsv] = useState(false);
+
+  async function exportCollectionCsv() {
+    setExportingCsv(true);
+    try {
+      const items = await listCollection();
+      const csv = buildCollectionCsv(items);
+      if (!csv || items.every((it) => it.count <= 0)) {
+        toast({ message: t('settings.exportEmpty') });
+        return;
+      }
+      if (Platform.OS === 'web') {
+        const clip = (globalThis as { navigator?: { clipboard?: { writeText(t: string): Promise<void> } } }).navigator?.clipboard;
+        if (clip) {
+          await clip.writeText(csv);
+          toast({ message: t('deck.copied') });
+        }
+      } else {
+        await Share.share({ message: csv });
+      }
+    } finally {
+      setExportingCsv(false);
+    }
+  }
 
   async function startDownload() {
     cancelRef.current = { cancelled: false };
@@ -118,6 +148,28 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         >
           <Icon name="user" size={18} color={colors.accent} />
           <Text style={s.accountRowText}>{t('account.openSettings')}</Text>
+          <Icon name="chevR" size={18} color={colors.textMut} />
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [s.accountRow, pressed && pressedStyle]}
+          onPress={() => navigation.navigate('Premium')}
+          accessibilityRole="button"
+          accessibilityLabel={t('premium.openScreen')}
+        >
+          <Icon name="sparkle" size={18} color={colors.accent} />
+          <Text style={s.accountRowText}>{t('premium.openScreen')}</Text>
+          <Icon name="chevR" size={18} color={colors.textMut} />
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [s.accountRow, pressed && pressedStyle]}
+          onPress={() => navigation.navigate('Stats')}
+          accessibilityRole="button"
+          accessibilityLabel={t('stats.openScreen')}
+        >
+          <Icon name="trend" size={18} color={colors.accent} />
+          <Text style={s.accountRowText}>{t('stats.openScreen')}</Text>
           <Icon name="chevR" size={18} color={colors.textMut} />
         </Pressable>
 
@@ -337,11 +389,15 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           })}
         </View>
 
-        {/* Offline images */}
+        {/* Offline images — compra única 'unlocks' (coste marginal cero para
+            el desarrollador salvo el ancho de banda del CDN, pero el ToDo lo
+            enmarca en la compra única, no la suscripción). */}
         <Text style={s.sectionLabel}>{t('offline.title')}</Text>
         <Text style={s.desc}>{t('offline.desc')}</Text>
 
-        {downloading && dlProgress ? (
+        {!hasUnlocks ? (
+          <CloudLockedTeaser label="premium.offlineImagesLocked" onPress={() => navigation.navigate('Premium')} />
+        ) : downloading && dlProgress ? (
           <View style={s.offlineBox}>
             <View style={s.progressTrack}>
               <View
@@ -393,6 +449,28 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           >
             <Text style={s.btnPrimaryText}>{t('offline.download')}</Text>
           </Pressable>
+        )}
+
+        {/* Export colección — compra única 'unlocks' (coste marginal cero). */}
+        <Text style={s.sectionLabel}>{t('settings.exportCollection')}</Text>
+        <Text style={s.desc}>{t('settings.exportCollectionDesc')}</Text>
+        {hasUnlocks ? (
+          <Pressable
+            style={({ pressed }) => [s.btnOutline, pressed && pressedStyle]}
+            onPress={exportCollectionCsv}
+            disabled={exportingCsv}
+            accessibilityRole="button"
+            accessibilityLabel={t('settings.exportCollection')}
+          >
+            <Text style={s.btnOutlineText}>
+              {exportingCsv ? t('settings.exporting') : t('settings.exportCsv')}
+            </Text>
+          </Pressable>
+        ) : (
+          <CloudLockedTeaser
+            label="premium.exportLocked"
+            onPress={() => navigation.navigate('Premium')}
+          />
         )}
       </ScrollView>
     </View>

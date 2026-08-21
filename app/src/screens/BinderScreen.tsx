@@ -21,6 +21,7 @@ import { CardThumb } from '../components/CardThumb';
 import { ColumnsToggle } from '../components/ColumnsToggle';
 import { CachedImage } from '../components/CachedImage';
 import { AddCardsModal } from '../components/AddCardsModal';
+import { PremiumLimitModal } from '../components/PremiumLimitModal';
 import { ShareSheet } from '../components/ShareSheet';
 import { FilterSheet } from '../components/FilterSheet';
 import { BulkActionBar, type BulkTarget } from '../components/BulkActionBar';
@@ -47,6 +48,7 @@ import { getPrice } from '../lib/prices';
 import { getPriceChangePct } from '../lib/priceHistory';
 import { adjust } from '../lib/collection';
 import { getSettings, subscribe as subSettings } from '../lib/settings';
+import { useLimit } from '../lib/entitlements';
 import { useT } from '../lib/i18n';
 import { useCardGrid } from '../lib/useCardGrid';
 import type { Card, Variant, Wishlist } from '../types';
@@ -163,6 +165,15 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
   const [showCreateWL, setShowCreateWL] = useState(false);
   const [newWLName, setNewWLName] = useState('');
   const [wlToDelete, setWlToDelete] = useState<Wishlist | null>(null);
+  const [showWlLimit, setShowWlLimit] = useState(false);
+  const wishlistLimit = useLimit('wishlists');
+  // Igual que en DecksScreen: `>=` para que quien venga de premium con más
+  // wishlists que el tope las conserve todas, solo bloquea crear una más.
+  const atWlLimit = wishlistLimit !== null && wishlists.length >= wishlistLimit;
+  const guardedOpenWL = useCallback(() => {
+    if (atWlLimit) { setShowWlLimit(true); return; }
+    setShowCreateWL(true);
+  }, [atWlLimit]);
 
   const [columns, setColumnsState] = useState(getSettings().columns);
   // Mismo grid apretado que Browse/Sets (las pastillas framed separan las cartas).
@@ -308,11 +319,18 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
 
   const handleCreateWL = useCallback(async () => {
     if (!newWLName.trim()) return;
+    // Re-chequeo en el commit: el formulario puede llevar abierto mientras la
+    // sync trae wishlists de otro dispositivo y cruza el tope por debajo.
+    if (atWlLimit) {
+      setShowCreateWL(false);
+      setShowWlLimit(true);
+      return;
+    }
     const wl = await createWishlist(newWLName.trim());
     setShowCreateWL(false);
     setNewWLName('');
     (navigation as any).navigate('WishlistDetail', { wishlistId: wl.id });
-  }, [newWLName, navigation]);
+  }, [newWLName, navigation, atWlLimit]);
 
   const confirmDeleteWL = useCallback(() => {
     if (wlToDelete) deleteWishlist(wlToDelete.id);
@@ -383,7 +401,7 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
               <Text style={s.emptyBody}>{t('binder.emptyWishlistBody')}</Text>
               <Pressable
                 style={({ pressed }) => [s.createBtn, pressed && pressedStyle]}
-                onPress={() => setShowCreateWL(true)}
+                onPress={guardedOpenWL}
                 accessibilityRole="button"
                 accessibilityLabel={t('wl.newWishlist')}
               >
@@ -397,14 +415,23 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
               keyExtractor={(w) => w.id}
               contentContainerStyle={s.list}
               ListHeaderComponent={
+                // Al llegar al tope la fila sigue pulsable y explica por qué
+                // (mismo patrón que DecksScreen): `sparkle` en vez de un
+                // candado porque es una mejora ofrecida, no un castigo.
                 <Pressable
-                  style={({ pressed }) => [s.newRow, pressed && pressedStyle]}
-                  onPress={() => setShowCreateWL(true)}
+                  style={({ pressed }) => [s.newRow, atWlLimit && s.newRowLocked, pressed && pressedStyle]}
+                  onPress={guardedOpenWL}
                   accessibilityRole="button"
                   accessibilityLabel={t('wl.newWishlist')}
                 >
-                  <Icon name="plus" size={18} color={colors.accent} />
-                  <Text style={s.newRowText}>{t('wl.newWishlist')}</Text>
+                  <Icon
+                    name={atWlLimit ? 'sparkle' : 'plus'}
+                    size={18}
+                    color={atWlLimit ? colors.textMut : colors.accent}
+                  />
+                  <Text style={[s.newRowText, atWlLimit && s.newRowTextLocked]}>
+                    {atWlLimit ? `${t('wl.newWishlist')} · ${wishlists.length}/${wishlistLimit}` : t('wl.newWishlist')}
+                  </Text>
                 </Pressable>
               }
               renderItem={({ item }) => {
@@ -415,20 +442,26 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
                 );
                 const cardCount = Object.keys(item.cards).length;
                 return (
-                  <Pressable
-                    style={({ pressed }) => [s.wlRow, pressed && pressedSurface]}
-                    onPress={() => (navigation as any).navigate('WishlistDetail', { wishlistId: item.id })}
-                    onLongPress={() => setWlToDelete(item)}
-                    accessibilityRole="button"
-                    accessibilityLabel={item.name}
-                  >
-                    <WishlistThumb wl={item} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.wlName}>{item.name}</Text>
-                      <Text style={s.wlMeta}>
-                        {cardCount} {t('wl.entries')} · {totalOwned}/{totalNeeded} {t('wl.copiesNeeded')}
-                      </Text>
-                    </View>
+                  // El botón de borrar es hermano de la fila principal, no su
+                  // descendiente: en web ambos renderizan <button>, y anidar
+                  // <button> dentro de <button> rompe la hidratación de React
+                  // DOM (mismo patrón que DeckRow.tsx → onMenuPress).
+                  <View style={s.wlRow}>
+                    <Pressable
+                      style={({ pressed }) => [s.wlRowMain, pressed && pressedSurface]}
+                      onPress={() => (navigation as any).navigate('WishlistDetail', { wishlistId: item.id })}
+                      onLongPress={() => setWlToDelete(item)}
+                      accessibilityRole="button"
+                      accessibilityLabel={item.name}
+                    >
+                      <WishlistThumb wl={item} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.wlName}>{item.name}</Text>
+                        <Text style={s.wlMeta}>
+                          {cardCount} {t('wl.entries')} · {totalOwned}/{totalNeeded} {t('wl.copiesNeeded')}
+                        </Text>
+                      </View>
+                    </Pressable>
                     <Pressable
                       onPress={() => setWlToDelete(item)}
                       hitSlop={HIT_SLOP}
@@ -438,7 +471,7 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
                     >
                       <Icon name="dots" size={20} color={colors.textMut} />
                     </Pressable>
-                  </Pressable>
+                  </View>
                 );
               }}
               ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
@@ -463,6 +496,13 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
             </View>
           </AppModal>
 
+          <PremiumLimitModal
+            visible={showWlLimit}
+            onClose={() => setShowWlLimit(false)}
+            title={t('premium.wishlistLimitTitle')}
+            body={t('premium.wishlistLimitBody', { n: String(wishlistLimit ?? '') })}
+          />
+
           {/* Delete wishlist confirmation (themed) */}
           <AppModal visible={wlToDelete !== null} onClose={() => setWlToDelete(null)} title={t('wl.delete')}>
             <Text style={s.confirmBody}>{t('wl.deleteConfirm', { name: wlToDelete?.name ?? '' })}</Text>
@@ -477,10 +517,10 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
       {/* ── Collection / Trade tab ────────────────────────────────────────────── */}
       {tab !== 'wishlist' && (
         <>
-          {/* Meta / action row. El cluster de botones vive en un ScrollView
-              horizontal propio: con iconos+texto en filter/select/share más
-              el ColumnsToggle ya etiquetado, no cabe todo en una fila fija en
-              pantallas estrechas — aquí se desplaza en vez de recortarse. */}
+          {/* Meta / action row. Scan/Show all/Share/Filters/Select viven en un
+              ScrollView horizontal propio (secundarios, pueden desplazarse).
+              Columns y Add van fuera, en un clúster fijo al final: son
+              controles que hay que poder ver y pulsar siempre, sin deslizar. */}
           <View style={s.metaRow}>
             <Text style={s.meta} numberOfLines={1}>
               {tab === 'trade'
@@ -553,7 +593,9 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
                   {selectMode ? t('common.done') : t('bulk.select')}
                 </Text>
               </Pressable>
-              <ColumnsToggle />
+            </ScrollView>
+            <View style={s.fixedCluster}>
+              <ColumnsToggle compact />
               {tab === 'owned' && (
                 <Pressable
                   style={({ pressed }) => [s.addBtn, pressed && pressedStyle]}
@@ -564,7 +606,7 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
                   <Icon name="plus" size={18} color={colors.onAccent} />
                 </Pressable>
               )}
-            </ScrollView>
+            </View>
           </View>
 
           <SortRow />
@@ -643,7 +685,7 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
 
 const s = StyleSheet.create({
   tabBarWrap: { marginHorizontal: 18, marginTop: 4 },
-  rowMenuBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  rowMenuBtn: { width: 36, height: 36, marginRight: 10, alignItems: 'center', justifyContent: 'center' },
 
   // Wishlist list (deck-style)
   list: { padding: spacing.lg, paddingBottom: 110, gap: spacing.sm },
@@ -661,16 +703,25 @@ const s = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   newRowText: { fontSize: 15, fontFamily: fonts.uiSemi, color: colors.accent },
+  newRowLocked: { borderStyle: 'solid', opacity: 0.7 },
+  newRowTextLocked: { color: colors.textMut },
   wlRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
     backgroundColor: colors.surface,
     borderRadius: radii.xl,
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  wlRowMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 12,
+    paddingLeft: 16,
+    paddingRight: 4,
   },
   wlName: { fontSize: 16, fontFamily: fonts.uiBold, color: colors.text },
   wlMeta: { fontSize: 12, fontFamily: fonts.ui, color: colors.textMut, marginTop: 2 },
@@ -697,6 +748,7 @@ const s = StyleSheet.create({
   meta: { fontSize: 12, color: colors.textMut, fontFamily: fonts.ui, flexShrink: 1, marginRight: 8 },
   actionScroll: { flex: 1 },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  fixedCluster: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 8, flexShrink: 0 },
   addBtn: {
     width: 30, height: 30, borderRadius: 15,
     backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',

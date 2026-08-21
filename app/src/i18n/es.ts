@@ -139,9 +139,53 @@ export const es: Record<TKey, string> = {
   // Premium / entitlements. Namespace compartido por todos los gates.
   'premium.deckLimitTitle': 'Límite de mazos alcanzado',
   'premium.deckLimitBody': 'El plan gratuito incluye {n} mazos. Premium quita el límite.',
-  'premium.dataSafe': 'Tus mazos actuales nunca se borran ni se ocultan.',
+  'premium.wishlistLimitTitle': 'Límite de wishlists alcanzado',
+  'premium.wishlistLimitBody': 'El plan gratuito incluye {n} wishlist. Premium quita el límite.',
+  'premium.bulkScanLimitReached': 'Tope de escaneo masivo alcanzado ({n} cartas). Confirma la cola para seguir escaneando.',
+  'premium.dataSafe': 'Tus datos actuales nunca se borran ni se ocultan.',
   'premium.soon': 'Premium todavía no está a la venta.',
   'premium.gotIt': 'Entendido',
+  'premium.openScreen': 'Premium',
+  'premium.screenTitle': 'Premium',
+  'premium.screenIntro': 'Tres productos, sin mezclar suscripciones. Nada de esto se puede comprar todavía — es un adelanto de lo que viene.',
+  'premium.removeAdsTitle': 'Quitar anuncios',
+  'premium.removeAdsDesc': 'Compra única. Quita el banner de anuncios en toda la app.',
+  'premium.unlocksTitle': 'Desbloqueos',
+  'premium.unlocksDesc': 'Compra única. Mazos, wishlists y escaneo masivo ilimitados, temas adicionales, pack de imágenes offline, exportaciones, binders múltiples, insignia de perfil premium.',
+  'premium.cloudTitle': 'Nube',
+  'premium.cloudDesc': 'Suscripción. Sincronización y copia de seguridad entre dispositivos, histórico de precio, gráfica de valor de la colección, alertas de precio, dashboard avanzado de estadísticas, avisos de sets nuevos.',
+  'premium.comingSoon': 'Próximamente',
+  'premium.badge': 'Premium',
+  'premium.devToolsTitle': 'Herramientas de desarrollo',
+  'premium.devToolsDesc': 'Fuerza entitlements en local para probar los gates sin conexión a la store. Solo en builds de debug.',
+  'premium.priceChartLocked': 'El histórico de precio es parte de Nube. Toca para ver qué desbloquea.',
+  'premium.valueChartLocked': 'El valor a lo largo del tiempo es parte de Nube. Toca para ver qué desbloquea.',
+  'premium.priceAlertsLocked': 'Las alertas de precio son parte de Nube. Toca para ver qué desbloquea.',
+  'premium.cloudSyncLocked': 'El respaldo en la nube es parte de Nube. Tus datos siguen a salvo en este dispositivo de todas formas — toca para ver qué desbloquea la sincronización.',
+  'premium.deckImageLocked': 'Compartir un mazo como imagen es parte de Desbloqueos. Toca para ver qué desbloquea.',
+  'premium.exportLocked': 'Exportar tu colección es parte de Desbloqueos. Toca para ver qué desbloquea.',
+
+  // Dashboard avanzado de estadísticas — gateado tras 'cloud'.
+  'stats.openScreen': 'Estadísticas',
+  'stats.title': 'Estadísticas',
+  'stats.lockedTitle': 'El dashboard avanzado es parte de Cloud',
+  'stats.lockedDesc': 'Valor por set, % de completitud, tus cartas más valiosas y distribución por rareza, todo en un panel.',
+  'stats.empty': 'Todavía no hay nada que mostrar.',
+  'stats.valueBySet': 'Valor por set',
+  'stats.completionBySet': 'Completitud por set',
+  'stats.topValuable': 'Cartas más valiosas',
+  'stats.rarityDistribution': 'Distribución por rareza',
+
+  // Sugerencias de match wishlist↔amigo — gateado tras 'cloud'. El matching
+  // por amigo (pestaña Trade) sigue gratis; esto es el digest cruzado.
+  'matches.title': 'Sugerencias de match',
+  'matches.lockedTitle': 'Las sugerencias de match son parte de Cloud',
+  'matches.lockedDesc': 'Ve de un vistazo qué amigos tienen cartas de tu wishlist, y quién quiere cartas que tienes tú, entre todos a la vez.',
+  'matches.intro': 'Amigos con un posible intercambio, ordenados por cuántas cartas coinciden.',
+  'matches.empty': 'Sin matches todavía',
+  'matches.emptyDesc': 'Ninguna wishlist de tus amigos coincide con tu colección ahora mismo (ni al revés).',
+  'matches.youGive': 'Tienes {n} carta(s) que quieren',
+  'matches.youReceive': 'Tienen {n} carta(s) que quieres',
 
   // Deck detail
   'deck.empty': 'Mazo vacío',
@@ -156,6 +200,7 @@ export const es: Record<TKey, string> = {
   'deck.exportTitle': 'Código de mazo OPTCGSim',
   'deck.exportBody': 'Copia este código y pégalo en OPTCGSim, o compártelo con un amigo.',
   'deck.exportEmpty': 'Añade cartas al mazo primero.',
+  'deck.exportImage': 'Compartir como imagen',
   'deck.copy': 'Copiar',
   'deck.copied': 'Código del mazo copiado.',
   'deck.share': 'Compartir',
@@ -282,6 +327,13 @@ export const es: Record<TKey, string> = {
   'public.share': 'Compartir mi binder',
   'public.shareCopied': 'Enlace copiado',
   'public.shareNeedsPublic': 'Pon tu colección en Público para que cualquiera pueda abrir el enlace.',
+  'public.wishCount': '{n} cartas deseadas',
+
+  // ─── Wishlist pública (enlace compartido, parte de Desbloqueos) ──────────
+  'public.shareWishlist': 'Compartir mi wishlist',
+  'public.shareWishlistNeedsPublic': 'Pon tu wishlist en Público primero (Cuenta → Privacidad) para que cualquiera pueda abrir el enlace.',
+  'premium.wishlistShareLocked': 'Compartir un enlace público de tu wishlist es parte de Desbloqueos. Toca para ver qué desbloquea.',
+  'premium.offlineImagesLocked': 'Descargar las imágenes de las cartas para uso offline es parte de Desbloqueos. Toca para ver qué desbloquea.',
 
   // ─── Propuestas de intercambio ───────────────────────────────────────────
   'trade.propose': 'Proponer intercambio · {n}',
@@ -296,6 +348,10 @@ export const es: Record<TKey, string> = {
   'trade.applyToCollection': 'Aplicar a mi colección',
   'trade.applyHint': 'Hazlo cuando las cartas hayan cambiado de manos de verdad.',
   'trade.applied': 'Aplicado a tu colección',
+  'trade.history': 'Historial de intercambios',
+  'trade.statusDeclined': 'Rechazado',
+  'trade.statusCancelled': 'Cancelado',
+  'trade.statusCompleted': 'Completado',
 
   // ─── Detalles de la copia (estado / idioma / gradeo / coste) ─────────────
   'copy.title': 'Detalles de la copia',
@@ -387,6 +443,10 @@ export const es: Record<TKey, string> = {
   'set.cardsCount': '{n} cartas',
   'set.ownedOfTotal': '{owned} / {total} cartas',
   'set.parallels': 'Parallels',
+  'set.emptyTitleUpcoming': 'Todavía no ha salido',
+  'set.emptyBodyUpcoming': 'La lista de cartas de {name} se publica el {date}. Vuelve a pasarte después del lanzamiento.',
+  'set.emptyTitle': 'Sin cartas',
+  'set.emptyBody': 'Este set todavía no tiene cartas en el índice.',
 
   // Filters
   'filter.title': 'Filtros',
@@ -424,6 +484,13 @@ export const es: Record<TKey, string> = {
   'offline.done': 'Descargado',
   'offline.doneDesc': 'Todo el arte de cartas está disponible sin conexión.',
 
+  // Export
+  'settings.exportCollection': 'Exportar colección',
+  'settings.exportCollectionDesc': 'CSV de todas tus cartas — código, nombre, cantidad, estado, precio pagado.',
+  'settings.exportCsv': 'Exportar como CSV',
+  'settings.exporting': 'Exportando…',
+  'settings.exportEmpty': 'Tu colección está vacía — todavía no hay nada que exportar.',
+
   // Generic
   'common.cancel': 'Cancelar',
   'common.done': 'Hecho',
@@ -437,6 +504,13 @@ export const es: Record<TKey, string> = {
   // Decks (delete)
   'decks.deleteTitle': 'Eliminar mazo',
   'decks.deleteConfirm': '¿Eliminar "{name}"? Esto no se puede deshacer.',
+  'decks.optionsTitle': 'Opciones del mazo',
+  'decks.archive': 'Archivar',
+  'decks.archiveDesc': 'Libera un hueco de mazo. No borra nada — puedes restaurarlo cuando quieras.',
+  'decks.restoreDesc': 'Vuelve a tus mazos activos y cuenta de nuevo contra tus huecos de mazo.',
+  'decks.restore': 'Restaurar',
+  'decks.archived': 'Archivado',
+  'decks.archivedSection': 'Archivados · {n}',
 
   // Profile (tab hub)
   'profile.title': 'Perfil',
@@ -469,6 +543,7 @@ export const es: Record<TKey, string> = {
   'account.syncing': 'Sincronizando…',
   'account.synced': 'Sincronizado',
   'account.syncError': 'Error de sync — se reintentará',
+  'account.syncOffline': 'Solo local',
   'account.lastSynced': 'Última sync {time}',
   'account.never': 'nunca',
   'account.privacy': 'Privacidad',

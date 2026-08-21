@@ -16,10 +16,15 @@ export type RootStackParamList = {
   Settings: undefined;
   WishlistDetail: { wishlistId: string };
   Account: undefined;
+  Premium: undefined;
+  Stats: undefined;
   Friends: undefined;
+  Matches: undefined;
   FriendProfile: { userId: string; username: string };
   /** Binder de sólo lectura abierto desde un enlace compartido (`/u/:username`). */
   PublicBinder: { username: string };
+  /** Wishlist de sólo lectura (`/u/:username/wishlist`) — ver lib/publicWishlist.ts. */
+  PublicWishlist: { username: string };
 };
 
 export type TabParamList = {
@@ -63,6 +68,10 @@ export type ScanScreenProps = NativeStackScreenProps<RootStackParamList, 'Scan'>
 export type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 export type WishlistDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'WishlistDetail'>;
 export type AccountScreenProps = NativeStackScreenProps<RootStackParamList, 'Account'>;
+export type PremiumScreenProps = NativeStackScreenProps<RootStackParamList, 'Premium'>;
+export type StatsScreenProps = NativeStackScreenProps<RootStackParamList, 'Stats'>;
 export type FriendsScreenProps = NativeStackScreenProps<RootStackParamList, 'Friends'>;
+export type MatchesScreenProps = NativeStackScreenProps<RootStackParamList, 'Matches'>;
 export type FriendProfileScreenProps = NativeStackScreenProps<RootStackParamList, 'FriendProfile'>;
 export type PublicBinderScreenProps = NativeStackScreenProps<RootStackParamList, 'PublicBinder'>;
+export type PublicWishlistScreenProps = NativeStackScreenProps<RootStackParamList, 'PublicWishlist'>;

@@ -1,7 +1,11 @@
 // Precios de mercado de cartas One Piece TCG.
 //
-// Fuente primaria: data/prices.json generado por scripts/build_prices_bulk.py
-// (feed publico de Cardmarket, se actualiza a diario y se sirve via jsDelivr CDN).
+// Fuente primaria: data/prices.json generado por scripts/build_prices_cardtrader.py
+// (API de CardTrader, se actualiza a diario y se sirve via jsDelivr CDN). Antes
+// venia del feed publico de Cardmarket (build_prices_bulk.py, aun en el repo);
+// se cambio porque CardTrader expone el codigo impreso de cada carta
+// directamente en cada listado, lo que hace el emparejamiento code->variante
+// mucho mas directo que adivinar por orden de alta.
 //
 // Fallback: estimacion por rareza cuando la carta no tiene precio real cargado.
 

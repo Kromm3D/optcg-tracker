@@ -36,9 +36,13 @@ import { ScanScreen }            from './src/screens/ScanScreen';
 import { SettingsScreen }        from './src/screens/SettingsScreen';
 import { WishlistDetailScreen }  from './src/screens/WishlistDetailScreen';
 import { AccountScreen }         from './src/screens/AccountScreen';
+import { PremiumScreen }         from './src/screens/PremiumScreen';
+import { StatsScreen }           from './src/screens/StatsScreen';
 import { FriendsScreen }         from './src/screens/FriendsScreen';
+import { MatchesScreen }         from './src/screens/MatchesScreen';
 import { FriendProfileScreen }   from './src/screens/FriendProfileScreen';
 import { PublicBinderScreen }    from './src/screens/PublicBinderScreen';
+import { PublicWishlistScreen }  from './src/screens/PublicWishlistScreen';
 import { ProfileOnboardingScreen } from './src/screens/ProfileOnboardingScreen';
 import { loadSettings }          from './src/lib/settings';
 import { PUBLIC_WEB_BASE }       from './src/config';
@@ -234,6 +238,7 @@ const LINKING = {
   config: {
     screens: {
       PublicBinder: 'u/:username',
+      PublicWishlist: 'u/:username/wishlist',
       Detail: 'card/:code',
     },
   },
@@ -333,9 +338,13 @@ export default function App() {
           <Stack.Screen name="Settings"       component={SettingsScreen}       options={{ headerShown: false }} />
           <Stack.Screen name="WishlistDetail" component={WishlistDetailScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Account"        component={AccountScreen}        options={{ headerShown: false }} />
+          <Stack.Screen name="Premium"        component={PremiumScreen}        options={{ headerShown: false }} />
+          <Stack.Screen name="Stats"          component={StatsScreen}          options={{ headerShown: false }} />
           <Stack.Screen name="Friends"        component={FriendsScreen}        options={{ headerShown: false }} />
+          <Stack.Screen name="Matches"        component={MatchesScreen}        options={{ headerShown: false }} />
           <Stack.Screen name="FriendProfile"  component={FriendProfileScreen}  options={{ headerShown: false }} />
           <Stack.Screen name="PublicBinder"   component={PublicBinderScreen}   options={{ headerShown: false }} />
+          <Stack.Screen name="PublicWishlist" component={PublicWishlistScreen} options={{ headerShown: false }} />
         </Stack.Navigator>
 
         {showTabBar && (

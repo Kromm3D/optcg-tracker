@@ -3,7 +3,63 @@
 > Persistent context across sessions. Read this at the start of every session.
 > Update it at the end of every feature. See CLAUDE.md §0 Rule 1 for the full protocol.
 
-**Last updated:** 2026-08-08 (**Ronda de QA de colección/decks/wishlist/amigos (escáner
+**Last updated:** 2026-08-13 (**Precios: migrado de Cardmarket a la API de CardTrader**.
+El usuario pidió investigar CardTrader (cardtrader.com/es/docs/api/full/reference)
+como fuente de precios europeos y, tras confirmar que casaba mejor de lo esperado,
+decidió reemplazar Cardmarket por completo (no como fallback).
+
+Hallazgo clave que cambió el diseño: a diferencia del feed bulk de Cardmarket
+(`build_prices_bulk.py`, que solo tenía el nombre del producto y había que
+adivinar el emparejamiento code→variante por orden de alta), cada listado de
+CardTrader trae `properties_hash.collector_number` con el código impreso
+DIRECTO (`"OP01-001"`, `"OP01-001a"` para el parallel) — matching mucho más
+directo, sin heurística de fecha/precio para separar idiomas.
+
+Nuevo `scripts/build_prices_cardtrader.py`:
+- Auth: Bearer token personal (cuenta gratuita CardTrader) vía `CARDTRADER_API_TOKEN`
+  en `.env` (nunca commiteado — ya estaba en `.gitignore`). **La divisa de la
+  cuenta CardTrader del token debe estar puesta en EUR** (Perfil → Configuración
+  en cardtrader.com) — la API no admite parámetro de conversión, devuelve "en tu
+  divisa".
+- `GET /marketplace/products?expansion_id=X` trae TODOS los blueprints de una
+  expansión de una vez (los 25 listados más baratos de cada uno) — no hace
+  falta iterar carta por carta. One Piece son 96 expansiones en CardTrader, de
+  las cuales 58 casan con nuestros `set_source` (promos no se intentan: repartidos
+  en 7+ expansiones distintas sin forma fiable de saber cuál es cuál).
+- Matching variante: mismo patrón conservador que `build_prices_bulk.py`
+  (emparejar por posición, mejor dejar sin precio que arriesgar una asignación
+  cruzada) pero usando la letra de `collector_number` en vez del orden `idProduct`.
+- **Bug real encontrado en vivo**: el parámetro `language=en` de la query NO
+  filtra nada (verificado: expansion_id=3728 devolvió copias japonesas
+  mezcladas, una a 10000€ de outlier). Hay que filtrar en cliente por
+  `properties_hash.onepiece_language == 'en'` y `condition == 'Near Mint'`
+  (los precios de Cardmarket con los que se compara eran NM). Sin este fix,
+  EB01-012 salía a 0,16€ en vez de ~1,32€ (una copia JP dañada como "más barata").
+- Agregación: `low` = listado más barato, `trend` = media de los 3 más baratos
+  (más estable que el mínimo puro contra un outlier).
+
+Corrida real completa: 3201 variantes con precio (vs 3289 de Cardmarket antes —
+cobertura comparable). Verificado a mano contra el prices.json anterior: mismo
+orden de magnitud en la mayoría (Cavendish EB01-012 parallel: 19,70€ nuevo vs
+19,49€ antes), alguna diferencia real de mercado 2-3x en casos puntuales
+(esperable entre mercados distintos, no un bug).
+
+CI (`refresh-data.yml`, job `prices`): cambiado de `build_prices_bulk.py` a
+`build_prices_cardtrader.py --write`, leyendo el token de un secret de repo
+`CARDTRADER_API_TOKEN` — **pendiente que el usuario añada ese secret en GitHub**
+(Settings → Secrets → Actions) antes de que el workflow programado funcione. El
+paso de scrape con navegador (`build_prices.py --browser`, best-effort, solo
+aporta `product_url`) se mantiene igual — nuestro script preserva
+`product_url` de entradas existentes.
+
+`build_prices_bulk.py` se queda en el repo sin usar en CI (por si hace falta
+volver atrás), no se borró.
+
+Typecheck verde (cambio es solo de datos + comentario en `prices.ts`, sin
+tocar código funcional). `data/prices.json` y `app/src/data/prices.json`
+regenerados; **sin commitear, pendiente de tu revisión** (Rule 3).)
+
+**Last updated (previous):** 2026-08-08 (**Ronda de QA de colección/decks/wishlist/amigos (escáner
 deliberadamente fuera de alcance) — 3 subagentes en paralelo (frontend/backend/QA) +
 arreglo de los 3 hallazgos P0 de la ronda.** Ver "Current uncommitted state" abajo
 para el detalle completo (código sin commitear, pendiente de tu revisión y de aplicar
@@ -210,6 +266,564 @@ fechada de abajo.)
 ---
 
 ## Current uncommitted state (read before committing)
+
+### 2026-08-17 (12) — Cierre del backlog de ToDo.md: historial de trades + informe de bloqueados
+
+Últimas dos piezas del recorrido completo de `ToDo.md` en esta sesión.
+
+**Historial de trades**, corregido de `[BUILT]` a `[NEW]` (mismo patrón de
+corrección que Temas/Binder/Estadísticas antes en esta sesión): revisando
+`lib/tradeOffers.ts` no existía ninguna vista de ofertas cerradas —
+`FriendProfileScreen` sólo enseñaba `pending`/`accepted-sin-aplicar`; las
+`declined`/`cancelled`/`accepted-y-aplicada` se cargaban en caché pero
+nunca se mostraban en ningún sitio. Construido: `TradeView` separa
+`openOffers` de `historyOffers` y añade una sección de sólo lectura al
+final (`HistoryCard`: estado + líneas de "das"/"recibes" + fecha, sin
+botones). **Sin gate a propósito**, aunque el ToDo lo listaba en §4
+(suscripción): el trading 1-a-1 nunca estuvo capado (guardrail "Amigos/
+social gratis" de §0), así que su historial tampoco debería estarlo —
+mismo criterio que las sugerencias de match de la entrada (8), donde sólo
+el digest *agregado* es de pago, nunca la interacción con un amigo
+concreto. `npm run typecheck` limpio; no verificable en el preview web
+(requiere sesión + un amigo con historial real).
+
+**Informe de bloqueados**, escrito directamente en `ToDo.md` (sección
+nueva "Bloqueados — necesitan acción externa del usuario" al final del
+archivo, más marcadores 🔒/🅿️ en cada línea afectada a lo largo del
+documento) en vez de sólo en el diario, para que quede donde se consulta
+el estado del backlog. Seis bloqueos reales, todos por cuentas/
+credenciales/decisiones que sólo el usuario puede resolver — RevenueCat
+(Play Console + cuenta RevenueCat + prebuild nativo), AdMob (cuenta +
+ad units + `app-ads.txt`), los tres prerrequisitos legales (política de
+privacidad, GDPR/UMP, hosting), verificación del escáner en dispositivo
+real (sigue pendiente desde la sesión del 2026-08-05), test cerrado con
+compañeros, y push de sets nuevos (credenciales de push + secret de repo
+para el workflow de scraping). Ninguno es "difícil de programar" — todos
+requieren algo que sólo el usuario puede crear u otorgar. Se dejó
+explícito que esto **no bloquea** el resto: todos los gates construidos
+esta sesión ya son probables hoy mismo vía el panel de dev tools de
+`PremiumScreen`.
+
+Con esto se cierra el recorrido completo de `ToDo.md`: de las líneas que
+quedaban sin marcar al empezar la sesión, cada una terminó en uno de
+cuatro estados explícitos — construida y gateada, corregida de etiqueta
+tras revisar el código, aparcada pendiente de una decisión de diseño/
+producto del usuario (temas, binder persistido, binders múltiples, backup
+versionado, prioridad de sync), o bloqueada por una dependencia externa
+documentada arriba.
+
+### 2026-08-17 (11) — Wishlists ilimitadas + wishlist pública/compartible, pack de imágenes offline gateado, y correcciones de etiqueta en decks/bulk scan ilimitados y estadísticas básicas
+
+Cierre de la revisión de §3 (compra única `unlocks`) de `ToDo.md`, que
+tenía varias líneas `[BUILT]` sin marcar por revisar, no por faltar
+trabajo real:
+
+- **Decks/bulk scan ilimitados**: ya eran ciertos por construcción —
+  `getLimit()` en `lib/entitlements.ts` devuelve `null` en cuanto
+  `hasEntitlement('unlocks')`, y `DecksScreen`/`ScanScreen` ya usan ese
+  límite desde antes de esta sesión. Sólo hacía falta confirmarlo y
+  marcar la casilla.
+- **Estadísticas básicas** (nº cartas, nº únicas en `HomeScreen`): nunca
+  tuvieron gate porque son parte del guardrail "tamaño de la colección"
+  de §0 — distinto del dashboard avanzado de pago (entrada (7)).
+- **Pack de imágenes offline**: éste sí era un gate real que faltaba —
+  antes cualquiera podía descargar las ~400 MB de arte sin ningún
+  entitlement. Gateado tras `hasEntitlement('unlocks')` en
+  `SettingsScreen`, mismo patrón `<CloudLockedTeaser>` que el resto.
+- **Wishlist compartible/pública** (la parte real de "wishlists
+  ilimitadas + compartible" que faltaba): nuevo `lib/publicWishlist.ts`
+  (`fetchPublicWishlist()`, mismo patrón de lectura anónima que
+  `publicBinder.ts` — la RLS de `wishlists`/`wishlist_cards` ya abría
+  estas lecturas al rol `anon` cuando la privacidad es `'public'`, sólo
+  faltaban el fetcher y la pantalla) + nueva `PublicWishlistScreen.tsx`
+  (ruta `u/:username/wishlist`, registrada en `LINKING`). El gate vive en
+  el lado del **dueño**: en `AccountScreen`, sólo la opción "Público" de
+  la privacidad de wishlist (no colección/decks, que siguen libres) está
+  bloqueada tras `hasEntitlement('unlocks')` — tocarla sin el entitlement
+  navega a Premium en vez de aplicar el cambio (chip con icono `sparkle`
+  en vez de aplicarse directamente). Nueva fila "Compartir mi wishlist"
+  en `ProfileScreen`, junto a la de compartir binder (que sigue gratis),
+  gateada igual.
+
+`npm run typecheck` limpio en todo momento. Lo del pack de imágenes se
+verificó en el preview web (teaser aparece sin `unlocks`, desaparece y
+aparece "Download all" al activarlo desde el panel dev). La wishlist
+pública/compartible **no se pudo verificar en vivo** — `AccountScreen`/
+`ProfileScreen` en sus estados de sesión iniciada requieren credenciales
+de Supabase que no existen en este entorno (misma limitación de siempre
+esta sesión); verificado por código y por reutilizar el mismo patrón que
+`publicBinder.ts`, que sí está en producción.
+
+### 2026-08-17 (10) — Fix: botón anidado en las fichas de wishlist de BinderScreen (hydration error en web)
+
+Bug preexistente (no introducido esta sesión) detectado durante la
+verificación de las entradas (7)/(8)/(9): `BinderScreen.tsx` → pestaña
+Wishlist renderizaba cada ficha como un `Pressable` (rol `button`,
+navega a `WishlistDetail`) con un segundo `Pressable` (rol `button`,
+borra la wishlist) **anidado dentro**. En react-native-web ambos se
+compilan a `<button>`, y `<button>` dentro de `<button>` es HTML
+inválido — React DOM lo marca como error de hidratación en cada
+render de la pestaña Wishlist (visto repetidamente en el log de consola
+de esta sesión, arrastrado sin corregir porque quedaba fuera del
+alcance de las tareas de gating).
+
+Arreglado con el mismo patrón ya establecido en `components/DeckRow.tsx`
+(`onMenuPress`) y `CardThumb.tsx`: el botón de borrar pasa a ser
+**hermano**, no descendiente, del `Pressable` principal. El contenedor
+exterior (antes el propio `Pressable` con `s.wlRow`) pasa a ser un
+`View` plano con `flexDirection: 'row'`; el `Pressable` principal
+(`s.wlRowMain`, `flex: 1`) lleva el thumb+nombre+meta y el `onPress`/
+`onLongPress`; el botón de borrar (`s.rowMenuBtn`) queda como segundo
+hijo del `View`, ya no dentro del primer `Pressable`.
+
+**Verificado en el preview web** (servidor reiniciado en limpio para
+descartar ruido de HMR de ediciones anteriores): pestaña Binder →
+Wishlist, cero errores en consola (antes: error de hidratación en cada
+carga); tocar la ficha navega a `WishlistDetail` igual que antes; tocar
+"Delete wishlist" abre el modal de confirmación sin navegar, y
+"Cancel" lo cierra sin borrar nada. `npm run typecheck` limpio.
+
+Nota: había un chip de tarea en segundo plano (`task_f8ff61d7`) para
+este mismo bug, creado en una entrada anterior de esta sesión; al
+intentar retirarlo tras arreglarlo aquí, el sistema indica que el
+usuario ya lo había arrancado por su cuenta en otra sesión. No debería
+haber conflicto — el fix es idempotente y ya está verificado en este
+árbol de trabajo.
+
+### 2026-08-17 (9) — Tabla de entitlements en Supabase + RLS (solo lectura desde el cliente)
+
+Segundo cambio de esta sesión que toca el backend de Supabase en vivo
+(el primero fue `profiles.is_premium`, entrada (5)). Migración
+`add_entitlements_table`: `public.entitlements(user_id uuid pk → auth.users,
+granted text[] default '{}', updated_at)`, RLS activada.
+
+**Decisión de seguridad deliberada**: la tabla tiene **únicamente** una
+política de `SELECT` (`auth.uid() = user_id`). No hay INSERT/UPDATE/DELETE
+para `authenticated` ni `anon` — bajo RLS eso significa que ni siquiera un
+cliente modificado puede escribir su propia fila. Sólo `service_role`
+(bypassea RLS por diseño de Postgres/Supabase) podrá escribir, y eso será
+cosa del futuro webhook de RevenueCat que valide el recibo de compra
+server-side. Esto es intencionalmente distinto de `profiles.is_premium`
+(entrada (5)): esa columna sí es escribible por el propio usuario porque es
+puramente cosmética (una insignia) sin valor económico; `entitlements` sí
+grantea features reales, así que aplican las mismas reglas de "nunca
+confíes en el cliente" que ya documenta el comentario de cabecera de
+`lib/entitlements.ts` sobre por qué el módulo no pasa por el bus de sync
+local-first.
+
+**Deliberadamente NO cableado desde el cliente todavía.** Sin RevenueCat
+conectado (bloqueado, ver el punto de blockers) la tabla está y seguirá
+vacía para todo el mundo — escribir ahora mismo el código de "pull en
+login, merge con lo local" sería código sin ningún dato real que tirar
+para probarlo, y además arriesgaría un bug sutil: un pull ciego pisaría en
+silencio cualquier entitlement puesto a mano con el panel de dev tools de
+`PremiumScreen` (que es la única forma de probar los gates hoy). Se deja
+documentado como el siguiente paso natural para cuando el webhook exista
+de verdad.
+
+Verificado con `mcp__supabase__execute_sql` sobre `pg_policies`: la tabla
+sólo tiene la política `entitlements_select`, ninguna de escritura.
+`mcp__supabase__get_advisors(security)` no marca nada nuevo sobre esta
+tabla (los warnings que salen son todos preexistentes, de antes de esta
+sesión, y no relacionados).
+
+### 2026-08-17 (8) — Sugerencias de match wishlist↔amigo (digest agregado), gateado tras 'cloud'
+
+Distinción importante encontrada al revisar el código antes de construir
+nada: el **matching en sí ya existía** — `lib/tradeMatch.ts`
+(`matchGiveToFriend`/`matchReceiveFromFriend`, por código base) estaba
+cableado desde antes en `FriendProfileScreen` → pestaña "Trade", **libre**
+(guardrail §0: "Amigos/social — gratis"). Lo que pedía el ToDo y no
+existía era el **digest agregado**: ver de un vistazo con qué amigos hay
+match SIN tener que abrir cada perfil uno a uno.
+
+Nuevo `lib/friendMatches.ts` → `getAllFriendMatches()`: recorre
+`getFriends()` (confirmados), lanza `getFriendCollection`+
+`getFriendWishlists` en paralelo para cada uno (`Promise.all`), reusa el
+mismo matching puro de `tradeMatch.ts` sin tocarlo, filtra a quienes no
+tienen ningún solapamiento y ordena por nº de matches descendente.
+
+Nueva `MatchesScreen.tsx`, entrada desde una fila nueva en
+`FriendsScreen` (arriba del todo, antes del buscador — es la razón más
+probable por la que alguien entra a Amigos con intención). Gateada
+**entera a nivel de pantalla** tras `hasEntitlement('cloud')`, mismo
+criterio que `StatsScreen` (dashboard cohesivo, sin parte gratis
+razonable) — y aquí además hay una razón técnica: sin el gate, cargar el
+digest dispara N llamadas a Supabase (una por amigo) cada vez que se abre
+la pantalla, así que gatear sólo el agregado (no el matching por-amigo
+gratis, que es 1 sola carga) es coherente con "sólo lo que consume
+infraestructura de forma continuada" (cabecera de §4 del ToDo).
+
+**No verificado en el preview web**: `FriendsScreen`/`MatchesScreen` sólo
+son alcanzables con sesión de Supabase iniciada, y este entorno no tiene
+credenciales de prueba (misma limitación ya documentada para la insignia
+premium, entrada (5) de esta sesión — sin rutas de deep-link internas a
+propósito, ver comentario en `App.tsx` `LINKING`, así que tampoco se pudo
+saltar la sesión por URL). Verificado por código: reusa el 100% de los
+fetchers y el matching ya en producción sin modificarlos, y el patrón de
+bloqueo de pantalla (`sparkle` + título + CTA a Premium) es literalmente
+el mismo componente/estilo que `StatsScreen`, que sí se verificó en vivo
+en la entrada anterior. `npm run typecheck` limpio.
+
+### 2026-08-17 (7) — Dashboard avanzado de estadísticas, gateado tras 'cloud'
+
+Nuevo `lib/dashboardStats.ts`: cuatro funciones puras que **agregan sobre
+infraestructura que ya existía**, sin ninguna fuente de datos nueva —
+`valueBySet()` y `topValuableItems()` iteran la colección local y usan
+`variantSetOf()`/`itemValue()` (`setsStats.ts`/`portfolio.ts`);
+`completionBySet()` reusa `listSetCodes()`+`summarizeSet()` tal cual;
+`rarityDistribution()` es la única agregación genuinamente nueva (recorre
+`CARD_LIST` y `getOwnedFor()` para contar únicas poseídas por rareza base,
+no por variante — encaja con lo que pide el ToDo, "distribución por
+rareza", sin la complejidad añadida de contar variantes sueltas).
+
+Nueva `StatsScreen.tsx`, entrada desde Ajustes (fila junto a "Premium").
+Gateada **entera a nivel de pantalla** con `useHasEntitlement('cloud')` —
+a diferencia de los gates anteriores (histórico de precio, alertas...) que
+tapan sólo una sección, aquí no tiene sentido un gate parcial: el ToDo lo
+enmarca como un dashboard cohesivo, y las 4 vistas comparten la misma
+fuente (la colección local), así que no hay una parte "gratis" razonable
+que enseñar. Sin conexión a Cloud, pantalla completa con icono + copy +
+CTA a Premium en vez de un teaser por fila.
+
+Sin librería de gráficas nueva: barras simples (`View` con % de ancho),
+mismo criterio que el resto de la sesión de no añadir dependencias a media
+marcha. "Cartas más valiosas" reusa `CachedImage`+`resolveImageUris()` para
+la miniatura y navega a `Detail` al tocar una fila.
+
+**Bug de datos encontrado y corregido en verificación**: `completionBySet()`
+al principio mostraba el `code` crudo como etiqueta (`__ev_collection`,
+`__ev_cs`...) — son códigos de set internos para categorías de eventos
+(`setsStats.ts`: `EV_COLLECTION`, `EV_CS`...) que `SetsScreen` ya sabe
+agrupar/nombrar mediante `setNameFor()`, pero la pantalla nueva no lo
+llamaba. Corregido usando `setNameFor(row.code)` para la etiqueta (igual
+que `valueBySet()` ya hacía) y recortando la lista a los 10 sets con más
+% de completitud (mostrar los ~70 sets del índice entero no aportaba nada
+en un dashboard).
+
+**Verificado en el preview web**: activado `cloud` desde el panel dev de
+`PremiumScreen`, recargado, confirmado que las 4 secciones renderizan con
+datos reales de la colección de prueba (valor por set, completitud con
+nombres correctos, "Kouzuki Oden" como carta más valiosa, distribución de
+rareza L 1/133 etc.), que tocar la carta navega a `Detail`, y que
+desactivando `cloud` la pantalla vuelve al estado bloqueado de pantalla
+completa. `npm run typecheck` limpio. Los errores de consola vistos a
+mitad de sesión ("StatsScreen is not defined", hydration de wishlist) son
+artefactos de HMR/recarga a medio editar y el bug pre-existente ya
+documentado (`[[task_f8ff61d7]]`), no algo introducido aquí — confirmado
+recargando limpio y repitiendo el flujo sin errores nuevos.
+
+### 2026-08-17 (6) — Export de mazo (imagen) y colección (CSV), gateado tras 'unlocks'
+
+Parcial a propósito, no completo: `ToDo.md` pedía "PDF, CSV e imagen
+compartible" para deck/colección; se construyeron **imagen para mazo** y
+**CSV para colección**, se dejó **PDF** (cualquier formato) y **imagen de
+colección completa** sin construir (una colección de miles de cartas no cabe
+en una imagen razonable — ni siquiera tiene sentido como formato para eso).
+
+**Imagen de mazo**: reusa `ShareSheet`+`lib/shareImage.ts` tal cual —
+componente genérico ya construido para compartir la página de trade
+(`BinderScreen`), sólo hacía falta pasarle las cartas del mazo. Se añadió
+como una fila más dentro del modal de export existente de
+`DeckDetailScreen` (el que ya mostraba el código OPTCGSim) en vez de un
+botón de header nuevo — la cabecera ya tiene 4 iconos apretados
+(atrás/nombre/export-código/wishlist-faltantes/añadir) y meter un quinto
+habría sido ruido.
+
+**CSV de colección**: nuevo `lib/exportCsv.ts` (`buildCollectionCsv()`, sin
+dependencias) + entrada en `SettingsScreen` (sección nueva, debajo de
+imágenes offline — es la home natural de "utilidades sobre tus datos", no
+específica de una pantalla). Comparte el texto por el mismo camino que ya
+usa `DeckDetailScreen` para el código OPTCGSim: `Share.share()` en nativo,
+Clipboard en web. **Decisión deliberada de NO añadir `expo-file-system`**
+para escribir un fichero real: sería una dependencia nativa nueva a media
+sesión, con el mismo riesgo de regresión de prebuild que ya mordió una vez
+esta sesión (ver entrada de SecureStore/CameraX más abajo) — si en la
+práctica el texto de una colección grande choca con el límite de algún
+destino del share sheet, esa es la solución correcta, pero no antes de que
+haga falta.
+
+Ambos gates comparten el patrón ya establecido: `useHasEntitlement('unlocks')`
++ `<CloudLockedTeaser>` (renombrado internamente por comentario a "genérico",
+no sólo 'cloud' — es literalmente {icono, texto, chevron, onPress} desde el
+principio) enlazando a `PremiumScreen`.
+
+**Verificado en el preview web**: creada una carta en "Test Deck", abierto el
+modal de export, confirmado que el teaser de imagen aparece y navega a
+Premium al tocarlo; en Ajustes, confirmado que el teaser de CSV aparece
+(colección con al menos una carta) y navega a Premium. No se pudo probar el
+`Share.share()`/Clipboard real (el navegador de preview no expone diálogo de
+compartir nativo ni clipboard con permisos en este entorno) — sólo revisado
+por código, mismo patrón ya en producción para el código OPTCGSim de mazo.
+`npm run typecheck` limpio.
+
+### 2026-08-17 (5) — Insignia de perfil premium (cosmética, visible a amigos)
+
+Primer cambio de esta sesión que toca el **backend de Supabase** en vivo
+(proyecto conectado vía MCP, confirmado alcanzable — ver [[supabase-backend]]
+en memoria). Migración `add_profiles_is_premium`: `alter table
+public.profiles add column is_premium boolean not null default false`. Sin
+política RLS nueva: `profiles_update` ya exigía `id = auth.uid()` (sólo
+puedes tocar tu propia fila) y `profiles_select` ya era `qual: true` (visible
+para cualquier usuario logueado) — exactamente lo que hace falta para que un
+amigo vea tu insignia sin poder falsificar la suya propia escribiendo la fila
+de otro.
+
+`lib/friends.ts` → nueva `pushPremiumBadge(premium: boolean)`: hace un
+`UPDATE profiles SET is_premium = ...` de la propia fila. Se llama desde
+`lib/sync.ts` en dos sitios: al iniciar sesión (junto al `reconcileAll()`
+existente) y en el listener de cambios de `entitlements.ts` (junto al
+"desbloquear cloud dispara reconcile" ya existente) — pero **sin** el guard
+de `hasEntitlement('cloud')`: la insignia depende de `isPremium()` (cualquier
+producto pagado, principalmente `unlocks`), y escribir un booleano no cuesta
+ancho de banda recurrente, así que no tiene sentido capar el gesto cosmético
+tras la suscripción que paga por sync de verdad.
+
+`FriendProfile` (types.ts) gana `is_premium: boolean`; los 3 sitios que
+seleccionan de `profiles` con ese shape (`friends.ts` ×2, `tradeOffers.ts`)
+se actualizaron para pedir la columna — antes de este fix `tradeOffers.ts`
+casteaba `as FriendProfile[]` sin pedirla, así que el campo habría sido
+`undefined` en tiempo de ejecución pese a que el tipo prometía `boolean`
+(nadie lo leía todavía, pero habría sido un bug silencioso en cuanto algo lo
+usara). `lib/auth.ts`'s `Profile` (tu PROPIO perfil, tipo separado de
+`FriendProfile`) no lo necesita — no te insignias a ti mismo en tu propia
+cuenta.
+
+Nuevo componente compartido `components/PremiumBadge.tsx` (icono `sparkle`,
+color `accent`, `accessibilityLabel` traducido) usado en `FriendsScreen`
+(lista de amigos + resultados de búsqueda) y en la cabecera de
+`FriendProfileScreen` (mirando `getFriends()` en caché por `userId` en vez
+de un fetch aparte — ya se cargó al entrar desde la lista).
+
+**Verificación limitada**: `npm run typecheck` limpio; la migración se
+verificó con `list_tables`/RLS policies antes y después de aplicarla. **No
+se pudo click-testear el flujo real** (requiere dos cuentas de Supabase
+distintas siendo amigas entre sí, sesión iniciada — no hay credenciales de
+prueba en este entorno, mismo límite que el gate de cloud sync de antes en
+esta sesión). Riesgo residual: no verificado que `pushPremiumBadge` se
+dispare correctamente en el orden esperado la primera vez que alguien compra
+`unlocks` con sesión ya abierta — sólo revisado por código.
+
+### 2026-08-17 (4) — Archivado de decks (alternativa suave al cap)
+
+Primer ítem `[NEW]` (no gate, feature real) de este lote. `Deck.archived?:
+boolean` en `lib/decks.ts` + `archiveDeck(id, archived)` — gratis e
+ilimitado por diseño (ToDo.md §2): archivar no borra nada, sólo saca el mazo
+del recuento contra `FREE_LIMITS.decks`. `DecksScreen` ahora separa
+`activeDecks`/`archivedDecks`; el tope (`atLimit`) sólo mira los activos. El
+menú "..." de cada fila (antes iba directo al confirm de borrado) pasa a un
+modal de opciones con **Archivar/Restaurar** + **Borrar** — borrar sigue
+pidiendo su propio confirm aparte (acción destructiva, dos pasos).
+
+**Limitación conocida y documentada, no un bug**: `Deck.archived` no tiene
+columna en la tabla `decks` de Supabase (esa migración es del `[INFRA]`
+pendiente de la tabla de entitlements, ToDo.md §1). Funciona perfecto en
+local. En `lib/sync.ts` → `reconcileDecks()`, cuando el servidor gana un
+campo por timestamp, se conserva el `archived` local en vez de perderlo (sin
+esto, el reconcile lo resetearía en silencio la próxima vez que otro campo
+cambiara en otro dispositivo) — pero el estado de archivado en sí no viaja
+todavía entre dispositivos, sólo sobrevive localmente. Aceptable para v1: es
+el mismo patrón "funciona standalone, la nube es mejora" que el resto de la
+app.
+
+**Verificado en el preview web** (tras un fallo inicial de la propia
+herramienta de test, no del código — ver nota abajo): creado un mazo,
+archivado desde el menú de opciones, confirmado que se mueve a la sección
+"Archived · 1" al pie de la lista, restaurado, confirmado que vuelve a la
+lista activa. `npm run typecheck` limpio.
+
+*Nota metodológica*: la primera pasada de verificación en el navegador dio
+un modal con el título correcto pero el cuerpo vacío (ni "Restore" ni
+"Delete") tras varias ediciones en caliente del archivo con HMR activo —
+recargar la página (en vez de navegar con el botón atrás del navegador, que
+además rompe el estado interno de React Navigation) lo resolvió al momento.
+No hubo ningún error de consola nuevo en ningún punto: era desincronización
+del hot-reload con el estado de la página abierta, no un bug del componente.
+
+### 2026-08-17 (3) — Gate de cloud sync tras 'cloud'
+
+Último ítem de "coste marginal cero" de `ToDo.md` §4: el sync a Supabase
+(colección/decks/wishlists) es justo lo que SÍ le cuesta dinero recurrente al
+desarrollador (ancho de banda + storage), así que es el candidato obvio para
+la suscripción. A diferencia de los gates anteriores (todos en la capa de UI),
+este se gatea en el **chokepoint de `lib/sync.ts`** — `reconcileAll()` (login,
+botón "Sincronizar ahora", cambio de entitlement) y `pushDomain()` (debounce
+tras cada edición local) devuelven sin hacer nada si `!hasEntitlement('cloud')`,
+poniendo el status a un nuevo uso de `'offline'` (el tipo `SyncStatus` ya lo
+tenía declarado, sin usar). Importante: la sesión (`userId`) sigue siendo
+válida sin `cloud` — Amigos y perfil público no pasan por este módulo (sólo
+tocan `collection_items`/`wishlists`/`wishlist_cards`/`decks`), así que
+gatear aquí no rompe el guardrail de "social es gratis siempre".
+
+Añadido un listener a `subscribe()` de `entitlements.ts` dentro de `sync.ts`:
+si el usuario desbloquea `cloud` con sesión ya abierta (compra real, o el
+toggle de dev tools de `PremiumScreen`), se dispara `reconcileAll()` sin
+esperar a un re-login — si no, comprar la suscripción no tendría efecto
+visible hasta cerrar/abrir sesión.
+
+`AccountScreen.tsx`: la sección de sync ahora es condicional — con `cloud` se
+ve igual que siempre (estado + botón "Sincronizar ahora"); sin él, un
+`<CloudLockedTeaser>` que enlaza a Premium. El resto de la pantalla (perfil,
+Amigos, privacidad, cerrar sesión) no cambia — sigue disponible para
+cualquier usuario con sesión, pague o no.
+
+**Verificación parcial**: `npm run typecheck` limpio; verificado en el
+preview web que `AccountScreen` en estado **signed-out** (no hay cuenta de
+prueba con sesión real en este entorno) renderiza sin errores nuevos en
+consola. El estado **signed-in** (la parte que realmente cambia) se revisó
+por código, no se pudo click-testear sin credenciales reales de Supabase —
+mismo patrón/hook (`useHasEntitlement`) ya verificado en los otros 3 sitios
+de este mismo lote (Detail/Home/WishlistDetail), así que el riesgo de un bug
+de integración es bajo pero no cero.
+
+### 2026-08-17 (2) — Gate de histórico de precio, gráfica de valor y alertas tras 'cloud'
+
+Siguiente ítem real del `ToDo.md` §4 (suscripción). Estas tres features ya existían
+y funcionaban para **cualquier** usuario (el único gate que tenían era el toggle
+de preferencia `isFeatureEnabled()` de `settings.ts` — el usuario podía activarlas
+libremente en Ajustes sin pagar nada). Añadido `hasEntitlement('cloud')` como
+segunda condición en los 4 sitios:
+
+- `DetailScreen.tsx` — `PriceChart` (histórico por carta) sólo se pinta con
+  `cloud`; si no, `<CloudLockedTeaser>` en su lugar.
+- `VaultValueCard.tsx` (Home) — el valor actual sigue siendo SIEMPRE gratis
+  (es un dato, no un histórico — nunca se capa según los guardrails de
+  `ToDo.md` §0); lo que se capa es la serie histórica: badge de delta,
+  sparkline y selector 7D/30D/Todo. `recordDailySnapshot()` sigue grabando el
+  histórico aunque el usuario no tenga `cloud`, para que si compra después el
+  histórico ya exista en vez de empezar de cero.
+- `HomeScreen.tsx` — banner de alertas disparadas, condición `&& hasCloud`.
+- `WishlistDetailScreen.tsx` — el botón de "poner precio objetivo" por carta
+  pasa a un candado (icono `sparkle` en vez de `bolt`) que navega a Premium en
+  vez de abrir `PriceAlertSheet`, cuando no hay `cloud`.
+
+Nuevo hook `useHasEntitlement(key)` en `entitlements.ts`, hermano de
+`useLimit()` pero para features binarias en vez de topes numéricos — evita
+repetir `useState`+`useEffect(loadEntitlements+subscribe)` en los 4 sitios.
+
+Nuevo componente compartido `components/CloudLockedTeaser.tsx` (fila con
+icono `sparkle` + texto + chevron, tappable, navega a `Premium`) para los
+sitios donde SÍ hay espacio para una fila completa (DetailScreen, Home). En
+`WishlistDetailScreen` el hueco es una miniatura dentro de la carta de la
+grid — ahí se reutilizó el mismo botón existente con icono/acción distintos
+en vez de meter el teaser completo (no cabe).
+
+**Verificado en el preview web**: navegado a Detail (chip de histórico
+bloqueado, tap → Premium), a Home (teaser de gráfica de valor, tap →
+Premium), y al wishlist (añadida una carta, confirmado el candado de alerta
+con el label de accesibilidad correcto, tap → Premium). `npm run typecheck`
+limpio.
+
+### 2026-08-17 (1) — Shell de Paywall UI (`PremiumScreen`)
+
+Prerrequisito para poder gatear price/cloud con un destino real en vez de
+esconder la feature sin más (un teaser sin sitio a donde ir es peor que no
+ofrecerlo — ver la nota de `PremiumLimitModal`). Nueva pantalla
+`screens/PremiumScreen.tsx`, ruta `Premium` registrada en `navigation.ts` +
+`App.tsx`, entrada desde `SettingsScreen` (fila nueva justo debajo de
+"Account & sync", mismo patrón visual `accountRow`).
+
+Lista los 3 productos de `entitlements.ts` (`removeAds`/`unlocks`/`cloud`)
+con copy honesto: cada uno lleva una insignia "Coming soon", sin botón de
+compra (no hay RevenueCat conectado — un botón que no completa nada sería
+peor que no tener botón). Incluye un panel de **dev tools** (sólo `__DEV__`,
+usa `setDevEntitlements()` ya existente) para forzar entitlements y probar
+todos los gates del ToDo sin necesitar la store — sin esto, verificar los
+gates de precio/cloud habría requerido manipular AsyncStorage a mano en cada
+sesión de prueba.
+
+**Verificado en el preview web**: navegado Settings → Premium, confirmado
+el contenido de las 3 tarjetas y el toggle de dev tools (clic en "Unlocks"
+sin errores de consola). `npm run typecheck` limpio.
+
+### 2026-08-16 (4) — Gate de bulk scan (premium) + corregido un ítem mal etiquetado del ToDo
+
+Siguiente ítem de `ToDo.md` §2 tras decks/wishlists. Antes de tocar código se revisó
+el que tocaba en orden ("Binder: 1 layout/orden guardado") y **no existe** — `sort`
+en `BinderScreen` es `useState` en memoria, nunca persistido. Estaba mal marcado
+`[BUILT]` desde el brainstorm original; corregido a `[NEW]` y aparcado (construir
+persistencia de layouts es una feature en sí, fuera del alcance de "cablear un gate
+sobre algo que ya existe"). Se pasó al siguiente ítem real: **bulk scan**.
+
+`ScanScreen.tsx` → `enqueue()` (la función que mete una carta detectada en la cola
+del modo BULK) ahora capa en `FREE_LIMITS.bulkScanPerSession` (20). Decisión de
+diseño: el tope cuenta **cartas distintas** en la cola, no copias — repetir una
+carta ya encolada (varios pulls del mismo código) nunca choca con el tope, solo
+añadir una carta *nueva* lo hace. No hace falta un contador de "sesión" aparte: la
+cola se vacía al confirmar (`handleBulkQueueConfirm`), así que confirmar y seguir
+escaneando ya resetea el límite de forma natural.
+
+Feedback distinto del resto de gates: aquí no hay formulario que interrumpir con un
+modal (el usuario está escaneando, cámara en mano) así que en vez de un
+`PremiumLimitModal` se usa **háptico distinto (`NotificationFeedbackType.Warning`
+en vez del `impactAsync` normal) + toast** — se necesita que note que algo NO se
+añadió sin que tenga que mirar la pantalla. El chip de la cola (arriba-derecha)
+solo cambia a mostrar el contador `n/N` (icono `sparkle`, fondo `surface2`) al
+llegar al tope, igual que Decks/Binder: nada de recordarle el techo mientras
+escanea normal.
+
+**Bug propio encontrado y corregido al revisar el diseño del chip**: el primer
+intento pintaba el texto/icono bloqueado con `colors.onAccent` (pensado para
+contraste sobre el fondo `accent`, claro/vivo) sobre un fondo `surface2` — ambos
+oscuros en el tema dark, texto casi ilegible. Corregido a `colors.textMut`, mismo
+patrón que los otros gates.
+
+**Verificación limitada, como el resto del escáner**: `npm run typecheck` limpio,
+la pantalla `Scan` monta sin errores de consola en el preview web. **No se pudo
+probar el flujo real** — el escáner requiere cámara nativa (degrada a no-op en
+Expo Go/web por diseño, ver `CLAUDE.md`) y aunque se conceda el permiso del
+navegador no hay tarjetas reales que enfocar. Mismo patrón que arrastra el resto
+de features de escaneo en este diario: pendiente de dispositivo real.
+
+### 2026-08-16 (3) — Gate de wishlists (premium) en los 4 sitios que crean una
+
+A diferencia de decks (una sola pantalla), crear wishlist existe en **4 sitios**:
+`BinderScreen` (tab Wishlist), `WishlistPickerModal` (corazón en DetailScreen /
+"Add missing" en DeckDetail), `BulkTargetSheet` y `SetBulkAddSheet` (ambos con un
+picker de wishlist embebido). Replicar el modal de tope inline 4 veces habría
+significado 4 copias de la misma copia/estilo — se extrajo `PremiumLimitModal`
+(nuevo `components/PremiumLimitModal.tsx`, envuelve `AppModal`) como el único
+sitio con las tres frases del aviso, parametrizado por `title`/`body`. De paso
+se retro-adaptó `DecksScreen` para usarlo también, dejando un solo componente
+para los dos gates existentes en vez de dos copias divergiendo con el tiempo.
+
+También nuevo: `useLimit(resource)` en `entitlements.ts`, un hook que envuelve
+`loadEntitlements()`+`subscribe()`+`getLimit()` — sin él, cada uno de los 5
+sitios que gatean algo (decks + las 4 vías de wishlist) habría repetido el mismo
+`useState`+`useEffect` de sincronización. Hay precedente de hooks en el repo
+(`lib/useCardGrid.ts`), así que no es un patrón nuevo para la base de código.
+
+`i18n`: se generalizó `premium.dataSafe` (decía "tus mazos" a secas, ahora "tus
+datos") para que el mismo texto sirva en cualquier gate futuro, y se añadieron
+`premium.wishlistLimitTitle`/`Body`. Mismo diseño que decks: tope en `FREE_LIMITS.wishlists`
+(1), re-chequeo en el commit por si la sync cruza el tope con el formulario
+abierto, fila nunca deshabilitada (sigue pulsable, icono `sparkle`, contador
+`n/N`), y el modal de tope stackea como un segundo `Modal` de React Native
+encima del sheet/picker que ya estaba abierto (funciona bien — RN lo trata como
+overlay independiente, no como parte del árbol de vistas del padre).
+
+**Bug propio encontrado y corregido durante la verificación**: `expo prebuild --clean`
+de la sesión anterior (fix de SecureStore) había borrado silenciosamente el pin de
+versión CameraX de `build.gradle` (fix real para un conflicto expo-camera/
+vision-camera) y activado `newArchEnabled=true` contra lo que pide este mismo
+`CLAUDE.md`. Se detectó revisando el diff antes de comitear y se revirtió con
+`git checkout -- app/android/...`; no llegó a entrar en ningún commit. Riesgo
+estructural para el futuro: cualquier edición nativa manual (como ese fix de
+CameraX) que no esté expresada como config-plugin se pierde en el próximo
+`expo prebuild --clean` — nadie lo ha resuelto todavía (ni patch-package, que ya
+está en el repo para otra cosa, ni un plugin propio).
+
+**Verificado en el preview web**: sembrado de 1 wishlist + 1 carta de colección
+vía `localStorage`, confirmado el contador `1/1` en `BinderScreen` y en
+`BulkTargetSheet` (alcanzado vía Select → acción masiva → Wishlist, con el picker
+de destino embebido), que ambos abren el modal de tope real (no el de creación),
+y que forzar `unlocks` quita el tope sin tocar la wishlist existente. No se pudo
+navegar a la ficha de detalle de una carta en el preview web (el tap sobre el
+tile no disparaba la navegación por algún motivo de accesibilidad del DOM en
+web) así que `WishlistPickerModal` y `SetBulkAddSheet` quedan **verificados por
+código, no por click real** — comparten el mismo hook/componente ya probado en
+los otros dos sitios, pero no se ha visto el modal abrirse ahí en pantalla.
+`npm run typecheck` limpio.
 
 ### 2026-08-16 (2) — Gate de slots de deck (premium) + bug pre-existente encontrado en verificación
 

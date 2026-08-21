@@ -16,6 +16,8 @@ import {
   subscribe as subSettings,
   type ValueTimeframe,
 } from '../lib/settings';
+import { useHasEntitlement } from '../lib/entitlements';
+import { CloudLockedTeaser } from './CloudLockedTeaser';
 import {
   ALL_DAYS,
   getDelta,
@@ -54,11 +56,18 @@ function fmtDate(iso: string, lang: 'en' | 'es'): string {
   return lang === 'es' ? `${d} ${mon}` : `${mon} ${d}`;
 }
 
-export function VaultValueCard({ currentValue }: { currentValue: number }) {
+export function VaultValueCard({
+  currentValue,
+  onOpenPremium,
+}: {
+  currentValue: number;
+  onOpenPremium: () => void;
+}) {
   const t = useT();
   const [, bump] = useReducer((n) => n + 1, 0);
   const [tf, setTf] = useState<ValueTimeframe>(() => getSettings().valueTimeframe);
   const [sparkW, setSparkW] = useState(0);
+  const hasCloud = useHasEntitlement('cloud');
 
   // Re-render cuando cambia el histórico o los settings (idioma/timeframe).
   useEffect(() => subValueHistory(bump), []);
@@ -146,12 +155,12 @@ export function VaultValueCard({ currentValue }: { currentValue: number }) {
           </View>
           <Text style={s.label}>{t('home.vaultValue')}</Text>
         </View>
-        {badge}
+        {hasCloud ? badge : null}
       </View>
 
       <View style={s.valueRow}>
         <Text style={s.value}>{fmtMoney(currentValue)}</Text>
-        {caption ? <Text style={s.caption}>{caption}</Text> : null}
+        {hasCloud && caption ? <Text style={s.caption}>{caption}</Text> : null}
       </View>
 
       {/* P&L: sólo aparece cuando el usuario ha declarado algún coste de
@@ -170,47 +179,55 @@ export function VaultValueCard({ currentValue }: { currentValue: number }) {
         </View>
       ) : null}
 
-      {/* Sparkline o estado first-run */}
-      <View style={s.sparkWrap} onLayout={onLayout}>
-        {delta && sparkW > 0 ? (
-          <Sparkline
-            data={series}
-            width={sparkW}
-            height={SPARK_H}
-            color={colors.accent}
-            gradientId="vaultSpark"
-          />
-        ) : !delta ? (
-          <View style={s.emptyWrap}>
-            <Text style={s.emptyText}>{t('home.vaultTrackingStarts')}</Text>
+      {/* Gráfica de valor en el tiempo — suscripción 'cloud'. El valor actual
+          de arriba siempre es gratis; lo que se capa es el histórico. */}
+      {!hasCloud ? (
+        <CloudLockedTeaser label="premium.valueChartLocked" onPress={onOpenPremium} />
+      ) : (
+        <>
+          {/* Sparkline o estado first-run */}
+          <View style={s.sparkWrap} onLayout={onLayout}>
+            {delta && sparkW > 0 ? (
+              <Sparkline
+                data={series}
+                width={sparkW}
+                height={SPARK_H}
+                color={colors.accent}
+                gradientId="vaultSpark"
+              />
+            ) : !delta ? (
+              <View style={s.emptyWrap}>
+                <Text style={s.emptyText}>{t('home.vaultTrackingStarts')}</Text>
+              </View>
+            ) : null}
           </View>
-        ) : null}
-      </View>
 
-      {/* Selector de ventana (solo si hay histórico que mostrar) */}
-      {delta ? (
-        <View style={s.tfRow}>
-          {TIMEFRAMES.map((x) => {
-            const isActive = x.key === tf;
-            return (
-              <Pressable
-                key={x.key}
-                onPress={() => {
-                  setTf(x.key);
-                  setValueTimeframe(x.key);
-                }}
-                hitSlop={HIT_SLOP}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isActive }}
-                style={({ pressed }) => [s.tfBtn, pressed && pressedStyle]}
-              >
-                <Text style={[s.tfText, isActive && s.tfTextActive]}>{t(x.label)}</Text>
-                <View style={[s.tfUnderline, isActive && s.tfUnderlineActive]} />
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
+          {/* Selector de ventana (solo si hay histórico que mostrar) */}
+          {delta ? (
+            <View style={s.tfRow}>
+              {TIMEFRAMES.map((x) => {
+                const isActive = x.key === tf;
+                return (
+                  <Pressable
+                    key={x.key}
+                    onPress={() => {
+                      setTf(x.key);
+                      setValueTimeframe(x.key);
+                    }}
+                    hitSlop={HIT_SLOP}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isActive }}
+                    style={({ pressed }) => [s.tfBtn, pressed && pressedStyle]}
+                  >
+                    <Text style={[s.tfText, isActive && s.tfTextActive]}>{t(x.label)}</Text>
+                    <View style={[s.tfUnderline, isActive && s.tfUnderlineActive]} />
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+        </>
+      )}
 
       {/* Price disclaimer — the vault figure is an aggregate of estimates. */}
       <Text style={s.disclaimer}>{t('home.priceDisclaimer')}</Text>

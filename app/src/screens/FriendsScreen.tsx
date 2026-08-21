@@ -17,6 +17,7 @@ import type { FriendsScreenProps } from '../navigation';
 import { smartGoBack } from '../lib/nav';
 import { colors, fonts, radii, spacing, pressedStyle, pressedSurface, HIT_SLOP } from '../theme';
 import { Icon } from '../components/Icon';
+import { PremiumBadge } from '../components/PremiumBadge';
 import { useT } from '../lib/i18n';
 import {
   acceptRequest,
@@ -80,6 +81,17 @@ export function FriendsScreen({ navigation }: FriendsScreenProps) {
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+        <Pressable
+          style={({ pressed }) => [s.rowCard, pressed && pressedSurface]}
+          onPress={() => navigation.navigate('Matches')}
+          accessibilityRole="button"
+          accessibilityLabel={t('matches.title')}
+        >
+          <Icon name="sparkle" size={18} color={colors.accent} />
+          <Text style={s.name}>{t('matches.title')}</Text>
+          <Icon name="chevR" size={18} color={colors.textMut} />
+        </Pressable>
+
         {/* Search */}
         <View style={s.searchBox}>
           <Icon name="search" size={18} color={colors.textMut} />
@@ -103,6 +115,7 @@ export function FriendsScreen({ navigation }: FriendsScreenProps) {
                 <View key={p.id} style={s.rowCard}>
                   <Avatar name={p.username} />
                   <Text style={s.name}>{p.username}</Text>
+                  {p.is_premium && <PremiumBadge />}
                   {knownIds.has(p.id) ? (
                     <Text style={s.mutedTag}>{t('friends.requested')}</Text>
                   ) : (
@@ -194,6 +207,7 @@ export function FriendsScreen({ navigation }: FriendsScreenProps) {
               >
                 <Avatar name={e.profile.username} />
                 <Text style={s.name}>{e.profile.username}</Text>
+                {e.profile.is_premium && <PremiumBadge />}
                 <Icon name="chevR" size={18} color={colors.textMut} />
               </Pressable>
             ))}

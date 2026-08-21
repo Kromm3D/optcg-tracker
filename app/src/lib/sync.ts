@@ -15,6 +15,8 @@
 
 import { supabase } from './supabase';
 import { getUser, onAuthChange } from './auth';
+import { hasEntitlement, isPremium, subscribe as subEntitlements } from './entitlements';
+import { pushPremiumBadge } from './friends';
 import { onLocalChange, type SyncDomain } from './syncBus';
 import type { CollectionItem, Wishlist } from '../types';
 import {
@@ -85,8 +87,10 @@ if (supabase) {
     const nextId = u?.id ?? null;
     if (nextId === userId) return;
     userId = nextId;
-    if (userId) void reconcileAll();
-    else setStatus('idle');
+    if (userId) {
+      void reconcileAll();
+      void pushPremiumBadge(isPremium());
+    } else setStatus('idle');
   });
 
   // Cambios locales → push con debounce (solo si hay sesión). Si un reconcile
@@ -105,6 +109,16 @@ if (supabase) {
       void pushDomain(domain);
     }, PUSH_DEBOUNCE_MS);
   });
+
+  // Si el usuario desbloquea 'cloud' con sesión ya iniciada (compra, o el
+  // toggle de dev tools), arranca el reconcile sin esperar a un re-login.
+  // La insignia (cosmética, `unlocks`) se refleja aparte y siempre —
+  // ver `pushPremiumBadge` en lib/friends.ts, no depende de 'cloud'.
+  subEntitlements(() => {
+    if (!userId) return;
+    if (hasEntitlement('cloud')) void reconcileAll();
+    void pushPremiumBadge(isPremium());
+  });
 }
 
 /** Fuerza un reconcile completo (botón "Sincronizar ahora"). */
@@ -115,6 +129,13 @@ export async function syncNow(): Promise<void> {
 
 async function reconcileAll(): Promise<void> {
   if (!supabase || !userId) return;
+  // Cloud sync/backup es de suscripción — sin 'cloud' la sesión sigue siendo
+  // válida (Amigos/perfil público no pasan por aquí, ver AGENTS.md), pero no
+  // se sube ni se baja ni un byte de colección/decks/wishlists.
+  if (!hasEntitlement('cloud')) {
+    setStatus('offline');
+    return;
+  }
   reconciling = true;
   setStatus('syncing');
   try {
@@ -141,6 +162,10 @@ async function reconcileAll(): Promise<void> {
 
 async function pushDomain(domain: SyncDomain): Promise<void> {
   if (!supabase || !userId) return;
+  if (!hasEntitlement('cloud')) {
+    setStatus('offline');
+    return;
+  }
   setStatus('syncing');
   try {
     if (domain === 'collection') await pushCollection();
@@ -405,6 +430,11 @@ async function reconcileDecks(): Promise<void> {
         cards: serverCardsByDeck.get(row.id) ?? [],
         createdAt: toMs(row.created_at),
         updatedAt: serverMs,
+        // `archived` no tiene columna en Supabase todavía (ver ToDo.md §1,
+        // tabla de entitlements pendiente incluye esta migración) — se
+        // conserva el valor local para que un reconcile no lo resetee en
+        // silencio cuando el servidor gana por otro campo.
+        archived: localD?.archived,
       };
     }
   }

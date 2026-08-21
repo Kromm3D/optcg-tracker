@@ -15,19 +15,21 @@ import { isSupabaseEnabled } from '../lib/supabase';
 import { getProfile, isSignedIn, subscribe as subAuth } from '../lib/auth';
 import { publicBinderUrl } from '../lib/publicBinder';
 import { getIncomingPending, refreshOffers, subscribe as subOffers } from '../lib/tradeOffers';
+import { publicWishlistUrl } from '../lib/publicWishlist';
+import { useHasEntitlement } from '../lib/entitlements';
+import { CloudLockedTeaser } from '../components/CloudLockedTeaser';
 
 type Row = { icon: string; title: TKey; desc: TKey; route: 'Account' | 'Friends' | 'Settings' };
 
-/** Comparte (nativo) o copia al portapapeles (web) el enlace al binder. */
-async function shareBinder(username: string): Promise<void> {
-  const url = publicBinderUrl(username);
+/** Comparte (nativo) o copia al portapapeles (web) un enlace público. */
+async function shareLink(url: string, logTag: string): Promise<void> {
   if (Platform.OS === 'web') {
     // `navigator.clipboard` sólo existe en contexto seguro; si no está, el
     // fallo silencioso sería peor que no ofrecer nada, así que se avisa.
     try {
       await navigator.clipboard.writeText(url);
     } catch {
-      console.warn('[profile] clipboard unavailable; link:', url);
+      console.warn(`[profile] clipboard unavailable (${logTag}):`, url);
     }
     return;
   }
@@ -39,6 +41,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
   const insets = useSafeAreaInsets();
   const [, force] = useState(0);
   useEffect(() => subAuth(() => force((n) => n + 1)), []);
+  const hasUnlocks = useHasEntitlement('unlocks');
 
   const backendEnabled = isSupabaseEnabled();
   const signedIn = isSignedIn();
@@ -131,11 +134,12 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
           ))}
 
           {/* Compartir binder: sólo con sesión, porque el enlace es
-              /u/<username> y un invitado no tiene username que compartir. */}
+              /u/<username> y un invitado no tiene username que compartir.
+              Libre para todos — el guardrail no lo restringe. */}
           {signedIn && profile?.username ? (
             <Pressable
               style={({ pressed }) => [s.navRow, pressed && pressedSurface]}
-              onPress={() => shareBinder(profile.username)}
+              onPress={() => shareLink(publicBinderUrl(profile.username), 'binder')}
               accessibilityRole="button"
               accessibilityLabel={t('public.share')}
             >
@@ -151,6 +155,34 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
               </View>
               <Icon name="chevR" size={18} color={colors.textMut} />
             </Pressable>
+          ) : null}
+
+          {/* Compartir wishlist: a diferencia del binder, es parte de
+              `unlocks` (ToDo.md §3) — el matching por-amigo (Trade tab) sigue
+              gratis, pero exponerla como enlace público a cualquiera no. */}
+          {signedIn && profile?.username ? (
+            hasUnlocks ? (
+              <Pressable
+                style={({ pressed }) => [s.navRow, pressed && pressedSurface]}
+                onPress={() => shareLink(publicWishlistUrl(profile.username), 'wishlist')}
+                accessibilityRole="button"
+                accessibilityLabel={t('public.shareWishlist')}
+              >
+                <View style={s.navIcon}>
+                  <Icon name="heart" size={20} color={colors.accent} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.navTitle}>{t('public.shareWishlist')}</Text>
+                  <Text style={s.navDesc} numberOfLines={2}>{t('public.shareWishlistNeedsPublic')}</Text>
+                </View>
+                <Icon name="chevR" size={18} color={colors.textMut} />
+              </Pressable>
+            ) : (
+              <CloudLockedTeaser
+                label="premium.wishlistShareLocked"
+                onPress={() => navigation.navigate('Premium')}
+              />
+            )
           ) : null}
         </View>
       </ScrollView>

@@ -15,7 +15,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radii, spacing, pressedStyle, pressedSurface } from '../theme';
 import { Icon } from './Icon';
+import { PremiumLimitModal } from './PremiumLimitModal';
 import { useT } from '../lib/i18n';
+import { useLimit } from '../lib/entitlements';
 import {
   listWishlists,
   createWishlist,
@@ -36,6 +38,9 @@ export function WishlistPickerModal({ visible, onClose, onSelect }: Props) {
   const [wishlists, setWishlists] = useState<Wishlist[]>([]);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [showLimit, setShowLimit] = useState(false);
+  const wishlistLimit = useLimit('wishlists');
+  const atLimit = wishlistLimit !== null && wishlists.length >= wishlistLimit;
 
   const refresh = () => listWishlists().then(setWishlists);
 
@@ -46,6 +51,13 @@ export function WishlistPickerModal({ visible, onClose, onSelect }: Props) {
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
+    // Re-chequeo en el commit: el picker puede llevar abierto mientras la
+    // sync trae wishlists de otro dispositivo y cruza el tope por debajo.
+    if (atLimit) {
+      setCreating(false);
+      setShowLimit(true);
+      return;
+    }
     const wl = await createWishlist(newName.trim());
     setCreating(false);
     setNewName('');
@@ -123,18 +135,29 @@ export function WishlistPickerModal({ visible, onClose, onSelect }: Props) {
               </View>
             </View>
           ) : (
+            // Al llegar al tope sigue pulsable y explica por qué (mismo
+            // patrón que Decks/Binder): `sparkle` en vez de un candado.
             <Pressable
-              style={({ pressed }) => [s.newBtn, pressed && pressedStyle]}
-              onPress={() => setCreating(true)}
+              style={({ pressed }) => [s.newBtn, atLimit && s.newBtnLocked, pressed && pressedStyle]}
+              onPress={() => (atLimit ? setShowLimit(true) : setCreating(true))}
               accessibilityRole="button"
               accessibilityLabel={t('wl.newWishlist')}
             >
-              <Icon name="plus" size={18} color="#fff" />
-              <Text style={s.newBtnText}>{t('wl.newWishlist')}</Text>
+              <Icon name={atLimit ? 'sparkle' : 'plus'} size={18} color={atLimit ? colors.textMut : '#fff'} />
+              <Text style={[s.newBtnText, atLimit && s.newBtnTextLocked]}>
+                {atLimit ? `${t('wl.newWishlist')} · ${wishlists.length}/${wishlistLimit}` : t('wl.newWishlist')}
+              </Text>
             </Pressable>
           )}
         </Pressable>
       </Pressable>
+
+      <PremiumLimitModal
+        visible={showLimit}
+        onClose={() => setShowLimit(false)}
+        title={t('premium.wishlistLimitTitle')}
+        body={t('premium.wishlistLimitBody', { n: String(wishlistLimit ?? '') })}
+      />
     </Modal>
   );
 }
@@ -189,6 +212,8 @@ const s = StyleSheet.create({
     paddingVertical: 14,
   },
   newBtnText: { fontSize: 15, fontFamily: fonts.uiBold, color: colors.onAccent },
+  newBtnLocked: { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border },
+  newBtnTextLocked: { color: colors.textMut },
   createBox: { gap: 10 },
   nameInput: {
     height: 48,

@@ -41,7 +41,9 @@ import {
   subscribe as subWishlists,
 } from '../lib/wishlists';
 import { getDefaultWishlistSuffix, isFeatureEnabled } from '../lib/settings';
+import { useHasEntitlement } from '../lib/entitlements';
 import { WishlistPickerModal } from '../components/WishlistPickerModal';
+import { CloudLockedTeaser } from '../components/CloudLockedTeaser';
 import { EffectText } from '../components/EffectText';
 import type { Variant, Wishlist } from '../types';
 
@@ -52,6 +54,7 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
   const card = CARDS[code];
   const [wished, setWished] = useState(false);
   const [showWLPicker, setShowWLPicker] = useState(false);
+  const hasCloud = useHasEntitlement('cloud');
   // Which variant's art is shown in the hero (index into card.variants).
   // Defaults to the tapped variant when a suffix was passed, else the first.
   const initialHero = Math.max(
@@ -252,8 +255,19 @@ export function DetailScreen({ route, navigation }: DetailScreenProps) {
         </View>
       ) : null}
 
-      {/* Histórico de precio del arte actualmente visible */}
-      {isFeatureEnabled('priceChart') ? <PriceChart code={code} suffix={main?.suffix ?? ''} /> : null}
+      {/* Histórico de precio del arte actualmente visible — suscripción 'cloud' */}
+      {isFeatureEnabled('priceChart') ? (
+        hasCloud ? (
+          <PriceChart code={code} suffix={main?.suffix ?? ''} />
+        ) : (
+          <View style={{ paddingHorizontal: 18 }}>
+            <CloudLockedTeaser
+              label="premium.priceChartLocked"
+              onPress={() => navigation.navigate('Premium')}
+            />
+          </View>
+        )
+      ) : null}
 
       {/* Cardmarket button — URL específica del arte actualmente visible */}
       <Pressable

@@ -35,6 +35,8 @@ import {
   syncNow,
 } from '../lib/sync';
 import { getPrivacy, setPrivacy } from '../lib/friends';
+import { useHasEntitlement } from '../lib/entitlements';
+import { CloudLockedTeaser } from '../components/CloudLockedTeaser';
 import type { PrivacySettings, Visibility } from '../types';
 
 const VIS_OPTIONS: Visibility[] = ['public', 'friends', 'private'];
@@ -76,7 +78,10 @@ export function AccountScreen({ navigation }: AccountScreenProps) {
             <Text style={s.desc}>{t('account.disabledDesc')}</Text>
           </View>
         ) : signedIn ? (
-          <SignedInView onOpenFriends={() => navigation.navigate('Friends')} />
+          <SignedInView
+            onOpenFriends={() => navigation.navigate('Friends')}
+            onOpenPremium={() => navigation.navigate('Premium')}
+          />
         ) : (
           <AuthForm />
         )}
@@ -181,11 +186,19 @@ function AuthForm() {
 
 // ─── Signed-in: profile + sync + privacy ────────────────────────────────────
 
-function SignedInView({ onOpenFriends }: { onOpenFriends: () => void }) {
+function SignedInView({
+  onOpenFriends,
+  onOpenPremium,
+}: {
+  onOpenFriends: () => void;
+  onOpenPremium: () => void;
+}) {
   const t = useT();
   const profile = getProfile();
   const status = getSyncStatus();
   const lastSynced = getLastSyncedAt();
+  const hasCloud = useHasEntitlement('cloud');
+  const hasUnlocks = useHasEntitlement('unlocks');
   const [privacy, setPriv] = useState<PrivacySettings | null>(null);
 
   useEffect(() => {
@@ -211,23 +224,34 @@ function SignedInView({ onOpenFriends }: { onOpenFriends: () => void }) {
         <Text style={s.boxTitle}>{profile?.username ?? '…'}</Text>
       </View>
 
-      {/* Sync */}
-      <Text style={s.sectionLabel}>{syncLabel}</Text>
-      <Text style={s.desc}>
-        {t('account.lastSynced').replace(
-          '{time}',
-          lastSynced ? new Date(lastSynced).toLocaleTimeString() : t('account.never'),
-        )}
-      </Text>
-      <Pressable
-        style={({ pressed }) => [s.btnOutline, pressed && pressedStyle]}
-        onPress={() => void syncNow()}
-        disabled={status === 'syncing'}
-        accessibilityRole="button"
-        accessibilityLabel={t('account.syncNow')}
-      >
-        <Text style={s.btnOutlineText}>{t('account.syncNow')}</Text>
-      </Pressable>
+      {/* Sync — suscripción 'cloud'. La sesión en sí (Amigos, perfil público)
+          sigue siendo gratis; lo que se capa es el respaldo de colección/
+          decks/wishlists en el servidor. */}
+      {hasCloud ? (
+        <>
+          <Text style={s.sectionLabel}>{syncLabel}</Text>
+          <Text style={s.desc}>
+            {t('account.lastSynced').replace(
+              '{time}',
+              lastSynced ? new Date(lastSynced).toLocaleTimeString() : t('account.never'),
+            )}
+          </Text>
+          <Pressable
+            style={({ pressed }) => [s.btnOutline, pressed && pressedStyle]}
+            onPress={() => void syncNow()}
+            disabled={status === 'syncing'}
+            accessibilityRole="button"
+            accessibilityLabel={t('account.syncNow')}
+          >
+            <Text style={s.btnOutlineText}>{t('account.syncNow')}</Text>
+          </Pressable>
+        </>
+      ) : (
+        <>
+          <Text style={s.sectionLabel}>{t('account.syncOffline')}</Text>
+          <CloudLockedTeaser label="premium.cloudSyncLocked" onPress={onOpenPremium} />
+        </>
+      )}
 
       {/* Friends */}
       <Pressable
@@ -255,15 +279,21 @@ function SignedInView({ onOpenFriends }: { onOpenFriends: () => void }) {
             <View style={s.row}>
               {VIS_OPTIONS.map((vis) => {
                 const on = privacy[key] === vis;
+                // Wishlist pública/compartible es parte de `unlocks` (ToDo.md
+                // §3) — el resto de opciones (friends/private) y el resto de
+                // recursos (collection/decks) siguen libres. Sin unlocks, la
+                // opción se ve pero enlaza a Premium en vez de aplicarse.
+                const locked = key === 'wishlist' && vis === 'public' && !hasUnlocks;
                 return (
                   <Pressable
                     key={vis}
-                    style={({ pressed }) => [s.chip, on && s.chipOn, pressed && pressedStyle]}
-                    onPress={() => changeVis(key, vis)}
+                    style={({ pressed }) => [s.chip, s.chipWithIcon, on && s.chipOn, pressed && pressedStyle]}
+                    onPress={() => (locked ? onOpenPremium() : changeVis(key, vis))}
                     accessibilityRole="button"
                     accessibilityState={{ selected: on }}
-                    accessibilityLabel={t(VIS_LABEL[vis])}
+                    accessibilityLabel={locked ? t('premium.wishlistShareLocked') : t(VIS_LABEL[vis])}
                   >
+                    {locked && <Icon name="sparkle" size={12} color={colors.accent} />}
                     <Text style={[s.chipText, on && s.chipTextOn]}>{t(VIS_LABEL[vis])}</Text>
                   </Pressable>
                 );
@@ -336,6 +366,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  chipWithIcon: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   chipOn: { backgroundColor: colors.accentDim, borderColor: colors.accent },
   chipText: { fontSize: 14, fontFamily: fonts.uiSemi, color: colors.textMut },
   chipTextOn: { color: colors.accent },

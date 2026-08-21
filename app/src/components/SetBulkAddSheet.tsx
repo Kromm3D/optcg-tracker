@@ -18,7 +18,9 @@ import { colors, fonts, radii, spacing, pressedStyle, pressedSurface } from '../
 import { Icon } from './Icon';
 import { Counter } from './Counter';
 import { useToast } from './Toast';
+import { PremiumLimitModal } from './PremiumLimitModal';
 import { useT } from '../lib/i18n';
+import { useLimit } from '../lib/entitlements';
 import { summarizeSet, isEntryComplete, baseRarityOf, type SetEntry } from '../lib/setsStats';
 import { getSettings } from '../lib/settings';
 import { adjust as adjustCollection } from '../lib/collection';
@@ -67,6 +69,9 @@ export function SetBulkAddSheet({ visible, setCode, onClose }: Props) {
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [showWlLimit, setShowWlLimit] = useState(false);
+  const wishlistLimit = useLimit('wishlists');
+  const atWlLimit = wishlistLimit !== null && wishlists.length >= wishlistLimit;
 
   // Missing entries + the rarities present among them.
   const missing = useMemo(
@@ -101,6 +106,11 @@ export function SetBulkAddSheet({ visible, setCode, onClose }: Props) {
 
   const handleCreateWL = async () => {
     if (!newName.trim()) return;
+    if (atWlLimit) {
+      setCreating(false);
+      setShowWlLimit(true);
+      return;
+    }
     const wl = await createWishlist(newName.trim());
     setCreating(false);
     setNewName('');
@@ -258,13 +268,15 @@ export function SetBulkAddSheet({ visible, setCode, onClose }: Props) {
                       </View>
                     ) : (
                       <Pressable
-                        style={({ pressed }) => [s.newRow, pressed && pressedStyle]}
-                        onPress={() => setCreating(true)}
+                        style={({ pressed }) => [s.newRow, atWlLimit && s.newRowLocked, pressed && pressedStyle]}
+                        onPress={() => (atWlLimit ? setShowWlLimit(true) : setCreating(true))}
                         accessibilityRole="button"
                         accessibilityLabel={t('wl.newWishlist')}
                       >
-                        <Icon name="plus" size={16} color={colors.accent} />
-                        <Text style={s.newRowText}>{t('wl.newWishlist')}</Text>
+                        <Icon name={atWlLimit ? 'sparkle' : 'plus'} size={16} color={atWlLimit ? colors.textMut : colors.accent} />
+                        <Text style={[s.newRowText, atWlLimit && s.newRowTextLocked]}>
+                          {atWlLimit ? `${t('wl.newWishlist')} · ${wishlists.length}/${wishlistLimit}` : t('wl.newWishlist')}
+                        </Text>
                       </Pressable>
                     )}
                   </View>
@@ -286,6 +298,13 @@ export function SetBulkAddSheet({ visible, setCode, onClose }: Props) {
           )}
         </Pressable>
       </Pressable>
+
+      <PremiumLimitModal
+        visible={showWlLimit}
+        onClose={() => setShowWlLimit(false)}
+        title={t('premium.wishlistLimitTitle')}
+        body={t('premium.wishlistLimitBody', { n: String(wishlistLimit ?? '') })}
+      />
     </Modal>
   );
 }
@@ -339,6 +358,8 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
   },
   newRowText: { fontSize: 14, fontFamily: fonts.uiSemi, color: colors.accent },
+  newRowLocked: { borderStyle: 'solid', opacity: 0.7 },
+  newRowTextLocked: { color: colors.textMut },
   createBox: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   nameInput: {
     flex: 1, height: 44, borderRadius: radii.lg,

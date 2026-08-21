@@ -32,6 +32,9 @@ export interface Deck {
   updatedAt?: number;
   /** true = lápida (borrado localmente, pendiente de propagar). Ver B-17. */
   deleted?: boolean;
+  /** Archivado: no cuenta contra `FREE_LIMITS.decks`, no aparece en la lista
+   *  activa. Alternativa suave al tope — nunca se borra nada al archivar. */
+  archived?: boolean;
 }
 
 type DeckMap = Record<string, Deck>;
@@ -170,6 +173,15 @@ export async function deleteDeck(id: string): Promise<void> {
   const map = { ...(await read()) };
   if (!map[id]) return;
   map[id] = { id, name: '', cards: [], createdAt: map[id].createdAt, updatedAt: Date.now(), deleted: true };
+  await write(map);
+}
+
+/** Archiva o restaura un mazo. Gratis e ilimitado (ver ToDo.md §2) — a
+ *  diferencia de borrar, esto es completamente reversible y no deja lápida. */
+export async function archiveDeck(id: string, archived: boolean): Promise<void> {
+  const map = { ...(await read()) };
+  if (!map[id] || isTombstone(map[id])) return;
+  map[id] = { ...map[id], archived, updatedAt: Date.now() };
   await write(map);
 }
 

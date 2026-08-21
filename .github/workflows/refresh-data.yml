@@ -160,7 +160,7 @@ jobs:
             images
 
   prices:
-    name: Prices (Cardmarket)
+    name: Prices (CardTrader)
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'schedule' || inputs.prices }}
     steps:
@@ -176,21 +176,25 @@ jobs:
           playwright install --with-deps chromium
 
       - name: Scrape Cardmarket product URLs (best effort)
-        # Cardmarket bloquea a Cloudflare casi siempre a un runner de CI —
-        # por eso este paso es continue-on-error y solo aporta product_url
-        # (el link "Ver en Cardmarket" de la app) cuando cuela. Los precios
-        # de verdad NO dependen de este paso, ver el siguiente.
+        # Solo aporta product_url (el link "Ver en Cardmarket" de la app) —
+        # CardTrader no da un product_url fiable por listado individual, así
+        # que se conserva este paso aunque el precio ya no venga de aquí.
+        # continue-on-error porque Cardmarket bloquea a Cloudflare casi
+        # siempre a un runner de CI; los precios de verdad NO dependen de
+        # este paso, ver el siguiente.
         continue-on-error: true
         run: python scripts/build_prices.py --browser --all
 
-      - name: Fetch Cardmarket prices (bulk feed, no Cloudflare)
-        # Cardmarket publica a diario un catálogo + guía de precios por juego
-        # en un bucket S3 público, sin Cloudflare delante (a diferencia del
-        # sitio). Ver scripts/build_prices_bulk.py para el porqué y la
-        # heurística de emparejamiento código+variante. Este paso SÍ debe
-        # funcionar siempre — si falla, es una señal real (el feed cambió de
-        # sitio o de formato), no ruido de bot-detection.
-        run: python scripts/build_prices_bulk.py
+      - name: Fetch CardTrader prices (marketplace API)
+        # CardTrader expone el codigo impreso de cada carta directamente en
+        # cada listado (`properties_hash.collector_number`), asi que el
+        # matching es mucho mas directo que el feed bulk de Cardmarket que
+        # usaba antes este job (build_prices_bulk.py, aun en el repo por si
+        # hace falta volver atras). Ver scripts/build_prices_cardtrader.py
+        # para el detalle del matching y la agregacion de precio.
+        env:
+          CARDTRADER_API_TOKEN: ${{ secrets.CARDTRADER_API_TOKEN }}
+        run: python scripts/build_prices_cardtrader.py --write
 
       - name: Verify the scrape produced something usable
         id: verify
@@ -203,9 +207,10 @@ jobs:
           entries = json.loads(p.read_text(encoding='utf-8')).get('prices', {})
           priced = [e for e in entries.values() if e.get('low') or e.get('trend')]
           print(f'{len(entries)} entradas, {len(priced)} con precio')
-          # Umbral defensivo: el feed bulk cubre de forma fiable el print base
-          # (Normal+Parallel) de la inmensa mayoría de códigos — sobre 3300 en
-          # la primera prueba manual. Si cae muy por debajo, algo se rompió.
+          # Umbral defensivo: la API de CardTrader cubre de forma fiable el
+          # print base (Normal+Parallel) de la inmensa mayoría de códigos —
+          # sobre 3200 en la primera prueba manual. Si cae muy por debajo,
+          # algo se rompió (token caducado, cambio de esquema en la API...).
           if len(priced) < 2000:
               print('Muy pocas entradas con precio — se descarta el resultado'); sys.exit(1)
           PY

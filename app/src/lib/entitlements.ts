@@ -19,6 +19,7 @@
 // analytics) tiene que validarse ADEMÁS en servidor — RLS o Edge Function
 // mirando el entitlement espejado, nunca fiándose de lo que diga la app.
 
+import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'optcg.entitlements.v1';
@@ -198,4 +199,36 @@ export function subscribe(listener: () => void): () => void {
   return () => {
     listeners.delete(listener);
   };
+}
+
+/**
+ * Hook: tope actual para `resource`, reactivo a cambios de entitlement.
+ *
+ * Envuelve el load+subscribe para que cada pantalla que gatea algo no tenga
+ * que repetir el mismo `useState`+`useEffect` (esto ya se usa en 5 sitios
+ * distintos: decks y las 4 vías de crear wishlist).
+ */
+/**
+ * Hook: ¿tiene el usuario `key`?, reactivo a cambios de entitlement.
+ * Igual que `useLimit()` pero para features binarias (histórico de precio,
+ * alertas, sync) en vez de topes numéricos.
+ */
+export function useHasEntitlement(key: Entitlement): boolean {
+  const [granted, setGranted] = useState(() => hasEntitlement(key));
+  useEffect(() => {
+    const sync = () => setGranted(hasEntitlement(key));
+    loadEntitlements().then(sync);
+    return subscribe(sync);
+  }, [key]);
+  return granted;
+}
+
+export function useLimit(resource: LimitedResource): number | null {
+  const [limit, setLimit] = useState<number | null>(() => getLimit(resource));
+  useEffect(() => {
+    const sync = () => setLimit(getLimit(resource));
+    loadEntitlements().then(sync);
+    return subscribe(sync);
+  }, [resource]);
+  return limit;
 }
