@@ -59,7 +59,7 @@ export function ReleaseCalendar({ onOpenSet }: { onOpenSet: (setCode: string) =>
   return (
     <View style={s.card}>
       <View style={s.head}>
-        <Icon name="sets" size={16} color={colors.textMut} />
+        <Icon name="layers" size={16} color={colors.textMut} />
         <Text style={s.headText}>{t('home.releases')}</Text>
       </View>
 

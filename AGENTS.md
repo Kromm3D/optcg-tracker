@@ -44,6 +44,7 @@ Pokedesk (Dribbble) — no se pudo abrir desde la sesión, se tomó la idea gene
 - Mockups de diseño: https://claude.ai/artifact/2y4uDkiJiMP8ry6Wz2s5oj (el mockup
   incluye un FAB central de escáner que NO se implementó: el escaneo vive en la
   barra de búsqueda).
+- Verificado en navegador (expo web, 390x844): Home/Cards/Binder/Decks/Profile/Detail en oscuro Y claro. Ajustes tras la prueba: tile "Create deck" de Home = superficie con borde rosa (no segundo relleno rosa), paddingBottom del scroll de Home 128, icono de ReleaseCalendar 'sets' (no existía en Icon.tsx → hueco) → 'layers'.
 - Pendiente: revisar a mano en dispositivo todas las pantallas (colores
   hardcodeados en CardThumb/DeckStats/SetBanner no auditados), y el tema claro.
 

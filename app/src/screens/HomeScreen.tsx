@@ -141,9 +141,9 @@ function SectionTile({ icon, label, sub, onPress, accent = false, isNew = false 
           <Text style={s.ribbonText}>NEW</Text>
         </View>
       ) : null}
-      <TileIcon name={icon} size={32} color={accent ? colors.onAccent : colors.accent} />
-      <Text style={[s.tileLabel, accent && { color: colors.onAccent }]}>{label}</Text>
-      {sub ? <Text style={[s.tileSub, accent && { color: 'rgba(26,26,26,0.7)' }]}>{sub}</Text> : null}
+      <TileIcon name={icon} size={32} color={colors.accent} />
+      <Text style={s.tileLabel}>{label}</Text>
+      {sub ? <Text style={s.tileSub}>{sub}</Text> : null}
     </Pressable>
   );
 }
@@ -349,7 +349,7 @@ const s = StyleSheet.create({
   alertTarget: { fontSize: 11, fontFamily: fonts.ui, color: colors.textDim },
   scroll: {
     padding: spacing.lg,
-    paddingBottom: 110,
+    paddingBottom: 128,
     gap: spacing.md,
   },
 
@@ -456,8 +456,10 @@ const s = StyleSheet.create({
     justifyContent: 'flex-end',
     overflow: 'hidden',
   },
+  // Tile destacado: superficie normal con borde rosa (el hero ya es rosa macizo;
+  // dos rellenos rosas juntos se comían la jerarquía).
   tileAccent: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.accentDim,
     borderColor: colors.accent,
   },
   // Cinta diagonal "NEW" (cian fantasma) en la esquina superior derecha.
