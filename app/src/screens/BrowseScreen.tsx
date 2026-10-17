@@ -160,14 +160,14 @@ export function BrowseScreen({ navigation }: BrowseScreenProps) {
       <View style={s.searchWrap}>
         <View style={s.search}>
           {/* Scan: la cámara vive ahora en la barra de búsqueda (antes era el
-              FAB central). Acento + glow para que siga siendo la acción estrella. */}
+              FAB central). Rojo + glow para que siga siendo la acción estrella. */}
           <Pressable
             onPress={() => navigation.navigate('Scan')}
             accessibilityRole="button"
             accessibilityLabel={t('tab.scan')}
             style={({ pressed }) => [s.scanBtn, pressed && pressedStyle]}
           >
-            <Icon name="camera" size={20} color={colors.onAccent} stroke={2} />
+            <Icon name="camera" size={20} color={colors.onRed} stroke={2} />
           </Pressable>
           <Icon name="search" size={19} color={colors.textMut} />
           <TextInput
@@ -339,11 +339,11 @@ const s = StyleSheet.create({
   scanBtn: {
     width: 38,
     height: 38,
-    borderRadius: 11,
-    backgroundColor: colors.accent,
+    borderRadius: 19,
+    backgroundColor: colors.red,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.accent,
+    shadowColor: colors.red,
     shadowOpacity: 0.45,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },

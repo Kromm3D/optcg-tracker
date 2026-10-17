@@ -12,9 +12,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   useFonts,
-  Sora_500Medium,
-  Sora_700Bold,
-} from '@expo-google-fonts/sora';
+  BricolageGrotesque_700Bold,
+  BricolageGrotesque_800ExtraBold,
+} from '@expo-google-fonts/bricolage-grotesque';
 import {
   Manrope_400Regular,
   Manrope_500Medium,
@@ -128,7 +128,7 @@ function TabBar({ activeTab, onNavigate }: TabBarProps) {
                   <Icon
                     name={meta.icon}
                     size={21}
-                    color={focused ? colors.accent : colors.textMut}
+                    color={focused ? colors.onAccent : colors.textMut}
                     stroke={focused ? 2.2 : 1.8}
                   />
                   {showDot && <View style={s.tabDot} />}
@@ -136,7 +136,7 @@ function TabBar({ activeTab, onNavigate }: TabBarProps) {
                 <Text
                   style={[
                     s.tabLabel,
-                    { color: focused ? colors.accent : colors.textMut },
+                    { color: focused ? colors.onAccent : colors.textMut },
                     focused && { fontFamily: fonts.uiBold },
                   ]}
                   numberOfLines={1}
@@ -240,8 +240,8 @@ const LINKING = {
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    Sora_500Medium,
-    Sora_700Bold,
+    BricolageGrotesque_700Bold,
+    BricolageGrotesque_800ExtraBold,
     Manrope_400Regular,
     Manrope_500Medium,
     Manrope_600SemiBold,
@@ -420,9 +420,9 @@ const s = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   tabBar: {
-    marginHorizontal: 12,
-    height: 62,
-    borderRadius: 22,
+    marginHorizontal: 16,
+    height: 68,
+    borderRadius: 34,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 4,
@@ -432,15 +432,15 @@ const s = StyleSheet.create({
   },
   tabBtn: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // Píldora interna que abraza el contenido (icono + etiqueta); sólo se pinta
-  // (accentDim) en la pestaña activa, estilo Collectr.
+  // (accent sólido) en la pestaña activa.
   tabInner: {
     alignItems: 'center',
     gap: 3,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 14,
+    borderRadius: 24,
   },
-  tabInnerOn: { backgroundColor: colors.accentDim },
+  tabInnerOn: { backgroundColor: colors.accent },
   tabDot: {
     position: 'absolute',
     top: -2,

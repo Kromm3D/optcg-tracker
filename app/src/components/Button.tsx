@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 18,
-    borderRadius: 14,
+    borderRadius: 999,
   },
   primary: { backgroundColor: colors.accent },
   danger: { backgroundColor: colors.down },
