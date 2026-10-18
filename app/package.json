@@ -12,6 +12,7 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
+    "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
     "@expo-google-fonts/manrope": "^0.2.3",
     "@expo-google-fonts/sora": "^0.2.3",
     "@expo/metro-runtime": "~56.0.13",

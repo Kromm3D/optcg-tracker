@@ -94,7 +94,7 @@ function HeroTile({ onPress, totalOwned, uniqueOwned, completion }: {
       accessibilityLabel={t('home.collection')}
     >
       <View style={s.heroIconWrap}>
-        <TileIcon name="binder" size={40} color={colors.accent} />
+        <TileIcon name="binder" size={40} color={colors.onAccent} />
       </View>
       <Text style={s.heroTitle}>{t('home.collection')}</Text>
       <View style={s.heroStats}>
@@ -109,7 +109,7 @@ function HeroTile({ onPress, totalOwned, uniqueOwned, completion }: {
         </View>
         <View style={s.heroStatDiv} />
         <View style={s.heroStat}>
-          <Text style={[s.heroStatVal, { color: colors.ghost }]}>{completion}%</Text>
+          <Text style={s.heroStatVal}>{completion}%</Text>
           <Text style={s.heroStatLbl}>{t('home.ofIndex')}</Text>
         </View>
       </View>
@@ -141,9 +141,9 @@ function SectionTile({ icon, label, sub, onPress, accent = false, isNew = false 
           <Text style={s.ribbonText}>NEW</Text>
         </View>
       ) : null}
-      <TileIcon name={icon} size={32} color={accent ? colors.onAccent : colors.accent} />
-      <Text style={[s.tileLabel, accent && { color: colors.onAccent }]}>{label}</Text>
-      {sub ? <Text style={[s.tileSub, accent && { color: 'rgba(61,18,40,0.7)' }]}>{sub}</Text> : null}
+      <TileIcon name={icon} size={32} color={colors.accent} />
+      <Text style={s.tileLabel}>{label}</Text>
+      {sub ? <Text style={s.tileSub}>{sub}</Text> : null}
     </Pressable>
   );
 }
@@ -349,7 +349,7 @@ const s = StyleSheet.create({
   alertTarget: { fontSize: 11, fontFamily: fonts.ui, color: colors.textDim },
   scroll: {
     padding: spacing.lg,
-    paddingBottom: 110,
+    paddingBottom: 128,
     gap: spacing.md,
   },
 
@@ -382,9 +382,9 @@ const s = StyleSheet.create({
 
   // Hero tile
   heroTile: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.accent,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.accent,
     borderRadius: radii.xxl,
     padding: 22,
     gap: 14,
@@ -393,14 +393,14 @@ const s = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: radii.lg,
-    backgroundColor: colors.accentDim,
+    backgroundColor: colors.onAccent + '1f',
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroTitle: {
     fontSize: 26,
     fontFamily: fonts.display,
-    color: colors.text,
+    color: colors.onAccent,
     letterSpacing: -0.4,
     marginTop: -4,
   },
@@ -413,29 +413,29 @@ const s = StyleSheet.create({
   heroStatVal: {
     fontSize: 20,
     fontFamily: fonts.display,
-    color: colors.text,
+    color: colors.onAccent,
     letterSpacing: -0.5,
   },
   heroStatLbl: {
     fontSize: 10,
-    fontFamily: fonts.ui,
-    color: colors.textMut,
+    fontFamily: fonts.uiSemi,
+    color: colors.onAccent,
   },
   heroStatDiv: {
     width: 1,
     height: 32,
-    backgroundColor: colors.border,
+    backgroundColor: colors.onAccent + '33',
   },
   progTrack: {
-    height: 4,
+    height: 6,
     borderRadius: 99,
-    backgroundColor: colors.surface2,
+    backgroundColor: colors.onAccent + '33',
     overflow: 'hidden',
   },
   progFill: {
     height: '100%',
     borderRadius: 99,
-    backgroundColor: colors.ghost,
+    backgroundColor: colors.onAccent,
   },
 
   // Section tile grid
@@ -456,8 +456,10 @@ const s = StyleSheet.create({
     justifyContent: 'flex-end',
     overflow: 'hidden',
   },
+  // Tile destacado: superficie normal con borde rosa (el hero ya es rosa macizo;
+  // dos rellenos rosas juntos se comían la jerarquía).
   tileAccent: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.accentDim,
     borderColor: colors.accent,
   },
   // Cinta diagonal "NEW" (cian fantasma) en la esquina superior derecha.

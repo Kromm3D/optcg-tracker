@@ -502,7 +502,7 @@ export function BinderScreen({ navigation, route }: BinderScreenProps) {
                   accessibilityRole="button"
                   accessibilityLabel={t('tab.scan')}
                 >
-                  <Icon name="camera" size={16} color={colors.onAccent} stroke={2} />
+                  <Icon name="camera" size={16} color={colors.onRed} stroke={2} />
                 </Pressable>
               )}
               {tab === 'owned' && (
@@ -705,8 +705,8 @@ const s = StyleSheet.create({
   // donde alojar la cámara como en Browse — vive aquí, en el contexto "añadir").
   scanBtn: {
     width: 30, height: 30, borderRadius: 15,
-    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.accent, shadowOpacity: 0.4, shadowRadius: 6,
+    backgroundColor: colors.red, alignItems: 'center', justifyContent: 'center',
+    shadowColor: colors.red, shadowOpacity: 0.4, shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 }, elevation: 4,
   },
   iconBtn: {

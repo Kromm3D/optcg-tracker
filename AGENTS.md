@@ -25,6 +25,29 @@ fechada de abajo.)
 
 ## Current uncommitted state (read before committing)
 
+### 2026-10-17 — Revamp visual "Hot Pink Night" (typecheck verde, SIN verificar en dispositivo)
+
+Paleta oficial de Perona (Hot Pink #FF69B4, Pink #FFB6C1, Red #E60012, Eerie
+Black #1A1A1A, blanco) en vez del lila/cian anterior. Referencia de forma:
+Pokedesk (Dribbble) — no se pudo abrir desde la sesión, se tomó la idea general
+(cartas grandes, esquinas muy redondeadas, tab bar flotante).
+
+- `theme.ts`: DARK/LIGHT reescritos. Roles: `accent` = Hot Pink (marca/acción),
+  `ghost` = Pink (progreso/colección; el nombre se mantiene por compatibilidad),
+  nuevo `red`/`onRed` (escáner; SIEMPRE texto blanco encima). Negro adaptado
+  #121012 para fondo y blanco rosado #FFF6FA para texto. Contrastes calculados
+  (AA en todos los pares usados). Foil pasa a rosa→blanco. Radios más grandes.
+- Fuente de títulos: Sora → Bricolage Grotesque (`@expo-google-fonts/bricolage-grotesque`).
+  `@expo-google-fonts/sora` sigue en package.json sin uso (limpiar).
+- Tab bar: píldora de 68 px, pestaña activa = relleno rosa sólido. Botones pill.
+  Hero de Home = tarjeta rosa con texto oscuro. Botones de escáner (Browse/Binder) en rojo.
+- Mockups de diseño: https://claude.ai/artifact/2y4uDkiJiMP8ry6Wz2s5oj (el mockup
+  incluye un FAB central de escáner que NO se implementó: el escaneo vive en la
+  barra de búsqueda).
+- Verificado en navegador (expo web, 390x844): Home/Cards/Binder/Decks/Profile/Detail en oscuro Y claro. Ajustes tras la prueba: tile "Create deck" de Home = superficie con borde rosa (no segundo relleno rosa), paddingBottom del scroll de Home 128, icono de ReleaseCalendar 'sets' (no existía en Icon.tsx → hueco) → 'layers'.
+- Pendiente: revisar a mano en dispositivo todas las pantallas (colores
+  hardcodeados en CardThumb/DeckStats/SetBanner no auditados), y el tema claro.
+
 ### 2026-08-02 (6) — El workflow corrió por primera vez: 2 fallos reales, ambos arreglados (CI-VERIFIED)
 
 Se lanzó a mano con `workflow_dispatch` en vez de esperar al lunes. Mereció la

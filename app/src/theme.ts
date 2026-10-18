@@ -22,71 +22,65 @@
 // tema en caliente no los refresca — de ahí que cambiar de tema pida reiniciar.
 
 const DARK = {
-  bg: '#131019',
-  surface: '#1c1726',
-  surface2: '#261f33',
-  border: 'rgba(246,240,250,0.10)',
-  text: '#f6f0fa',
-  // Secondary text (lavanda). ~5:1 sobre bg — pasa WCAG AA para texto normal.
-  textMut: '#a99bba',
-  // Texto terciario (~4:1 sobre bg) para códigos/subtítulos/placeholder.
-  // Nunca usar para etiquetas de navegación o texto <14px crítico.
-  textDim: '#8a7ca0',
-  // Rosa Perona (candy-gótico): color de marca/acción de ESTE tema. Sobre fondo
-  // oscuro un rosa claro basta; el texto encima va en `onAccent` (tinta ciruela
-  // oscura). Deliberadamente distinto del dot de carta "Morado" (#9b5de5).
-  accent: '#ff6fb5',
-  accentDim: 'rgba(255,111,181,0.14)',
-  accentGlow: 'rgba(255,111,181,0.38)',
-  onAccent: '#3d1228',
-  // Cian espectral del aura Negative Hollow: color SEMÁNTICO de progreso/colección
-  // (barras, anillos, %, "materializado"), constante en ambos temas. Distinto del
-  // dot de carta "Azul" (#4a90e2) para no confundirlos.
-  ghost: '#9fe3e8',
-  ghostDim: 'rgba(159,227,232,0.14)',
-  ghostGlow: 'rgba(159,227,232,0.32)',
-  onGhost: '#0c3b3e',
-  badge: '#ff6fb5',
-  // Pista neutra del ProgressRing — blanco lavanda translúcido.
-  ring: 'rgba(246,240,250,0.08)',
+  bg: '#121012',
+  surface: '#1a1a1a',
+  surface2: '#262226',
+  border: 'rgba(255,246,250,0.12)',
+  text: '#fff6fa',
+  // Texto secundario (rosa-gris). Pasa AA sobre bg.
+  textMut: '#c7b3bd',
+  // Texto terciario para códigos/subtítulos/placeholder (≥4:1 sobre bg).
+  textDim: '#a2909a',
+  // Hot Pink: color de marca/acción. El texto encima va en `onAccent` (Eerie Black).
+  accent: '#ff69b4',
+  accentDim: 'rgba(255,105,180,0.16)',
+  accentGlow: 'rgba(255,105,180,0.40)',
+  onAccent: '#1a1a1a',
+  // Pink claro: color SEMÁNTICO de progreso/colección (barras, anillos, %).
+  // El nombre `ghost` se mantiene por compatibilidad con los componentes.
+  ghost: '#ffb6c1',
+  ghostDim: 'rgba(255,182,193,0.14)',
+  ghostGlow: 'rgba(255,182,193,0.32)',
+  onGhost: '#1a1a1a',
+  // Rojo de marca: escáner y rarezas altas. Texto/icono encima SIEMPRE en `onRed`
+  // (blanco); tinta oscura sobre rojo no pasa contraste.
+  red: '#e60012',
+  onRed: '#ffffff',
+  badge: '#ff69b4',
+  ring: 'rgba(255,246,250,0.10)',
   up: '#4ec98b',
-  down: '#ef5d6b',
-  // Aviso: ni error ni pérdida — "míralo antes de aceptar".
+  down: '#ff5a68',
   warn: '#e8b04b',
-  // Wash translúcido de la barra flotante de tabs — un valor propio porque
-  // necesita transparencia (no puede derivarse de `surface2`, que es sólido).
-  tabBarWash: 'rgba(28,23,38,0.94)',
+  tabBarWash: 'rgba(38,34,38,0.94)',
 };
 
-// Tema "Ghost Day": Perona de día, neblinoso. Base lavanda muy clara. El rosa de
-// marca y el cian espectral se OSCURECEN aquí (rosa→rosa profundo, cian→teal
-// profundo) porque los tonos claros del tema oscuro no pasan ~4.5:1 como texto
-// sobre fondo claro. Por eso mismo el texto ENCIMA de los rellenos se invierte a
-// blanco (`onAccent`/`onGhost`): con accent/ghost ya oscurecidos, tinta oscura
-// encima perdería contraste. up/down se oscurecen por la misma razón (se usan
-// como texto directo, p.ej. el delta del vault y el % de cambio de precio).
+// Tema claro: base rosada muy clara. Hot Pink y Pink se OSCURECEN (rosa profundo,
+// rosa empolvado) porque los tonos de marca no pasan como texto sobre blanco; el
+// texto sobre los rellenos se invierte a blanco.
 const LIGHT = {
-  bg: '#f4eef9',
+  bg: '#fff5f9',
   surface: '#ffffff',
-  surface2: '#efe7f6',
-  border: 'rgba(45,26,58,0.14)',
-  text: '#241a2e',
-  textMut: '#5e5170',
-  textDim: '#766888',
-  accent: '#c0357a',
-  accentDim: 'rgba(192,53,122,0.10)',
-  accentGlow: 'rgba(192,53,122,0.30)',
+  surface2: '#fde7f0',
+  border: 'rgba(26,26,26,0.12)',
+  text: '#1a1a1a',
+  textMut: '#5c4a54',
+  textDim: '#7a6670',
+  accent: '#d1237a',
+  accentDim: 'rgba(209,35,122,0.10)',
+  accentGlow: 'rgba(209,35,122,0.30)',
   onAccent: '#ffffff',
-  ghost: '#0f8390',
-  ghostDim: 'rgba(15,131,144,0.12)',
-  ghostGlow: 'rgba(15,131,144,0.25)',
+  ghost: '#b04a68',
+  ghostDim: 'rgba(176,74,104,0.12)',
+  ghostGlow: 'rgba(176,74,104,0.25)',
   onGhost: '#ffffff',
-  badge: '#c0357a',
-  ring: 'rgba(45,26,58,0.08)',
+  red: '#e60012',
+  onRed: '#ffffff',
+  badge: '#d1237a',
+  ring: 'rgba(26,26,26,0.08)',
   up: '#157048',
-  down: '#c0334a',
+  down: '#c00a1e',
   warn: '#a86a12',
-  tabBarWash: 'rgba(255,255,255,0.92)',
+  tabBarWash: 'rgba(255,255,255,0.94)',
 };
 
 export type ThemeMode = 'light' | 'dark';
@@ -108,8 +102,8 @@ export const onScrim = '#f6f0fa';
 // rosa→lila→cian reservado a los momentos premium de marca (rareza holo, estado
 // "materializado"). Constante en ambos temas — es un guiño de marca, no un color
 // semántico. Lo consume FoilBadge (react-native-svg). `onFoil` = tinta encima.
-export const FOIL_STOPS = ['#ff6fb5', '#c79cf0', '#9fe3e8', '#ffb3d9'];
-export const onFoil = '#3d1228';
+export const FOIL_STOPS = ['#ff69b4', '#ffd1e6', '#ffffff', '#ffb6c1'];
+export const onFoil = '#1a1a1a';
 
 // Los 6 colores oficiales de OPTCG. Hex usados para el dot/badge.
 // Tone es la tinta del fondo de la miniatura cuando no hay imagen real.
@@ -131,9 +125,9 @@ export function colorOf(key: string | undefined): string {
 }
 
 export const fonts = {
-  // Sora para displays (números grandes, titulares de carta)
-  display: 'Sora_700Bold',
-  displayMed: 'Sora_500Medium',
+  // Bricolage Grotesque para displays (números grandes, titulares de carta)
+  display: 'BricolageGrotesque_800ExtraBold',
+  displayMed: 'BricolageGrotesque_700Bold',
   // Manrope para UI / cuerpo
   ui: 'Manrope_400Regular',
   uiMed: 'Manrope_500Medium',
@@ -152,11 +146,11 @@ export const RARITY_ORDER: Record<string, number> = {
 export const HOT_RARITIES = new Set(['SR', 'L', 'SEC', 'SP']);
 
 export const radii = {
-  sm: 6,
-  md: 10,
-  lg: 14,
-  xl: 18,
-  xxl: 22,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 22,
+  xxl: 28,
 };
 
 export const spacing = {
